@@ -1,0 +1,9 @@
+Options -Indexes
+RewriteEngine On
+RewriteBase /ProyectoRRHH/
+
+# Enviar todo a index.php salvo archivos reales o /public/assets
+RewriteCond %{REQUEST_URI} !^/ProyectoRRHH/public/assets/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
