@@ -1,0 +1,44 @@
+/* public/assets/css/vice.css
+   RRHH — Estilos globales Vice City (blanco-first + acentos pastel)
+   ---------------------------------------------------------------- */
+
+/* 1) Fuente “Rage Italic” (coloca los archivos en /public/assets/fonts/) */
+@font-face{
+  font-family: 'Rage Italic';
+  src: url('../fonts/rage-italic.woff2') format('woff2'),
+       url('../fonts/rage-italic.woff')  format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 2) Tokens mínimos */
+:root{
+  /* Texto secundario en tinta azul */
+  --muted: rgba(10,42,94,.70);
+}
+
+/* 3) Fondo sutil tipo grid retro (para toda la página si se desea) */
+.grid-bg{
+  background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* 4) Título estilo Vice (Rage) con contorno compatible */
+.vice-title{
+  font-family: 'Rage Italic','Yellowtail',cursive;
+
+  /* WebKit/Chromium/Safari: contorno real */
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-text-stroke: 1px rgba(10,42,94,.25);
+
+  /* Fallback para Firefox/otros: simula el borde con sombras */
+  text-shadow:
+    -1px -1px 0 rgba(10,42,94,.25),
+     1px -1px 0 rgba(10,42,94,.25),
+    -1px  1px 0 rgba(10,42,94,.25),
+     1px  1px 0 rgba(10,42,94,.25);
+}
+
+/* 5) Utilidad de color secundario */
+.text-muted-ink{ color: var(--muted); }
