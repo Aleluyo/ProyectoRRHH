@@ -17,7 +17,7 @@ $modules = [
   ['title'=>'Asistencia','sub'=>'Entradas, salidas y faltas','icon'=>'i-cal-check','href'=>url('views/asistencia/list.php'),'tag'=>'peach'],
   ['title'=>'Permisos & Vacaciones','sub'=>'Gestión de ausencias','icon'=>'i-cal-plus','href'=>url('views/permisos/list.php'),'tag'=>'sand'],
   ['title'=>'Usuarios','sub'=>'Control y roles de acceso','icon'=>'i-badge','href'=>url('views/usuarios/list.php'),'tag'=>'teal'],
-  ['title'=>'Empresas','sub'=>'Catálogo y sucursales','icon'=>'i-building','href'=>url('views/empresas/list.php'),'tag'=>'pink'],
+  ['title'=>'Empresas','sub'=>'Catálogo de áreas, puestos, ubicaciones y más','icon'=>'i-building','href'=>url('views/organizacional/index.php'),'tag'=>'pink'],
   ['title'=>'Reportes','sub'=>'Indicadores y estadísticas','icon'=>'i-chart','href'=>url('views/reportes/list.php'),'tag'=>'peach'],
   ['title'=>'Configuración','sub'=>'Parámetros del sistema','icon'=>'i-gear','href'=>url('views/configuracion/index.php'),'tag'=>'sand'],
 ];
