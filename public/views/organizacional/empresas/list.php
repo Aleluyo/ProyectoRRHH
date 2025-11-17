@@ -33,7 +33,7 @@ try {
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Empresas · Estructura organizacional</title>
+  <title>Empresas · Administración organizacional</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Tailwind -->
@@ -103,6 +103,24 @@ try {
 
   <!-- Contenido principal -->
   <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
+ <!-- Breadcrumb -->
+  <div class="mb-5">
+    <nav class="flex items-center gap-3 text-sm">
+      <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+        Inicio
+      </a>
+      <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <a href="<?= url('views/organizacional/index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+        Administración Organizacional
+      </a>
+      <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span class="font-medium text-vc-pink">Empresas</span>
+    </nav>
+  </div>
 
     <!-- Título + acciones -->
     <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

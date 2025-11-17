@@ -26,7 +26,7 @@ $submodules = [
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Estructura organizacional - RRHH</title>
+  <title>Administración organizacional - RRHH</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
    <!-- Tailwind -->
@@ -95,9 +95,21 @@ $submodules = [
 
   <!-- Contenido principal -->
   <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
+  <!-- Breadcrumb -->
+  <div class="mb-5">
+    <nav class="flex items-center gap-3 text-sm">
+      <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+        Inicio
+      </a>
+      <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span class="font-medium text-vc-pink">Administración Organizacional</span>
+    </nav>
+  </div>
     <!-- Encabezado del módulo -->
     <section class="text-center mb-7">
-      <h1 class="vice-title text-[40px] leading-tight text-vc-ink">Administración organizacional</h1>
+      <h1 class="vice-title text-[40px] leading-tight text-vc-ink">Administración Organizacional</h1>
       <p class="mt-1 text-sm sm:text-base text-muted-ink">
         Bienvenido, ¿Qué desea realizar? 
       </p>
