@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/paths.php';
 require_once __DIR__ . '/../app/middleware/Auth.php';
 require_once __DIR__ . '/../app/controllers/EmpresaController.php';
+require_once __DIR__ . '/../app/controllers/AreaController.php';
 
 requireLogin();
 
@@ -22,6 +23,9 @@ if ($controllerName !== null && $actionName !== null) {
     switch ($controllerName) {
         case 'empresa':
             $controller = new EmpresaController();
+            break;
+         case 'area':
+            $controller = new AreaController();
             break;
         default: // Controlador no existe
             http_response_code(404);

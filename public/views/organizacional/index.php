@@ -16,7 +16,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 /** Submódulos administrativos del área de Empresas */
 $submodules = [
   ['title' => 'Empresas', 'sub' => 'Razón social, RFC y contacto',  'icon' => 'bi-building',          'href' => url('index.php?controller=empresa&action=index')],
-  ['title' => 'Áreas',                'sub' => 'Organización interna',          'icon' => 'bi-diagram-3',         'href' => url('views/organizacional/areas/list.php')],
+  ['title' => 'Áreas',                'sub' => 'Organización interna',          'icon' => 'bi-diagram-3',         'href' => url('index.php?controller=area&action=index')],
   ['title' => 'Puestos',              'sub' => 'Cargos y descripciones',        'icon' => 'bi-person-lines-fill', 'href' => url('views/organizacional/puestos/list.php')],
   ['title' => 'Ubicaciones',          'sub' => 'Sucursales y sedes',            'icon' => 'bi-geo-alt',           'href' => url('views/organizacional/ubicaciones/list.php')],
   ['title' => 'Turnos',               'sub' => 'Horarios laborales',            'icon' => 'bi-clock',             'href' => url('views/organizacional/turnos/list.php')],
