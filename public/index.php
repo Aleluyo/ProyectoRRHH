@@ -4,8 +4,44 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/paths.php';
 require_once __DIR__ . '/../app/middleware/Auth.php';
+require_once __DIR__ . '/../app/controllers/EmpresaController.php';
 
 requireLogin();
+
+
+
+// -----------------------------------------------------------------------------------------
+
+// Obtiene el nombre del controlador y la acción desde los parámetros GET
+$controllerName = $_GET['controller'] ?? null;
+$actionName     = $_GET['action']     ?? null;
+
+// Si ambos parámetros están presentes, procesamos la solicitud
+if ($controllerName !== null && $actionName !== null) {
+    // Enrutamiento según el controlador solicitado
+    switch ($controllerName) {
+        case 'empresa':
+            $controller = new EmpresaController();
+            break;
+        default: // Controlador no existe
+            http_response_code(404);
+            echo "Controlador no encontrado";
+            exit;
+    }
+    // Verifica que el método (acción) exista en el controlador
+    if (!method_exists($controller, $actionName)) {
+        http_response_code(404);
+        echo "Acción no encontrada";
+        exit;
+    }
+
+    // Ejecuta la acción solicitada y finaliza el script sin renderizar la página de inicio
+    $controller->{$actionName}();
+    exit;
+}
+// -----------------------------------------------------------------------------------------
+
+
 
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
