@@ -4,7 +4,6 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../config/paths.php';
 require_once __DIR__ . '/../../../../app/middleware/Auth.php';
-require_once __DIR__ . '/../../../../config/db.php';  //QUITAR
 
 requireLogin();
 requireRole(1);
@@ -16,19 +15,11 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 // -----------------------------------------------------------------------------
 // Obtención de datos
 // -----------------------------------------------------------------------------
-$empresas = [];
-
-try {
-    $pdo = db(); // Obtiene el objeto PDO desde db.php
-    $sql = "SELECT id_empresa, nombre, rfc, correo_contacto, telefono, direccion, activa
-            FROM empresas
-            ORDER BY id_empresa ASC";
-    $stmt = $pdo->query($sql);
-    $empresas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-} catch (Throwable $e) {
+// Asegura que $empresas siempre sea un array (vacío si no viene definido)
+if (!isset($empresas) || !is_array($empresas)) {
     $empresas = [];
 }
+
 ?>
 <!doctype html>
 <html lang="es">
@@ -146,7 +137,7 @@ try {
 
         <!-- Botón de agregar -->
         <a
-          href="<?= url('views/organizacional/empresas/create.php') ?>"
+          href="<?= url('index.php?controller=empresa&action=create') ?>"
           class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition"
         >
           <span class="mr-2 text-lg leading-none">+</span>
@@ -225,8 +216,8 @@ try {
     const btnNext = document.getElementById('btnNext');
     const headerCells = document.querySelectorAll('th[data-sort]');
 
-    const editBaseUrl   = "<?= url('views/organizacional/empresas/edit.php') ?>";
-    const toggleBaseUrl = "<?= url('views/organizacional/empresas/toggle.php') ?>"; // aquí puedes manejar desactivar/eliminar
+   const editBaseUrl   = "<?= url('index.php?controller=empresa&action=edit') ?>";
+   const toggleBaseUrl = "<?= url('index.php?controller=empresa&action=toggle') ?>";
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -301,7 +292,7 @@ try {
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
-                  href="${editBaseUrl}?id=${emp.id_empresa}"
+                  href="${editBaseUrl}&id=${emp.id_empresa}"
                   class="rounded-md border border-black/10 bg-white px-2 py-1 text-xs hover:bg-vc-sand/60"
                 >
                   Editar
@@ -311,7 +302,7 @@ try {
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${emp.id_empresa}"
                   data-nombre="${nombre}"
-                  data-href="${toggleBaseUrl}?id=${emp.id_empresa}"
+                  data-href="${toggleBaseUrl}&id=${emp.id_empresa}"
                 >
                   Desactivar
                 </button>
