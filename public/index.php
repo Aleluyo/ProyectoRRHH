@@ -8,6 +8,7 @@ require_once __DIR__ . '/../app/controllers/EmpresaController.php';
 require_once __DIR__ . '/../app/controllers/AreaController.php';
 require_once __DIR__ . '/../app/controllers/PuestoController.php';
 require_once __DIR__ . '/../app/controllers/UbicacionController.php';
+require_once __DIR__ . '/../app/controllers/TurnoController.php';
 
 requireLogin();
 
@@ -34,6 +35,9 @@ if ($controllerName !== null && $actionName !== null) {
             break;
         case 'ubicacion':
             $controller = new UbicacionController();
+            break;
+        case 'turno':
+            $controller = new TurnoController();
             break;
         default: // Controlador no existe
             http_response_code(404);

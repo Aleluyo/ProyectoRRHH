@@ -19,7 +19,7 @@ $submodules = [
   ['title' => 'Áreas',                'sub' => 'Organización interna',          'icon' => 'bi-diagram-3',         'href' => url('index.php?controller=area&action=index')],
   ['title' => 'Puestos',              'sub' => 'Cargos y descripciones',        'icon' => 'bi-person-lines-fill', 'href' => url('index.php?controller=puesto&action=index')],
   ['title' => 'Ubicaciones',          'sub' => 'Sucursales y sedes',            'icon' => 'bi-geo-alt',           'href' => url('index.php?controller=ubicacion&action=index')],
-  ['title' => 'Turnos',               'sub' => 'Horarios laborales',            'icon' => 'bi-clock',             'href' => url('views/organizacional/turnos/list.php')],
+  ['title' => 'Turnos',               'sub' => 'Horarios laborales',            'icon' => 'bi-clock',             'href' => url('index.php?controller=turno&action=index')],
 ];
 
 ?>
