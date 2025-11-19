@@ -162,7 +162,7 @@ class Area
             throw new \InvalidArgumentException('ID de área inválido.');
         }
 
-        // Si viene nombre_empresa o id_empresa, se podríamos validar la unicidad:
+        // Si viene nombre_empresa o id_empresa, se valida la unicidad:
         if (isset($data['id_empresa']) || isset($data['nombre_area'])) {
             $idEmpresa   = isset($data['id_empresa']) ? (int)$data['id_empresa'] : null;
             $nombreArea  = isset($data['nombre_area']) ? trim((string)$data['nombre_area']) : null;
@@ -281,6 +281,32 @@ class Area
 
         $st = $pdo->prepare($sql);
         $st->execute($params);
+        return $st->fetchAll();
+    }
+
+     /**
+     * Lista de áreas con el nombre de su empresa.
+     */
+    public static function allWithEmpresa(int $limit = 1000, int $offset = 0): array
+    {
+        global $pdo;
+
+        $limit  = max(1, min($limit, 1000));
+        $offset = max(0, $offset);
+
+        $sql = "SELECT
+                    a.*,
+                    e.nombre AS nombre_empresa
+                FROM areas a
+                LEFT JOIN empresas e ON e.id_empresa = a.id_empresa
+                ORDER BY e.nombre ASC, a.nombre_area ASC
+                LIMIT :limit OFFSET :offset";
+
+        $st = $pdo->prepare($sql);
+        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $st->execute();
+
         return $st->fetchAll();
     }
 }

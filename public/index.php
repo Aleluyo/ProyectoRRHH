@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config/paths.php';
 require_once __DIR__ . '/../app/middleware/Auth.php';
 require_once __DIR__ . '/../app/controllers/EmpresaController.php';
 require_once __DIR__ . '/../app/controllers/AreaController.php';
+require_once __DIR__ . '/../app/controllers/PuestoController.php';
 
 requireLogin();
 
@@ -26,6 +27,9 @@ if ($controllerName !== null && $actionName !== null) {
             break;
          case 'area':
             $controller = new AreaController();
+            break;
+          case 'puesto':
+            $controller = new PuestoController();
             break;
         default: // Controlador no existe
             http_response_code(404);
