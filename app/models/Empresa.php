@@ -18,6 +18,13 @@ class Empresa
         'activa'
     ];
 
+    private const UNIQUE_FIELDS = [
+        'nombre',
+        'rfc',
+        'correo_contacto',
+        'telefono',
+    ];
+
     /**
      * Devuelve una empresa por ID.
      */
@@ -95,10 +102,34 @@ class Empresa
         if ($nombre === '') {
             throw new \InvalidArgumentException("El nombre es obligatorio.");
         }
+         if ($rfc === '') {
+            throw new \InvalidArgumentException("El RFC es obligatorio.");
+        }
+         if ($correo === '') {
+            throw new \InvalidArgumentException("El correo electrónico es obligatorio.");
+        }
+         if ($telefono === '') {
+            throw new \InvalidArgumentException("El teléfono es obligatorio.");
+        }
+         if ($direccion === '') {
+            throw new \InvalidArgumentException("La dirección es obligatorio.");
+        }
 
-        // Validación opcional: evitar nombres duplicados
-        if (self::existsNombre($nombre)) {
+         // 🔹 Validaciones de unicidad
+        if (self::existsByField('nombre', $nombre)) {
             throw new \InvalidArgumentException("Ya existe una empresa con ese nombre.");
+        }
+
+        if ($rfc !== '' && self::existsByField('rfc', $rfc)) {
+            throw new \InvalidArgumentException("Ya existe una empresa con ese RFC.");
+        }
+
+        if ($correo !== '' && self::existsByField('correo_contacto', $correo)) {
+            throw new \InvalidArgumentException("Ya existe una empresa con ese correo de contacto.");
+        }
+
+        if ($telefono !== '' && self::existsByField('telefono', $telefono)) {
+            throw new \InvalidArgumentException("Ya existe una empresa con ese teléfono.");
         }
 
         $sql = "INSERT INTO empresas (nombre, rfc, correo_contacto, telefono, direccion, activa)
@@ -119,6 +150,25 @@ class Empresa
 
         if ($id <= 0) {
             throw new \InvalidArgumentException("ID inválido.");
+        }
+
+        //Validar unicidad si vienen esos campos
+        $nombre   = isset($data['nombre'])          ? trim((string)$data['nombre'])          : null;
+        $rfc      = isset($data['rfc'])             ? trim((string)$data['rfc'])             : null;
+        $correo   = isset($data['correo_contacto']) ? trim((string)$data['correo_contacto']) : null;
+        $telefono = isset($data['telefono'])        ? trim((string)$data['telefono'])        : null;
+
+        if ($nombre !== null && $nombre !== '' && self::existsByField('nombre', $nombre, $id)) {
+            throw new \InvalidArgumentException("Ya existe otra empresa con ese nombre.");
+        }
+        if ($rfc !== null && $rfc !== '' && self::existsByField('rfc', $rfc, $id)) {
+            throw new \InvalidArgumentException("Ya existe otra empresa con ese RFC.");
+        }
+        if ($correo !== null && $correo !== '' && self::existsByField('correo_contacto', $correo, $id)) {
+            throw new \InvalidArgumentException("Ya existe otra empresa con ese correo de contacto.");
+        }
+        if ($telefono !== null && $telefono !== '' && self::existsByField('telefono', $telefono, $id)) {
+            throw new \InvalidArgumentException("Ya existe otra empresa con ese teléfono.");
         }
 
         $fields = [];
@@ -156,10 +206,34 @@ class Empresa
      */
     public static function existsNombre(string $nombre): bool
     {
+        return self::existsByField('nombre', $nombre);
+    }
+
+    /**
+    * Verifica si existe una empresa con el valor dado en un campo concreto.
+    * Opcionalmente excluye un ID (útil para update).
+    */
+    private static function existsByField(string $field, string $value, ?int $excludeId = null): bool
+    {
+        if (!in_array($field, self::UNIQUE_FIELDS, true)) {
+            throw new \InvalidArgumentException("Campo no permitido para validación de unicidad.");
+        }
+
         global $pdo;
 
-        $st = $pdo->prepare("SELECT 1 FROM empresas WHERE nombre = ? LIMIT 1");
-        $st->execute([trim($nombre)]);
+        $sql = "SELECT 1 FROM empresas WHERE {$field} = ? ";
+        $params = [trim($value)];
+
+        if ($excludeId !== null) {
+            $sql .= "AND id_empresa <> ? ";
+            $params[] = $excludeId;
+        }
+
+        $sql .= "LIMIT 1";
+
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+
         return (bool)$st->fetchColumn();
     }
 }

@@ -14,29 +14,66 @@ if (!isset($empresa) || !is_array($empresa)) {
     exit;
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Recuperar mensajes de error y valores previos
+$flashError = $_SESSION['flash_error'] ?? null;
+$oldInput   = $_SESSION['old_input']   ?? [];
+
+// Limpiar para que no se repitan
+unset($_SESSION['flash_error'], $_SESSION['old_input']);
+
+// Array de errores por campo
+$errors = [
+    'nombre'          => '',
+    'rfc'             => '',
+    'correo_contacto' => '',
+    'telefono'        => '',
+    'direccion'       => '',
+];
+
+// Si hay error general, intentamos asignarlo a un campo
+if ($flashError) {
+    if (mb_stripos($flashError, 'nombre') !== false) {
+        $errors['nombre'] = $flashError;
+    } elseif (mb_stripos($flashError, 'rfc') !== false) {
+        $errors['rfc'] = $flashError;
+    } elseif (mb_stripos($flashError, 'correo') !== false) {
+        $errors['correo_contacto'] = $flashError;
+    } elseif (mb_stripos($flashError, 'teléfono') !== false || mb_stripos($flashError, 'telefono') !== false) {
+        $errors['telefono'] = $flashError;
+    } elseif (mb_stripos($flashError, 'dirección') !== false || mb_stripos($flashError, 'direccion') !== false) {
+        $errors['direccion'] = $flashError;
+    }
+}
+
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
-$id            = (int)($empresa['id_empresa'] ?? 0);
-$nombre        = htmlspecialchars($empresa['nombre'] ?? '', ENT_QUOTES, 'UTF-8');
-$rfc           = htmlspecialchars($empresa['rfc'] ?? '', ENT_QUOTES, 'UTF-8');
-$correo_contacto = htmlspecialchars($empresa['correo_contacto'] ?? '', ENT_QUOTES, 'UTF-8');
-$telefonoRaw   = isset($empresa['telefono']) ? preg_replace('/\D+/', '', $empresa['telefono']) : '';
-$telefono      = htmlspecialchars($telefonoRaw, ENT_QUOTES, 'UTF-8');
-$direccionRaw  = $empresa['direccion'] ?? '';
-$activa        = isset($empresa['activa']) ? (int)$empresa['activa'] : 1;
+$id = (int)($empresa['id_empresa'] ?? 0);
+
+// Valores base desde la BD
+$nombre          = (string)($empresa['nombre'] ?? '');
+$rfc             = (string)($empresa['rfc'] ?? '');
+$correo_contacto = (string)($empresa['correo_contacto'] ?? '');
+$telefonoRaw     = isset($empresa['telefono']) ? preg_replace('/\D+/', '', (string)$empresa['telefono']) : '';
+$telefono        = $telefonoRaw;
+$direccionRaw    = (string)($empresa['direccion'] ?? '');
+$activa          = isset($empresa['activa']) ? (int)$empresa['activa'] : 1;
 
 // Valores por defecto para los campos de dirección estandarizados
-$calle            = '';
-$numero_exterior  = '';
-$numero_interior  = '';
-$colonia          = '';
-$municipio        = '';
-$ciudadDir        = '';
-$estado           = '';
-$codigo_postal    = '';
-$pais             = '';
+$calle           = '';
+$numero_exterior = '';
+$numero_interior = '';
+$colonia         = '';
+$municipio       = '';
+$ciudadDir       = '';
+$estado          = '';
+$codigo_postal   = '';
+$pais            = '';
 
 // Intentar descomponer la dirección construida previamente
 if (!empty($direccionRaw)) {
@@ -71,9 +108,9 @@ if (!empty($direccionRaw)) {
         $colonia = trim(substr($partes[1], strlen('Col.')));
     }
 
-    if (isset($partes[2])) $municipio = $partes[2];
-    if (isset($partes[3])) $ciudadDir = $partes[3];
-    if (isset($partes[4])) $estado = $partes[4];
+    if (isset($partes[2])) $municipio     = $partes[2];
+    if (isset($partes[3])) $ciudadDir     = $partes[3];
+    if (isset($partes[4])) $estado        = $partes[4];
 
     if (isset($partes[5]) && stripos($partes[5], 'C.P.') === 0) {
         $codigo_postal = preg_replace('/^C\.P\.\s*/i', '', $partes[5]);
@@ -81,6 +118,29 @@ if (!empty($direccionRaw)) {
     }
 
     if (isset($partes[6])) $pais = $partes[6];
+}
+
+// Si venimos de un error, sobreescribir con old_input para no perder lo que capturó el usuario
+if (!empty($oldInput)) {
+    $nombre          = (string)($oldInput['nombre']          ?? $nombre);
+    $rfc             = (string)($oldInput['rfc']             ?? $rfc);
+    $correo_contacto = (string)($oldInput['correo_contacto'] ?? $correo_contacto);
+    $telefono        = (string)($oldInput['telefono']        ?? $telefono);
+
+    $calle           = (string)($oldInput['calle']           ?? $calle);
+    $numero_exterior = (string)($oldInput['numero_exterior'] ?? $numero_exterior);
+    $numero_interior = (string)($oldInput['numero_interior'] ?? $numero_interior);
+    $colonia         = (string)($oldInput['colonia']         ?? $colonia);
+    $municipio       = (string)($oldInput['municipio']       ?? $municipio);
+    $ciudadDir       = (string)($oldInput['ciudad']          ?? $ciudadDir);
+    $estado          = (string)($oldInput['estado']          ?? $estado);
+    $codigo_postal   = (string)($oldInput['codigo_postal']   ?? $codigo_postal);
+    $pais            = (string)($oldInput['pais']            ?? $pais);
+    $direccionRaw    = (string)($oldInput['direccion']       ?? $direccionRaw);
+
+    if (isset($oldInput['activa'])) {
+        $activa = (int)$oldInput['activa'];
+    }
 }
 
 // Escapar para imprimir en HTML
@@ -128,6 +188,44 @@ function e(string $value): string {
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
 
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;
+      outline: none !important;
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
+
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -159,6 +257,28 @@ function e(string $value): string {
   </header>
 
   <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
+
+    <?php if ($flashError): ?>
+      <script>
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudieron guardar los cambios',
+          text: <?= json_encode($flashError, JSON_UNESCAPED_UNICODE) ?>,
+          iconColor: '#ff78b5', // vc.pink
+          background: '#ffffff',
+          color: '#0a2a5e',     // vc.ink
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#36d1cc',
+          buttonsStyling: false,
+          customClass: {
+            popup: 'vc-swal',
+            title: 'vc-swal-title',
+            htmlContainer: 'vc-swal-text',
+            confirmButton: 'vc-swal-confirm'
+          }
+        });
+      </script>
+    <?php endif; ?>
 
     <!-- Breadcrumb -->
     <div class="mb-5">
@@ -216,6 +336,11 @@ function e(string $value): string {
               value="<?= e($nombre) ?>"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
+            <?php if ($errors['nombre']): ?>
+              <p class="mt-1 text-xs text-red-600">
+                <?= e($errors['nombre']) ?>
+              </p>
+            <?php endif; ?>
           </div>
 
           <!-- RFC / Correo -->
@@ -233,6 +358,11 @@ function e(string $value): string {
                 value="<?= e($rfc) ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm uppercase tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['rfc']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= e($errors['rfc']) ?>
+                </p>
+              <?php endif; ?>
             </div>
 
             <div>
@@ -248,6 +378,11 @@ function e(string $value): string {
                 value="<?= e($correo_contacto) ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['correo_contacto']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= e($errors['correo_contacto']) ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -269,6 +404,11 @@ function e(string $value): string {
                 value="<?= e($telefono) ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm tracking-[0.12em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['telefono']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= e($errors['telefono']) ?>
+                </p>
+              <?php endif; ?>
             </div>
 
             <div class="flex items-end">
@@ -347,6 +487,9 @@ function e(string $value): string {
                     type="text"
                     id="numero_interior"
                     name="numero_interior"
+                    inputmode="numeric"
+                    pattern="[0-9]+"
+                    oninput="this.value = this.value.replace(/[^0-9]/g,'');"
                     value="<?= e($numero_interior) ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
@@ -444,7 +587,11 @@ function e(string $value): string {
 
             <!-- Campo oculto donde se concatenará la dirección -->
             <input type="hidden" id="direccion_full" name="direccion" value="<?= e($direccionRaw) ?>">
-
+            <?php if ($errors['direccion']): ?>
+              <p class="mt-2 text-xs text-red-600">
+                <?= e($errors['direccion']) ?>
+              </p>
+            <?php endif; ?>
           </fieldset>
 
           <!-- Acciones -->

@@ -8,6 +8,41 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Recuperar mensajes de error y valores previos
+$flashError = $_SESSION['flash_error'] ?? null;
+$oldInput   = $_SESSION['old_input']   ?? [];
+
+// Limpiar para que no se repitan
+unset($_SESSION['flash_error'], $_SESSION['old_input']);
+
+// Array de errores por campo
+$errors = [
+    'nombre'          => '',
+    'rfc'             => '',
+    'correo_contacto' => '',
+    'telefono'        => '',
+    'direccion'       => '',
+];
+
+// Si hay error general, intentamos asignarlo a un campo
+if ($flashError) {
+    if (mb_stripos($flashError, 'nombre') !== false) {
+        $errors['nombre'] = $flashError;
+    } elseif (mb_stripos($flashError, 'rfc') !== false) {
+        $errors['rfc'] = $flashError;
+    } elseif (mb_stripos($flashError, 'correo') !== false) {
+        $errors['correo_contacto'] = $flashError;
+    } elseif (mb_stripos($flashError, 'teléfono') !== false || mb_stripos($flashError, 'telefono') !== false) {
+        $errors['telefono'] = $flashError;
+    } elseif (mb_stripos($flashError, 'dirección') !== false || mb_stripos($flashError, 'direccion') !== false) {
+        $errors['direccion'] = $flashError;
+    }
+}
+
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -53,6 +88,44 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
 
+   <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;             
+      outline: none !important;             
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
+
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -84,6 +157,28 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
   </header>
 
   <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
+
+   <?php if ($flashError): ?>
+      <script>
+        Swal.fire({
+        icon: 'error',
+        title: 'No se pudo guardar la empresa',
+        text: <?= json_encode($flashError, JSON_UNESCAPED_UNICODE) ?>,
+        iconColor: '#ff78b5', // vc.pink
+        background: '#ffffff',
+        color: '#0a2a5e',     // vc.ink
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#36d1cc', // opcional, por compatibilidad
+        buttonsStyling: false,
+        customClass: {
+          popup: 'vc-swal',
+          title: 'vc-swal-title',
+          htmlContainer: 'vc-swal-text',
+          confirmButton: 'vc-swal-confirm'
+      }
+    });
+  </script>
+    <?php endif; ?>
 
     <!-- Breadcrumb -->
     <div class="mb-5">
@@ -138,8 +233,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
               name="nombre"
               maxlength="120"
               required
+              value="<?= htmlspecialchars($oldInput['nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
+           <?php if ($errors['nombre']): ?>
+              <p class="mt-1 text-xs text-red-600">
+                <?= htmlspecialchars($errors['nombre'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </div>
 
           <!-- RFC / Correo -->
@@ -154,8 +255,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 name="rfc"
                 maxlength="20"
                 required
+                value="<?= htmlspecialchars($oldInput['rfc'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm uppercase tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+            <?php if ($errors['rfc']): ?>
+              <p class="mt-1 text-xs text-red-600">
+                <?= htmlspecialchars($errors['rfc'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
             </div>
 
             <div>
@@ -168,8 +275,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 name="correo_contacto"
                 maxlength="120"
                 required
+                value="<?= htmlspecialchars($oldInput['correo_contacto'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['correo_contacto']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['correo_contacto'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -188,8 +301,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 inputmode="numeric"
                 pattern="[0-9]+"
                 oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                value="<?= htmlspecialchars($oldInput['telefono'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm tracking-[0.12em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+               <?php if ($errors['telefono']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['telefono'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -211,6 +330,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="calle"
                     name="calle"
                     required
+                    value="<?= htmlspecialchars($oldInput['calle'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -226,6 +346,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     inputmode="numeric"
                     pattern="[0-9]+"
                     oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                    value="<?= htmlspecialchars($oldInput['numero_exterior'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -240,6 +361,10 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     type="text"
                     id="numero_interior"
                     name="numero_interior"
+                    inputmode="numeric"
+                    pattern="[0-9]+"
+                    oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                    value="<?= htmlspecialchars($oldInput['numero_interior'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -252,6 +377,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="colonia"
                     name="colonia"
                     required
+                    value="<?= htmlspecialchars($oldInput['colonia'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -267,6 +393,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="municipio"
                     name="municipio"
                     required
+                    value="<?= htmlspecialchars($oldInput['municipio'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -279,6 +406,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="ciudad"
                     name="ciudad"
                     required
+                    value="<?= htmlspecialchars($oldInput['ciudad'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -291,6 +419,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="estado"
                     name="estado"
                     required
+                    value="<?= htmlspecialchars($oldInput['estado'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -310,6 +439,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     inputmode="numeric"
                     pattern="[0-9]+"
                     oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                    value="<?= htmlspecialchars($oldInput['codigo_postal'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm tracking-[0.16em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -322,6 +452,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     id="pais"
                     name="pais"
                     required
+                    value="<?= htmlspecialchars($oldInput['pais'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -330,7 +461,11 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
             <!-- Campo oculto donde se concatenará la dirección -->
             <input type="hidden" id="direccion_full" name="direccion" value="">
-
+            <?php if ($errors['direccion']): ?>
+              <p class="mt-2 text-xs text-red-600">
+                <?= htmlspecialchars($errors['direccion'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </fieldset>
 
           <!-- Empresa activa (por defecto 1) -->

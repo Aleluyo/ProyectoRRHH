@@ -92,6 +92,8 @@ class EmpresaController
             if ($telefono === '') {
                 throw new InvalidArgumentException('El teléfono es obligatorio y debe contener solo números.');
             }
+            
+            $activa = isset($_POST['activa']) ? (int)$_POST['activa'] : 1;
 
             $data = [
                 'nombre'          => $_POST['nombre']          ?? '',
@@ -99,7 +101,7 @@ class EmpresaController
                 'correo_contacto' => $_POST['correo_contacto'] ?? '',
                 'telefono'        => $telefono,
                 'direccion'       => $direccion,
-                'activa'          => isset($_POST['activa']) ? 1 : 0,
+                'activa'          => $activa,
             ];
 
             $id = Empresa::create($data);
@@ -207,14 +209,17 @@ class EmpresaController
                 throw new InvalidArgumentException('El teléfono es obligatorio y debe contener solo números.');
             }
 
+            $activa = isset($_POST['activa']) ? (int)$_POST['activa'] : 0;
+
             $data = [
                 'nombre'          => $_POST['nombre']          ?? '',
                 'rfc'             => $_POST['rfc']             ?? '',
                 'correo_contacto' => $_POST['correo_contacto'] ?? '',
                 'telefono'        => $telefono,
                 'direccion'       => $direccion,
-                'activa'          => isset($_POST['activa']) ? 1 : 0,
+                'activa'          => $activa,
             ];
+
 
             Empresa::update($id, $data);
 
