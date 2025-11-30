@@ -8,31 +8,69 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+// Asegurarnos de tener sesión (por si la vista se carga directa)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 // -----------------------------------------------------------------------------
-// Datos del turno + old input de sesión (por error de validación)
+// Datos base del turno desde el controlador
 // -----------------------------------------------------------------------------
 if (!isset($turno) || !is_array($turno)) {
     $turno = [];
 }
 
-$old = $_SESSION['old_input'] ?? [];
-unset($_SESSION['old_input']);
+$idTurno = (int)($turno['id_turno'] ?? 0);
 
+// -----------------------------------------------------------------------------
+// 1) Errores por campo
+//    - Si el controlador ya pasó $errors, lo usamos.
+//    - Si no, intentamos leerlos de la sesión.
+// -----------------------------------------------------------------------------
+if (!isset($errors) || !is_array($errors)) {
+    $errors = $_SESSION['errors'] ?? [];
+}
+
+$errors = array_merge([
+    'nombre_turno'       => '',
+    'hora_entrada'       => '',
+    'hora_salida'        => '',
+    'tolerancia_minutos' => '',
+    'dias_laborales'     => '',
+], $errors);
+
+// -----------------------------------------------------------------------------
+// 2) Valores anteriores (old input)
+//    - Preferimos $old que pasó el controlador.
+//    - Si no existe, usamos $_SESSION['old_input'].
+// -----------------------------------------------------------------------------
+if (!isset($old) || !is_array($old)) {
+    $old = $_SESSION['old_input'] ?? [];
+}
+
+// Ya no necesitamos los de sesión (los de errores y old_input)
+unset($_SESSION['errors'], $_SESSION['old_input']);
+
+// -----------------------------------------------------------------------------
+// 3) Mensaje de error general inesperado (excepciones del modelo)
+// -----------------------------------------------------------------------------
 $flashError = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_error']);
 
-// Valores base (DB)
-$baseNombre      = $turno['nombre_turno']      ?? '';
-$baseHoraEntrada = $turno['hora_entrada']      ?? '';
-$baseHoraSalida  = $turno['hora_salida']       ?? '';
-$baseTolerancia  = $turno['tolerancia_minutos']?? '10';
-$baseDiasRaw     = $turno['dias_laborales']    ?? '';
+// -----------------------------------------------------------------------------
+// 4) Valores base desde BD
+// -----------------------------------------------------------------------------
+$baseNombre      = $turno['nombre_turno']       ?? '';
+$baseHoraEntrada = $turno['hora_entrada']       ?? '';
+$baseHoraSalida  = $turno['hora_salida']        ?? '';
+$baseTolerancia  = (string)($turno['tolerancia_minutos'] ?? '10');
+$baseDiasRaw     = $turno['dias_laborales']     ?? '';
 
-// Normalizar horas a formato HH:MM para el input type="time"
+// Normalizar horas a formato HH:MM para el input time
 if ($baseHoraEntrada !== '') {
     $baseHoraEntrada = substr($baseHoraEntrada, 0, 5);
 }
@@ -40,15 +78,28 @@ if ($baseHoraSalida !== '') {
     $baseHoraSalida = substr($baseHoraSalida, 0, 5);
 }
 
-// Determinar días seleccionados
+// -----------------------------------------------------------------------------
+// 5) Días seleccionados (checkboxes)
+//    - Si hubo error previo, usamos old['dias_laborales']
+//    - Si no, usamos lo de la BD
+// -----------------------------------------------------------------------------
 $diasSeleccionados = [];
 
-// Si viene old_input (por error previo) y trae dias_laborales[]
-if (isset($old['dias_laborales']) && is_array($old['dias_laborales'])) {
-    foreach ($old['dias_laborales'] as $d) {
-        $d = strtoupper(trim((string)$d));
-        if ($d !== '') {
-            $diasSeleccionados[] = $d;
+if (isset($old['dias_laborales'])) {
+    if (is_array($old['dias_laborales'])) {
+        foreach ($old['dias_laborales'] as $d) {
+            $d = strtoupper(trim((string)$d));
+            if ($d !== '') {
+                $diasSeleccionados[] = $d;
+            }
+        }
+    } elseif (is_string($old['dias_laborales']) && $old['dias_laborales'] !== '') {
+        $parts = explode(',', $old['dias_laborales']);
+        foreach ($parts as $d) {
+            $d = strtoupper(trim((string)$d));
+            if ($d !== '') {
+                $diasSeleccionados[] = $d;
+            }
         }
     }
 } else {
@@ -69,17 +120,16 @@ if (empty($diasSeleccionados)) {
     $diasSeleccionados = ['L','M','X','J','V'];
 }
 
-// Helper para marcar checkboxes
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
 function diaChecked(array $seleccionados, string $dia): string {
     return in_array($dia, $seleccionados, true) ? 'checked' : '';
 }
 
-// Helper old() simple
 function old_value(array $old, string $key, $default = '') {
-    return isset($old[$key]) ? $old[$key] : $default;
+    return array_key_exists($key, $old) ? $old[$key] : $default;
 }
-
-$idTurno = (int)($turno['id_turno'] ?? 0);
 ?>
 <!doctype html>
 <html lang="es">
@@ -221,6 +271,11 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
               value="<?= htmlspecialchars((string)old_value($old, 'nombre_turno', $baseNombre), ENT_QUOTES, 'UTF-8') ?>"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
+            <?php if ($errors['nombre_turno']): ?>
+              <p class="mt-1 text-xs text-red-600">
+                <?= htmlspecialchars($errors['nombre_turno'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </div>
 
           <!-- Horas -->
@@ -237,6 +292,11 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
                 value="<?= htmlspecialchars((string)old_value($old, 'hora_entrada', $baseHoraEntrada), ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['hora_entrada']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['hora_entrada'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
 
             <div>
@@ -251,6 +311,11 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
                 value="<?= htmlspecialchars((string)old_value($old, 'hora_salida', $baseHoraSalida), ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['hora_salida']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['hora_salida'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -265,7 +330,7 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
                 id="tolerancia_minutos"
                 name="tolerancia_minutos"
                 min="0"
-                max="1440"
+                max="120"
                 required
                 value="<?= htmlspecialchars((string)old_value($old, 'tolerancia_minutos', $baseTolerancia), ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
@@ -273,6 +338,11 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
               <p class="mt-1 text-xs text-muted-ink">
                 Minutos permitidos de retraso sin considerarse falta.
               </p>
+              <?php if ($errors['tolerancia_minutos']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['tolerancia_minutos'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -364,6 +434,12 @@ $idTurno = (int)($turno['id_turno'] ?? 0);
                 <span>Domingo (D)</span>
               </label>
             </div>
+
+            <?php if ($errors['dias_laborales']): ?>
+              <p class="mt-2 text-xs text-red-600">
+                <?= htmlspecialchars($errors['dias_laborales'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </fieldset>
 
           <!-- Acciones -->

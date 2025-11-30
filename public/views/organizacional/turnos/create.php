@@ -8,6 +8,70 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+// Asegurarnos de tener sesión (por si la vista se carga directa)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/**
+ * 1) Errores por campo:
+ *    - Si el controlador ya pasó $errors, lo usamos.
+ *    - Si no, intentamos leerlos de la sesión (compatibilidad).
+ *    - Si tampoco hay, inicializamos array vacío.
+ */
+if (!isset($errors) || !is_array($errors)) {
+    $errors = $_SESSION['errors'] ?? [];
+}
+
+$errors = array_merge([
+    'nombre_turno'       => '',
+    'hora_entrada'       => '',
+    'hora_salida'        => '',
+    'tolerancia_minutos' => '',
+    'dias_laborales'     => '',
+], $errors);
+
+/**
+ * 2) Valores anteriores del formulario:
+ *    - Preferimos $old que pasó el controlador.
+ *    - Si no existe, caemos a $_SESSION['old_input'].
+ */
+if (!isset($old) || !is_array($old)) {
+    $old = $_SESSION['old_input'] ?? [];
+}
+
+// Ya no necesitamos los de sesión
+unset($_SESSION['errors'], $_SESSION['old_input']);
+
+// Para no cambiar el resto de tu vista, usamos $oldInput como alias
+$oldInput = $old;
+
+/**
+ * 3) Mensaje de error general inesperado (excepciones del modelo)
+ *    Esto solo se usa si en el controlador, en el catch, se puso flash_error.
+ */
+$flashError = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_error']);
+
+/**
+ * 4) Días seleccionados (para checkboxes)
+ */
+$diasSeleccionados = [];
+
+if (isset($oldInput['dias_laborales'])) {
+    if (is_array($oldInput['dias_laborales'])) {
+        $diasSeleccionados = $oldInput['dias_laborales'];
+    } elseif (is_string($oldInput['dias_laborales']) && $oldInput['dias_laborales'] !== '') {
+        $diasSeleccionados = explode(',', $oldInput['dias_laborales']);
+    }
+}
+
+// Si no hay selección previa, por defecto L a V
+if (empty($diasSeleccionados)) {
+    $diasSeleccionados = ['L', 'M', 'X', 'J', 'V'];
+}
+
+
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -138,8 +202,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
               name="nombre_turno"
               maxlength="60"
               required
+              value="<?= htmlspecialchars($oldInput['nombre_turno'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
+            <?php if ($errors['nombre_turno']): ?>
+              <p class="mt-1 text-xs text-red-600">
+                <?= htmlspecialchars($errors['nombre_turno'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </div>
 
           <!-- Horas -->
@@ -153,8 +223,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 id="hora_entrada"
                 name="hora_entrada"
                 required
+                value="<?= htmlspecialchars($oldInput['hora_entrada'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['hora_entrada']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['hora_entrada'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
 
             <div>
@@ -166,8 +242,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 id="hora_salida"
                 name="hora_salida"
                 required
+                value="<?= htmlspecialchars($oldInput['hora_salida'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
+              <?php if ($errors['hora_salida']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['hora_salida'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -182,14 +264,19 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                 id="tolerancia_minutos"
                 name="tolerancia_minutos"
                 min="0"
-                max="1440"
-                value="10"
+                max="120"
+                value="<?= htmlspecialchars((string)($oldInput['tolerancia_minutos'] ?? '10'), ENT_QUOTES, 'UTF-8') ?>"
                 required
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
               <p class="mt-1 text-xs text-muted-ink">
                 Minutos permitidos de retraso sin considerarse falta.
               </p>
+              <?php if ($errors['tolerancia_minutos']): ?>
+                <p class="mt-1 text-xs text-red-600">
+                  <?= htmlspecialchars($errors['tolerancia_minutos'], ENT_QUOTES, 'UTF-8') ?>
+                </p>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -210,7 +297,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="L"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  checked
+                  <?= in_array('L', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Lunes (L)</span>
               </label>
@@ -221,7 +308,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="M"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  checked
+                  <?= in_array('M', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Martes (M)</span>
               </label>
@@ -232,7 +319,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="X"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  checked
+                  <?= in_array('X', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Miércoles (X)</span>
               </label>
@@ -243,7 +330,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="J"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  checked
+                  <?= in_array('J', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Jueves (J)</span>
               </label>
@@ -254,7 +341,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="V"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  checked
+                  <?= in_array('V', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Viernes (V)</span>
               </label>
@@ -265,6 +352,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="S"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
+                  <?= in_array('S', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Sábado (S)</span>
               </label>
@@ -275,10 +363,17 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                   name="dias_laborales[]"
                   value="D"
                   class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
+                  <?= in_array('D', $diasSeleccionados, true) ? 'checked' : '' ?>
                 >
                 <span>Domingo (D)</span>
               </label>
             </div>
+
+            <?php if ($errors['dias_laborales']): ?>
+              <p class="mt-2 text-xs text-red-600">
+                <?= htmlspecialchars($errors['dias_laborales'], ENT_QUOTES, 'UTF-8') ?>
+              </p>
+            <?php endif; ?>
           </fieldset>
 
           <!-- Acciones -->

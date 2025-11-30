@@ -233,7 +233,7 @@ class Turno
         }
 
         // Puedes limitar a cierto máximo, p.ej: 240 min
-        if ($min > 1440) {
+        if ($min > 120) {
             throw new \InvalidArgumentException("La tolerancia en minutos es demasiado alta.");
         }
 
@@ -289,5 +289,26 @@ class Turno
         }
 
         return implode(',', $ordenados);
+    }
+
+     /**
+     * Verifica si ya existe un turno con ese nombre.
+     * Si $excludeId no es null, excluye ese ID (para edición).
+     */
+    public static function existsByNombre(string $nombre, ?int $excludeId = null): bool
+    {
+        global $pdo;
+        $sql    = "SELECT COUNT(*) FROM turnos WHERE nombre_turno = ?";
+        $params = [$nombre];
+
+        if ($excludeId !== null) {
+            $sql .= " AND id_turno <> ?";
+            $params[] = $excludeId;
+        }
+
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+
+        return (bool)$st->fetchColumn();
     }
 }
