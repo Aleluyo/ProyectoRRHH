@@ -8,14 +8,41 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
+
+// flash messages del controlador UbicacionController::store()
+$flashError   = $_SESSION['flash_error']   ?? null;
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$old          = $_SESSION['old_input']     ?? [];
+
+// ya no los necesitamos más
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['old_input']);
+
+// Valores old para repoblar el form
+$oldIdEmpresa = isset($old['id_empresa']) ? (int)$old['id_empresa'] : 0;
+
+$oldNombre        = htmlspecialchars($old['nombre']        ?? '', ENT_QUOTES, 'UTF-8');
+$oldCalle         = htmlspecialchars($old['calle']         ?? '', ENT_QUOTES, 'UTF-8');
+$oldNumExt        = htmlspecialchars($old['numero_exterior'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldNumInt        = htmlspecialchars($old['numero_interior'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldColonia       = htmlspecialchars($old['colonia']       ?? '', ENT_QUOTES, 'UTF-8');
+$oldMunicipio     = htmlspecialchars($old['municipio']     ?? '', ENT_QUOTES, 'UTF-8');
+$oldCiudad        = htmlspecialchars($old['ciudad']        ?? '', ENT_QUOTES, 'UTF-8');
+$oldEstadoRegion  = htmlspecialchars($old['estado_region'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldCP            = htmlspecialchars($old['codigo_postal'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldPais          = htmlspecialchars($old['pais']          ?? '', ENT_QUOTES, 'UTF-8');
 
 // Asegurar que $empresas exista como array (lo manda UbicacionController::create)
 if (!isset($empresas) || !is_array($empresas)) {
     $empresas = [];
 }
+
 ?>
 <!doctype html>
 <html lang="es">
@@ -56,6 +83,44 @@ if (!isset($empresas) || !is_array($empresas)) {
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;             
+      outline: none !important;             
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -116,6 +181,31 @@ if (!isset($empresas) || !is_array($empresas)) {
       </nav>
     </div>
 
+    <?php if ($flashError): ?>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'No se pudo guardar la ubicación',
+            text: <?= json_encode($flashError, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>,
+            iconColor: '#ff78b5', // vc.pink
+            background: '#ffffff',
+            color: '#0a2a5e',     // vc.ink
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#36d1cc',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'vc-swal',
+              title: 'vc-swal-title',
+              htmlContainer: 'vc-swal-text',
+              confirmButton: 'vc-swal-confirm'
+            }
+          });
+        });
+      </script>
+    <?php endif; ?>
+
+
     <!-- Título -->
     <section class="flex flex-col gap-2 mb-4">
       <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Nueva ubicación</h1>
@@ -147,12 +237,19 @@ if (!isset($empresas) || !is_array($empresas)) {
               required
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
-              <option value="">Seleccione una empresa…</option>
-              <?php foreach ($empresas as $emp): ?>
-                <option value="<?= htmlspecialchars((string)$emp['id_empresa'], ENT_QUOTES, 'UTF-8') ?>">
-                  <?= htmlspecialchars((string)$emp['nombre'], ENT_QUOTES, 'UTF-8') ?>
-                </option>
-              <?php endforeach; ?>
+             <option value="">Seleccione una empresa…</option>
+            <?php foreach ($empresas as $emp): ?>
+              <?php
+                $idEmp   = (int)$emp['id_empresa'];
+                $nombreEmp = htmlspecialchars((string)$emp['nombre'], ENT_QUOTES, 'UTF-8');
+              ?>
+              <option
+                value="<?= $idEmp ?>"
+                <?= $idEmp === $oldIdEmpresa ? 'selected' : '' ?>
+              >
+                <?= $nombreEmp ?>
+              </option>
+            <?php endforeach; ?>
             </select>
           </div>
 
@@ -167,6 +264,7 @@ if (!isset($empresas) || !is_array($empresas)) {
               name="nombre"
               maxlength="100"
               required
+              value="<?= $oldNombre ?>"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
             <p class="mt-1 text-xs text-muted-ink">
@@ -192,6 +290,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="calle"
                     name="calle"
                     required
+                    value="<?= $oldCalle ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -207,6 +306,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     inputmode="numeric"
                     pattern="[0-9]+"
                     oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                    value="<?= $oldNumExt ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -221,6 +321,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     type="text"
                     id="numero_interior"
                     name="numero_interior"
+                    value="<?= $oldNumInt ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -233,6 +334,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="colonia"
                     name="colonia"
                     required
+                    value="<?= $oldColonia ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -248,6 +350,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="municipio"
                     name="municipio"
                     required
+                    value="<?= $oldMunicipio ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -260,6 +363,8 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="ciudad"
                     name="ciudad"
                     required
+                    maxlength="80"
+                    value="<?= $oldCiudad ?>" 
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -272,6 +377,8 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="estado_region"
                     name="estado_region"
                     required
+                    maxlength="80"
+                    value="<?= $oldEstadoRegion ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -291,6 +398,7 @@ if (!isset($empresas) || !is_array($empresas)) {
                     inputmode="numeric"
                     pattern="[0-9]+"
                     oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                    value="<?= $oldCP ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm tracking-[0.16em] focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>
@@ -303,6 +411,8 @@ if (!isset($empresas) || !is_array($empresas)) {
                     id="pais"
                     name="pais"
                     required
+                    maxlength="80"
+                    value="<?= $oldPais ?>"
                     class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   >
                 </div>

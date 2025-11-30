@@ -131,6 +131,33 @@ class Ubicacion
             throw new \InvalidArgumentException("El nombre de la sede es obligatorio.");
         }
 
+        // ===  Validaciones de longitud ===
+        // nombre -> VARCHAR(100)
+        if (mb_strlen($nombre) > 100) {
+            throw new \InvalidArgumentException("El nombre no debe superar los 100 caracteres.");
+        }
+
+        // dirección -> la tabla es TEXT; tú decides el límite lógico (ej. 500)
+        if ($direccion !== '' && mb_strlen($direccion) > 500) {
+            throw new \InvalidArgumentException("La dirección no debe superar los 500 caracteres.");
+        }
+
+        // ciudad / estado_region / pais -> VARCHAR(80)
+        if ($ciudad !== '' && mb_strlen($ciudad) > 80) {
+            throw new \InvalidArgumentException("La ciudad no debe superar los 80 caracteres.");
+        }
+
+        if ($estado !== '' && mb_strlen($estado) > 80) {
+            throw new \InvalidArgumentException("El estado no debe superar los 80 caracteres.");
+        }
+
+        if ($pais !== '' && mb_strlen($pais) > 80) {
+            throw new \InvalidArgumentException("El país no debe superar los 80 caracteres.");
+        }
+
+        // asegurar que activa sea 0 o 1
+        $activa = in_array($activa, [0, 1], true) ? $activa : 1;
+
         // Evitar nombres duplicados de sede dentro de la misma empresa
         if (self::existsNombreEnEmpresa($idEmpresa, $nombre)) {
             throw new \InvalidArgumentException("Ya existe una ubicación con ese nombre para esta empresa.");
@@ -210,23 +237,65 @@ class Ubicacion
     }
 
     /**
-     * Verifica si ya existe una ubicación con ese nombre dentro de la misma empresa.
+     * Verifica si ya existe una ubicación con un nombre "equivalente"
+     * dentro de la misma empresa.
+     *
+     * Equivalente = mismo texto ignorando:
+     * - mayúsculas/minúsculas
+     * - cantidad de espacios (internos, inicio/fin)
+     *
+     * Ej: "Sede master" == "  SEDE    MASTER  "
      */
-    public static function existsNombreEnEmpresa(int $idEmpresa, string $nombre): bool
+    public static function existsNombreEnEmpresa(int $idEmpresa, string $nombre, ?int $excludeId = null): bool
     {
         global $pdo;
 
-        $st = $pdo->prepare(
-            "SELECT 1
-             FROM ubicaciones
-             WHERE id_empresa = ? AND nombre = ?
-             LIMIT 1"
-        );
-        $st->execute([
-            $idEmpresa,
-            trim($nombre)
-        ]);
+        $nombreNormalizado = self::normalizarNombre($nombre);
 
-        return (bool)$st->fetchColumn();
+        // Traemos todos los nombres de esa empresa (excluyendo opcionalmente un id)
+        $sql = "SELECT id_ubicacion, nombre
+                FROM ubicaciones
+                WHERE id_empresa = :id_empresa";
+        $params = [':id_empresa' => $idEmpresa];
+
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= " AND id_ubicacion <> :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+
+        while ($row = $st->fetch(\PDO::FETCH_ASSOC)) {
+            $existente = (string)($row['nombre'] ?? '');
+            $existenteNormalizado = self::normalizarNombre($existente);
+
+            if ($existenteNormalizado === $nombreNormalizado) {
+                return true; // ya existe "algún" nombre equivalente
+            }
+        }
+
+        return false;
     }
+
+
+        /**
+     * Normaliza el nombre para comparación:
+     * - trim (inicio/fin)
+     * - colapsa múltiples espacios internos a uno solo
+     * - pasa a minúsculas para comparación case-insensitive
+     */
+    private static function normalizarNombre(string $nombre): string
+    {
+        // quitar espacios inicio/fin
+        $nombre = trim($nombre);
+
+        // reemplazar múltiples espacios (incluye tabs, etc.) por un solo espacio
+        $nombre = preg_replace('/\s+/u', ' ', $nombre);
+
+        // minúsculas para comparar sin importar mayúsculas/minúsculas
+        return mb_strtolower($nombre, 'UTF-8');
+    }
+
+
 }
