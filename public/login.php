@@ -11,7 +11,7 @@ if (!empty($_SESSION['user_id'])) {
 $err = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    sleep(2);
+    sleep(1);
     $res = AuthController::login($_POST['username'] ?? '', $_POST['password'] ?? '');
     if ($res['ok']) {
         $to = $_GET['redirect'] ?? url('index.php');
@@ -96,6 +96,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       -webkit-text-stroke: 0 transparent; text-stroke: 0 transparent;
       text-shadow: 0 0 2px #fff, 0 0 8px #a7fffd, 0 0 18px #a7fffd, 0 0 28px #36d1cc;
     }
+
+    /* --- P3P Loader Styles --- */
+    .loading-wrapper {
+        position: fixed;
+        inset: 0; /* Full screen overlay */
+        background-color: rgba(255,255,255,0.92); /* White overlay */
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: none; /* Oculto por defecto */
+        
+        /* Align content to bottom-right */
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: 40px;
+        
+        /* Animation */
+        opacity: 0;
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .loading-content {
+        display: flex;
+        flex-direction: row-reverse;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .loading-text {
+        font-family: 'Josefin Sans', sans-serif;
+        font-size: 1.2rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #0a2a5e; /* vc-ink */
+        font-weight: 700;
+        text-shadow: 0 2px 10px rgba(255,255,255,0.8);
+    }
+
+    .loading-dots { display: inline-flex; min-width: 1.5em; }
+    .dot { width: 0.35em; text-align: center; }
+    .dot-1 { animation: dot1 1.6s linear infinite; }
+    .dot-2 { animation: dot2 1.6s linear infinite; }
+    .dot-3 { animation: dot3 1.6s linear infinite; }
+
+    @keyframes dot1 { 0%, 75% { opacity: 1; } 75.01%, 100% { opacity: 0; } }
+    @keyframes dot2 { 0%, 24.99% { opacity: 0; } 25%, 75% { opacity: 1; } 75.01%, 100% { opacity: 0; } }
+    @keyframes dot3 { 0%, 49.99% { opacity: 0; } 50%, 75% { opacity: 1; } 75.01%, 100% { opacity: 0; } }
+
+    .card-pivot {
+        width: 70px; /* Ajustado un poco para no ser gigante */
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        perspective: 800px;
+    }
+
+    .card-spin {
+        width: 70px;
+        height: 100px;
+        transform-origin: center center;
+        transform-style: preserve-3d;
+        animation: spinY 1.1s linear infinite;
+    }
+
+    @keyframes spinY {
+        0% { transform: rotateY(0deg); }
+        50% { transform: rotateY(180deg); }
+        100% { transform: rotateY(360deg); }
+    }
+
+    .card-diamond {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        /* Gradiente Teal a Ink */
+        background: linear-gradient(180deg, #36d1cc, #0a2a5e);
+        box-shadow:
+            0 0 10px rgba(10,42,94, 0.5),
+            0 0 18px rgba(54,209,204, 0.5);
+        clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
   </style>
 
   <!-- SweetAlert2 (ya lo usabas) -->
@@ -166,6 +252,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </main>
 
+  <!-- P3P Loader HTML -->
+  <div id="p3-loader" class="loading-wrapper">
+      <div class="loading-content">
+          <div class="card-pivot">
+              <div class="card-spin">
+                  <div class="card-diamond"></div>
+              </div>
+          </div>
+          <div class="loading-text">
+              CARGANDO
+              <span class="loading-dots">
+                  <span class="dot dot-1">.</span>
+                  <span class="dot dot-2">.</span>
+                  <span class="dot dot-3">.</span>
+              </span>
+          </div>
+      </div>
+  </div>
+
   <?php if (isset($_GET['expired'])): ?>
   <script>
     Swal.fire({icon:'info', title:'Sesión expirada', text:'Vuelve a iniciar sesión.', timer:2200, showConfirmButton:false});
@@ -190,14 +295,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
 
   <script>
-    // Spinner durante POST
+    // Spinner durante POST (Modificado para P3P)
     (function(){
       const f=document.getElementById('loginForm');
       const b=document.getElementById('btnSubmit');
-      const t=b?.querySelector('.btn-text');
-      const w=b?.querySelector('.btn-wait');
-      if(!f||!b) return;
-      f.addEventListener('submit',()=>{ b.disabled=true; t?.classList.add('hidden'); w?.classList.remove('hidden'); });
+      const l=document.getElementById('p3-loader');
+
+      if(!f) return;
+      
+      f.addEventListener('submit',()=>{ 
+          if(b) b.disabled=true; 
+          // Mostrar loader P3P
+          if(l) l.style.display = 'flex';
+      });
     })();
   </script>
 </body>
