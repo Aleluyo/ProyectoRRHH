@@ -171,6 +171,44 @@ function old_value(array $old, string $key, $default = '') {
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
 
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;             
+      outline: none !important;             
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
+
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -477,7 +515,18 @@ function old_value(array $old, string $key, $default = '') {
           icon: 'warning',
           title: 'Revisa el horario',
           text: 'La hora de entrada y la hora de salida no pueden ser iguales.',
-          confirmButtonColor: '#36d1cc'
+          iconColor: '#ff78b5', // vc.pink
+            background: '#ffffff',
+            color: '#0a2a5e',     // vc.ink
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#36d1cc', 
+            buttonsStyling: false,
+            customClass: {
+              popup: 'vc-swal',
+              title: 'vc-swal-title',
+              htmlContainer: 'vc-swal-text',
+              confirmButton: 'vc-swal-confirm'
+            }
         });
         return;
       }
@@ -489,7 +538,18 @@ function old_value(array $old, string $key, $default = '') {
           icon: 'warning',
           title: 'Selecciona días laborales',
           text: 'Debes seleccionar al menos un día laboral.',
-          confirmButtonColor: '#36d1cc'
+          iconColor: '#ff78b5', // vc.pink
+            background: '#ffffff',
+            color: '#0a2a5e',     // vc.ink
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#36d1cc', 
+            buttonsStyling: false,
+            customClass: {
+              popup: 'vc-swal',
+              title: 'vc-swal-title',
+              htmlContainer: 'vc-swal-text',
+              confirmButton: 'vc-swal-confirm'
+            }
         });
         return;
       }

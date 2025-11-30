@@ -168,14 +168,14 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
         background: '#ffffff',
         color: '#0a2a5e',     // vc.ink
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#36d1cc', // opcional, por compatibilidad
+        confirmButtonColor: '#36d1cc',
         buttonsStyling: false,
         customClass: {
           popup: 'vc-swal',
           title: 'vc-swal-title',
           htmlContainer: 'vc-swal-text',
           confirmButton: 'vc-swal-confirm'
-      }
+        }
     });
   </script>
     <?php endif; ?>
