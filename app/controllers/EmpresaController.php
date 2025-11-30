@@ -50,51 +50,76 @@ class EmpresaController
         session_start();
 
         try {
-            // 1) Tomamos la dirección ya concatenada desde el formulario
-            $direccion = trim($_POST['direccion'] ?? '');
+            // 1) Leer y TRIM de los campos de dirección
+            $calle        = trim($_POST['calle']            ?? '');
+            $numExt       = trim($_POST['numero_exterior']  ?? '');
+            $numInt       = trim($_POST['numero_interior']  ?? '');
+            $colonia      = trim($_POST['colonia']          ?? '');
+            $municipio    = trim($_POST['municipio']        ?? '');
+            $ciudad       = trim($_POST['ciudad']           ?? '');
+            $estado       = trim($_POST['estado']           ?? '');
+            $codigoPostal = trim($_POST['codigo_postal']    ?? '');
+            $pais         = trim($_POST['pais']             ?? '');
 
-            //Si por alguna razón no vino, se rearma en PHP usando los nombres de los inputs
-            if ($direccion === '') {
-                $calle        = trim($_POST['calle']            ?? '');
-                $numExt       = trim($_POST['numero_exterior']  ?? '');
-                $numInt       = trim($_POST['numero_interior']  ?? '');
-                $colonia      = trim($_POST['colonia']          ?? '');
-                $municipio    = trim($_POST['municipio']        ?? '');
-                $ciudad       = trim($_POST['ciudad']           ?? '');
-                $estado       = trim($_POST['estado']           ?? '');
-                $codigoPostal = trim($_POST['codigo_postal']    ?? '');
-                $pais         = trim($_POST['pais']             ?? '');
-
-                $partes = [];
-
-                if ($calle) {
-                    $linea = 'Calle ' . $calle;
-                    if ($numExt) $linea .= ' #' . $numExt;
-                    if ($numInt) $linea .= ' Int. ' . $numInt;
-                    $partes[] = $linea;
-                }
-
-                if ($colonia)      $partes[] = 'Col. ' . $colonia;
-                if ($municipio)    $partes[] = $municipio;
-                if ($ciudad)       $partes[] = $ciudad;
-                if ($estado)       $partes[] = $estado;
-                if ($codigoPostal) $partes[] = 'C.P. ' . $codigoPostal;
-                if ($pais)         $partes[] = $pais;
-
-                $direccion = implode(', ', $partes);
+            // 2) Validar obligatorios de dirección 
+            if ($calle === '') {
+                throw new InvalidArgumentException('La calle es obligatoria.');
             }
+            if ($numExt === '') {
+                throw new InvalidArgumentException('El número exterior es obligatorio.');
+            }
+            if ($colonia === '') {
+                throw new InvalidArgumentException('La colonia es obligatoria.');
+            }
+            if ($municipio === '') {
+                throw new InvalidArgumentException('El municipio es obligatorio.');
+            }
+            if ($codigoPostal === '') {
+                throw new InvalidArgumentException('El código postal es obligatorio.');
+            }
+            if ($ciudad === '') {
+                throw new InvalidArgumentException('La ciudad es obligatoria.');
+            }
+            if ($estado === '') {
+                throw new InvalidArgumentException('El estado es obligatorio.');
+            }
+            if ($pais === '') {
+                throw new InvalidArgumentException('El país es obligatorio.');
+            }
+
+            // 3) Armar dirección SIEMPRE del lado servidor
+            $partes = [];
+
+            if ($calle !== '') {
+                $linea = 'Calle ' . $calle;
+                if ($numExt !== '') $linea .= ' #' . $numExt;
+                if ($numInt !== '') $linea .= ' Int. ' . $numInt;
+                $partes[] = $linea;
+            }
+
+            if ($colonia !== '')      $partes[] = 'Col. ' . $colonia;
+            if ($municipio !== '')    $partes[] = $municipio;
+            if ($ciudad !== '')       $partes[] = $ciudad;
+            if ($estado !== '')       $partes[] = $estado;
+            if ($codigoPostal !== '') $partes[] = 'C.P. ' . $codigoPostal;
+            if ($pais !== '')         $partes[] = $pais;
+
+            $direccion = implode(', ', $partes);
 
             if ($direccion === '') {
                 throw new InvalidArgumentException('La dirección es obligatoria.');
             }
 
+            // 4) Teléfono: solo números 
             $telefono = preg_replace('/\D+/', '', $_POST['telefono'] ?? '');
             if ($telefono === '') {
                 throw new InvalidArgumentException('El teléfono es obligatorio y debe contener solo números.');
             }
-            
+
+            // 5) Activa
             $activa = isset($_POST['activa']) ? (int)$_POST['activa'] : 1;
 
+            // 6) Datos para el modelo (nombre, rfc, correo se validan en Empresa::create)
             $data = [
                 'nombre'          => $_POST['nombre']          ?? '',
                 'rfc'             => $_POST['rfc']             ?? '',
@@ -111,7 +136,6 @@ class EmpresaController
             exit;
 
         } catch (\Throwable $e) {
-            // En caso de error, recargamos el formulario con mensajes
             $_SESSION['flash_error'] = $e->getMessage();
             $_SESSION['old_input']   = $_POST;
 
@@ -164,53 +188,58 @@ class EmpresaController
         }
 
         try {
-            // 1) Dirección ya concatenada desde el formulario
-            $direccion = trim($_POST['direccion'] ?? '');
+            // 1) Leer y TRIM de la dirección
+            $calle        = trim($_POST['calle']            ?? '');
+            $numExt       = trim($_POST['numero_exterior']  ?? '');
+            $numInt       = trim($_POST['numero_interior']  ?? '');
+            $colonia      = trim($_POST['colonia']          ?? '');
+            $municipio    = trim($_POST['municipio']        ?? '');
+            $ciudad       = trim($_POST['ciudad']           ?? '');
+            $estado       = trim($_POST['estado']           ?? '');
+            $codigoPostal = trim($_POST['codigo_postal']    ?? '');
+            $pais         = trim($_POST['pais']             ?? '');
+            $activa       = isset($_POST['activa']) ? 1 : 0;
 
-            // 2) Si no viene, se arma desde los campos
-            if ($direccion === '') {
-                $calle        = trim($_POST['calle']           ?? '');
-                $numExt       = trim($_POST['numero_exterior'] ?? '');
-                $numInt       = trim($_POST['numero_interior'] ?? '');
-                $colonia      = trim($_POST['colonia']         ?? '');
-                $municipio    = trim($_POST['municipio']       ?? '');
-                $ciudad       = trim($_POST['ciudad']          ?? '');
-                $estado       = trim($_POST['estado']          ?? '');
-                $codigoPostal = trim($_POST['codigo_postal']   ?? '');
-                $pais         = trim($_POST['pais']            ?? '');
+            // 2) Validar obligatorios 
+            if ($calle === '')        throw new InvalidArgumentException('La calle es obligatoria.');
+            if ($numExt === '')       throw new InvalidArgumentException('El número exterior es obligatorio.');
+            if ($colonia === '')      throw new InvalidArgumentException('La colonia es obligatoria.');
+            if ($municipio === '')    throw new InvalidArgumentException('El municipio es obligatorio.');
+            if ($codigoPostal === '') throw new InvalidArgumentException('El código postal es obligatorio.');
+            if ($ciudad === '')       throw new InvalidArgumentException('La ciudad es obligatoria.');
+            if ($estado === '')       throw new InvalidArgumentException('El estado es obligatorio.');
+            if ($pais === '')         throw new InvalidArgumentException('El país es obligatorio.');
 
-                $partes = [];
+            // 3) Armar dirección
+            $partes = [];
 
-                if ($calle) {
-                    $linea = 'Calle ' . $calle;
-                    if ($numExt) $linea .= ' #' . $numExt;
-                    if ($numInt) $linea .= ' Int. ' . $numInt;
-                    $partes[] = $linea;
-                }
-
-                if ($colonia)      $partes[] = 'Col. ' . $colonia;
-                if ($municipio)    $partes[] = $municipio;
-                if ($ciudad)       $partes[] = $ciudad;
-                if ($estado)       $partes[] = $estado;
-                if ($codigoPostal) $partes[] = 'C.P. ' . $codigoPostal;
-                if ($pais)         $partes[] = $pais;
-
-                $direccion = implode(', ', $partes);
+            if ($calle !== '') {
+                $linea = 'Calle ' . $calle;
+                if ($numExt !== '') $linea .= ' #' . $numExt;
+                if ($numInt !== '') $linea .= ' Int. ' . $numInt;
+                $partes[] = $linea;
             }
 
-            // 3) Validar
+            if ($colonia !== '')      $partes[] = 'Col. ' . $colonia;
+            if ($municipio !== '')    $partes[] = $municipio;
+            if ($ciudad !== '')       $partes[] = $ciudad;
+            if ($estado !== '')       $partes[] = $estado;
+            if ($codigoPostal !== '') $partes[] = 'C.P. ' . $codigoPostal;
+            if ($pais !== '')         $partes[] = $pais;
+
+            $direccion = implode(', ', $partes);
+
             if ($direccion === '') {
                 throw new InvalidArgumentException('La dirección es obligatoria.');
             }
 
-            // Teléfono solo números
+            // 4) Teléfono solo números
             $telefono = preg_replace('/\D+/', '', $_POST['telefono'] ?? '');
             if ($telefono === '') {
                 throw new InvalidArgumentException('El teléfono es obligatorio y debe contener solo números.');
             }
 
-            $activa = isset($_POST['activa']) ? (int)$_POST['activa'] : 0;
-
+            // 5) Datos para el modelo
             $data = [
                 'nombre'          => $_POST['nombre']          ?? '',
                 'rfc'             => $_POST['rfc']             ?? '',
@@ -220,13 +249,11 @@ class EmpresaController
                 'activa'          => $activa,
             ];
 
-
             Empresa::update($id, $data);
 
             $_SESSION['flash_success'] = 'Empresa actualizada correctamente.';
             header('Location: index.php?controller=empresa&action=index');
             exit;
-
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             $_SESSION['old_input']   = $_POST;
