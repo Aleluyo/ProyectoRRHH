@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../models/Empresa.php';
@@ -12,7 +13,7 @@ class EmpresaController
      */
     public function index(): void
     {
-        requireLogin(); 
+        requireLogin();
         requireRole(1);
 
         $search     = $_GET['q']         ?? null;
@@ -134,7 +135,6 @@ class EmpresaController
             $_SESSION['flash_success'] = 'Empresa creada correctamente.';
             header('Location: index.php?controller=empresa&action=index');
             exit;
-
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             $_SESSION['old_input']   = $_POST;
@@ -198,7 +198,8 @@ class EmpresaController
             $estado       = trim($_POST['estado']           ?? '');
             $codigoPostal = trim($_POST['codigo_postal']    ?? '');
             $pais         = trim($_POST['pais']             ?? '');
-            $activa       = isset($_POST['activa']) ? 1 : 0;
+            $activaRaw    = $_POST['activa'] ?? '0';
+            $activa       = ($activaRaw === '1') ? 1 : 0;
 
             // 2) Validar obligatorios 
             if ($calle === '')        throw new InvalidArgumentException('La calle es obligatoria.');
