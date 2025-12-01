@@ -8,9 +8,28 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Datos de sesión para el encabezado
 $areaSesion   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puestoSesion = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudadSesion = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
+
+// flash messages del controlador PuestoController::store()
+$flashError   = $_SESSION['flash_error']   ?? null;
+$flashSuccess = $_SESSION['flash_success'] ?? null; // por si luego lo quieres usar
+$old          = $_SESSION['old_input']     ?? [];
+
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['old_input']);
+
+// Valores old para repoblar el form
+$oldIdArea        = isset($old['id_area']) ? (int)$old['id_area'] : 0;
+$oldNombrePuesto  = htmlspecialchars($old['nombre_puesto'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldNivel         = isset($old['nivel']) ? (string)$old['nivel'] : '';
+$oldSalarioBase   = htmlspecialchars($old['salario_base'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldDescripcion   = htmlspecialchars($old['descripcion'] ?? '', ENT_QUOTES, 'UTF-8');
 
 // Lista de áreas recibidas desde el controlador (Empresa / Área)
 $areasLista = (isset($areas) && is_array($areas)) ? $areas : [];
@@ -57,6 +76,44 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;
+      outline: none !important;
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -117,6 +174,30 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
       </nav>
     </div>
 
+    <?php if ($flashError): ?>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'No se pudo guardar el puesto',
+            text: <?= json_encode($flashError, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>,
+            iconColor: '#ff78b5', // vc.pink
+            background: '#ffffff',
+            color: '#0a2a5e',     // vc.ink
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#36d1cc',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'vc-swal',
+              title: 'vc-swal-title',
+              htmlContainer: 'vc-swal-text',
+              confirmButton: 'vc-swal-confirm'
+            }
+          });
+        });
+      </script>
+    <?php endif; ?>
+
     <!-- Título -->
     <section class="flex flex-col gap-2 mb-4">
       <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Nuevo puesto</h1>
@@ -160,8 +241,10 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
                   $nombreEmpresa = htmlspecialchars((string)($a['nombre_empresa'] ?? ''), ENT_QUOTES, 'UTF-8');
 
                   $label = ($nombreEmpresa ? $nombreEmpresa . ' · ' : '') . $nombreArea;
+
+                  $selected = ($oldIdArea === $idArea) ? 'selected' : '';
                 ?>
-                <option value="<?= htmlspecialchars((string)$idArea, ENT_QUOTES, 'UTF-8') ?>">
+                <option value="<?= htmlspecialchars((string)$idArea, ENT_QUOTES, 'UTF-8') ?>" <?= $selected ?>>
                   <?= $label ?>
                 </option>
               <?php endforeach; ?>
@@ -190,6 +273,7 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
               required
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               placeholder="Ej. Auxiliar contable, Supervisor de producción…"
+              value="<?= $oldNombrePuesto ?>"
             >
           </div>
 
@@ -206,8 +290,22 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
                 class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               >
                 <?php foreach ($niveles as $nivel): ?>
-                  <option value="<?= htmlspecialchars($nivel, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($nivel, ENT_QUOTES, 'UTF-8') ?>
+                  <?php
+                    $nivelVal = (string)$nivel;
+                    // Si no hay old, por defecto OPERATIVO
+                    $selectedNivel = '';
+                    if ($oldNivel !== '') {
+                        if ($oldNivel === $nivelVal) {
+                            $selectedNivel = 'selected';
+                        }
+                    } else {
+                        if ($nivelVal === 'OPERATIVO') {
+                            $selectedNivel = 'selected';
+                        }
+                    }
+                  ?>
+                  <option value="<?= htmlspecialchars($nivelVal, ENT_QUOTES, 'UTF-8') ?>" <?= $selectedNivel ?>>
+                    <?= htmlspecialchars($nivelVal, ENT_QUOTES, 'UTF-8') ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -227,11 +325,16 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
                   id="salario_base"
                   name="salario_base"
                   maxlength="12"
-                  inputmode="numeric"
-                  pattern="[0-9]+"
-                  oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                  inputmode="decimal"
+                  pattern="^[0-9]+(\.[0-9]{0,2})?$"
+                  oninput="
+                    this.value = this.value
+                      .replace(/[^0-9.]/g,'')      // solo dígitos y punto
+                      .replace(/(\..*?)\..*/g,'$1'); // deja solo un punto
+                  "
                   class="block w-full rounded-lg border border-black/10 bg-white pl-6 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-                  placeholder="Solo números (ej. 15000)"
+                  placeholder="Ej. 15000 o 15000.50"
+                  value="<?= $oldSalarioBase ?>"
                 >
               </div>
               <p class="mt-1 text-xs text-muted-ink">
@@ -252,7 +355,7 @@ $niveles = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
               rows="3"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               placeholder="Resumen del propósito del puesto, principales responsabilidades, etc."
-            ></textarea>
+            ><?= $oldDescripcion ?></textarea>
             <p class="mt-1 text-xs text-muted-ink">
               Hasta 200 caracteres.
             </p>

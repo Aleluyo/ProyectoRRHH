@@ -8,6 +8,10 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $areaSesion   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puestoSesion = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudadSesion = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -15,21 +19,71 @@ $ciudadSesion = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8')
 // -----------------------------------------------------------------------------
 // Datos recibidos desde el controlador
 // -----------------------------------------------------------------------------
-$puestoData = (isset($puesto) && is_array($puesto)) ? $puesto : [];
 
+// $puesto debe venir desde PuestoController::edit()
+if (!isset($puesto) || !is_array($puesto)) {
+    header('Location: ' . url('index.php?controller=puesto&action=index'));
+    exit;
+}
+
+$puestoData = $puesto;
+
+// Lista de áreas (empresa / área) desde el controlador
 $areasLista = (isset($areas) && is_array($areas)) ? $areas : [];
 
+// Niveles (enum)
 $niveles = isset($niveles) && is_array($niveles)
     ? $niveles
     : ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
 
-$idPuesto       = (int)($puestoData['id_puesto'] ?? 0);
-$idAreaActual   = (int)($puestoData['id_area']   ?? 0);
-$nombrePuesto   = (string)($puestoData['nombre_puesto'] ?? '');
-$nivelActual    = strtoupper((string)($puestoData['nivel'] ?? 'OPERATIVO'));
-$salarioBaseRaw = (string)($puestoData['salario_base'] ?? '');
-$salarioBaseVal = preg_replace('/[^0-9]/', '', $salarioBaseRaw);
-$descripcion    = (string)($puestoData['descripcion'] ?? '');
+// -----------------------------------------------------------------------------
+// Flash messages y old_input
+// -----------------------------------------------------------------------------
+$flashError   = $_SESSION['flash_error']   ?? null;
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$old          = $_SESSION['old_input']     ?? [];
+
+// limpiamos para que no se queden pegados
+unset($_SESSION['flash_error'], $_SESSION['flash_success'], $_SESSION['old_input']);
+
+// -----------------------------------------------------------------------------
+// Valores base del puesto (BD)
+// -----------------------------------------------------------------------------
+$idPuestoBase      = (int)($puestoData['id_puesto'] ?? 0);
+$idAreaBase        = (int)($puestoData['id_area']   ?? 0);
+$nombrePuestoBase  = (string)($puestoData['nombre_puesto'] ?? '');
+$nivelBase         = strtoupper((string)($puestoData['nivel'] ?? 'OPERATIVO'));
+$salarioBaseBase   = (string)($puestoData['salario_base'] ?? '');
+$descripcionBase   = (string)($puestoData['descripcion'] ?? '');
+
+// -----------------------------------------------------------------------------
+// Valores finales a mostrar: si hay old_input (hubo error), se usan;
+// si no, se usan los de la BD.
+// -----------------------------------------------------------------------------
+$idPuesto = $idPuestoBase;
+
+$idAreaSeleccionada = isset($old['id_area'])
+    ? (int)$old['id_area']
+    : $idAreaBase;
+
+$nombrePuesto = htmlspecialchars(
+    $old['nombre_puesto'] ?? $nombrePuestoBase,
+    ENT_QUOTES,
+    'UTF-8'
+);
+
+$nivelSeleccionado = strtoupper(
+    (string)($old['nivel'] ?? $nivelBase)
+);
+
+$salarioBaseStr = (string)($old['salario_base'] ?? $salarioBaseBase);
+$salarioBaseVal = htmlspecialchars($salarioBaseStr, ENT_QUOTES, 'UTF-8');
+
+$descripcion = htmlspecialchars(
+    $old['descripcion'] ?? $descripcionBase,
+    ENT_QUOTES,
+    'UTF-8'
+);
 ?>
 <!doctype html>
 <html lang="es">
@@ -70,6 +124,44 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;
+      outline: none !important;
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -130,6 +222,30 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
       </nav>
     </div>
 
+    <?php if ($flashError): ?>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'No se pudo actualizar el puesto',
+            text: <?= json_encode($flashError, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>,
+            iconColor: '#ff78b5', // vc.pink
+            background: '#ffffff',
+            color: '#0a2a5e',     // vc.ink
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#36d1cc',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'vc-swal',
+              title: 'vc-swal-title',
+              htmlContainer: 'vc-swal-text',
+              confirmButton: 'vc-swal-confirm'
+            }
+          });
+        });
+      </script>
+    <?php endif; ?>
+
     <!-- Título -->
     <section class="flex flex-col gap-2 mb-4">
       <h1 class="vice-title text-[36px] leading-tight text-vc-ink">
@@ -174,8 +290,8 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
                   $nombreArea    = htmlspecialchars((string)($a['nombre_area']    ?? ('Área ' . $idAreaOpt)), ENT_QUOTES, 'UTF-8');
                   $nombreEmpresa = htmlspecialchars((string)($a['nombre_empresa'] ?? ''), ENT_QUOTES, 'UTF-8');
 
-                  $label = ($nombreEmpresa ? $nombreEmpresa . ' · ' : '') . $nombreArea;
-                  $selected = $idAreaOpt === $idAreaActual ? 'selected' : '';
+                  $label    = ($nombreEmpresa ? $nombreEmpresa . ' · ' : '') . $nombreArea;
+                  $selected = ($idAreaOpt === $idAreaSeleccionada) ? 'selected' : '';
                 ?>
                 <option value="<?= htmlspecialchars((string)$idAreaOpt, ENT_QUOTES, 'UTF-8') ?>" <?= $selected ?>>
                   <?= $label ?>
@@ -206,7 +322,7 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
               required
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               placeholder="Ej. Auxiliar contable, Supervisor de producción…"
-              value="<?= htmlspecialchars($nombrePuesto, ENT_QUOTES, 'UTF-8') ?>"
+              value="<?= $nombrePuesto ?>"
             >
           </div>
 
@@ -225,7 +341,7 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
                 <?php foreach ($niveles as $nivel): ?>
                   <?php
                     $nivVal   = strtoupper((string)$nivel);
-                    $selected = ($nivVal === $nivelActual) ? 'selected' : '';
+                    $selected = ($nivVal === $nivelSeleccionado) ? 'selected' : '';
                   ?>
                   <option
                     value="<?= htmlspecialchars($nivVal, ENT_QUOTES, 'UTF-8') ?>"
@@ -251,12 +367,16 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
                   id="salario_base"
                   name="salario_base"
                   maxlength="12"
-                  inputmode="numeric"
-                  pattern="[0-9]+"
-                  oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                  inputmode="decimal"
+                  pattern="^[0-9]+(\.[0-9]{0,2})?$"
+                  oninput="
+                    this.value = this.value
+                      .replace(/[^0-9.]/g,'')       // solo dígitos y punto
+                      .replace(/(\..*?)\..*/g,'$1') // deja solo un punto
+                  "
                   class="block w-full rounded-lg border border-black/10 bg-white pl-6 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-                  placeholder="Solo números (ej. 15000)"
-                  value="<?= htmlspecialchars($salarioBaseVal, ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Ej. 15000 o 15000.50"
+                  value="<?= $salarioBaseVal ?>"
                 >
               </div>
               <p class="mt-1 text-xs text-muted-ink">
@@ -277,7 +397,7 @@ $descripcion    = (string)($puestoData['descripcion'] ?? '');
               rows="3"
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               placeholder="Resumen del propósito del puesto, principales responsabilidades, etc."
-            ><?= htmlspecialchars($descripcion, ENT_QUOTES, 'UTF-8') ?></textarea>
+            ><?= $descripcion ?></textarea>
             <p class="mt-1 text-xs text-muted-ink">
               Hasta 200 caracteres.
             </p>

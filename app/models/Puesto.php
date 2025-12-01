@@ -186,6 +186,10 @@ class Puesto
         $fields = [];
         $params = [];
 
+        // Para validar unicidad (nombre + área)
+        $idAreaParaValidar = null;
+        $nombreParaValidar = null;
+
         foreach (self::ALLOWED_FIELDS as $field) {
             if (!array_key_exists($field, $data)) {
                 continue;
@@ -199,6 +203,7 @@ class Puesto
                     if ($value <= 0) {
                         throw new \InvalidArgumentException("El área es obligatoria.");
                     }
+                    $idAreaParaValidar = $value;
                     break;
 
                 case 'nombre_puesto':
@@ -206,6 +211,7 @@ class Puesto
                     if ($value === '') {
                         throw new \InvalidArgumentException("El nombre del puesto es obligatorio.");
                     }
+                    $nombreParaValidar = $value;
                     break;
 
                 case 'nivel':
@@ -239,7 +245,31 @@ class Puesto
         }
 
         if (empty($fields)) {
+            // No hay nada que actualizar
             return;
+        }
+
+        // Si no vino área o nombre en $data, se toma del puesto actual
+        if ($idAreaParaValidar === null || $nombreParaValidar === null) {
+            $actual = self::findById($id);
+            if (!$actual) {
+                throw new \RuntimeException("Puesto no encontrado.");
+            }
+
+            if ($idAreaParaValidar === null) {
+                $idAreaParaValidar = (int)$actual['id_area'];
+            }
+
+            if ($nombreParaValidar === null) {
+                $nombreParaValidar = trim((string)$actual['nombre_puesto']);
+            }
+        }
+
+        // Validar que no exista OTRO puesto con el mismo nombre en el área
+        if (self::existsNombreEnArea($idAreaParaValidar, $nombreParaValidar, $id)) {
+            throw new \InvalidArgumentException(
+                "Ya existe un puesto con ese nombre en el área seleccionada."
+            );
         }
 
         $params[] = $id;
@@ -266,17 +296,31 @@ class Puesto
 
     /**
      * Verifica si ya existe un puesto con ese nombre en un área.
+     *
+     * @param int      $idArea     Área a validar
+     * @param string   $nombre     Nombre del puesto (se hace TRIM)
+     * @param int|null $excludeId  ID de puesto a excluir (para edición)
      */
-    public static function existsNombreEnArea(int $idArea, string $nombre): bool
+    public static function existsNombreEnArea(int $idArea, string $nombre, ?int $excludeId = null): bool
     {
         global $pdo;
 
-        $st = $pdo->prepare(
-            "SELECT 1 FROM puestos 
-             WHERE id_area = ? AND nombre_puesto = ? 
-             LIMIT 1"
-        );
-        $st->execute([$idArea, trim($nombre)]);
+        $sql = "SELECT 1 FROM puestos 
+                WHERE id_area = ? 
+                AND TRIM(nombre_puesto) = TRIM(?)";
+
+        $params = [$idArea, $nombre];
+
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= " AND id_puesto <> ?";
+            $params[] = $excludeId;
+        }
+
+        $sql .= " LIMIT 1";
+
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+
         return (bool)$st->fetchColumn();
     }
 }
