@@ -28,12 +28,24 @@ if (!isset($empresas) || !is_array($empresas)) {
 if (!isset($areasPorEmpresa) || !is_array($areasPorEmpresa)) {
     $areasPorEmpresa = [];
 }
+
+/**
+ * Valores antiguos del formulario (si hubo error)
+ */
 if (!isset($old) || !is_array($old)) {
-    $old = [];
+    $old = $_SESSION['old_area'] ?? [];
 }
+unset($_SESSION['old_area']);
+
+/**
+ * Mensaje de error general (excepción del modelo)
+ */
+$flashError = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_error']);
+
 
 $areaId            = (int)($area['id_area'] ?? 0);
-$selectedEmpresaId = (string)($old['id_empresa'] ?? $area['id_empresa'] ?? '');
+$selectedEmpresaId = (string)($area['id_empresa'] ?? '');
 $selectedPadreId   = (string)($old['id_area_padre'] ?? ($area['id_area_padre'] ?? ''));
 $nombreAreaValue   = htmlspecialchars((string)($old['nombre_area'] ?? $area['nombre_area'] ?? ''), ENT_QUOTES, 'UTF-8');
 $descripcionValue  = htmlspecialchars((string)($old['descripcion'] ?? $area['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -78,6 +90,44 @@ $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+
+  <!-- Estilos SweetAlert con paleta VC -->
+  <style>
+    .swal2-popup.vc-swal {
+      border-radius: 1rem;
+      border: none !important;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      font-family: 'Josefin Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ffffff;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-title.vc-swal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-html-container.vc-swal-text {
+      font-size: 0.875rem;
+      color: #0a2a5e; /* vc.ink */
+    }
+
+    .swal2-confirm.vc-swal-confirm {
+      border-radius: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      background-color: #36d1cc !important; /* vc.teal */
+      color: #0a2a5e !important;            /* vc.ink */
+      font-weight: 600;
+      box-shadow: 0 18px 45px rgba(15,23,42,.12);
+      border: none !important;             
+      outline: none !important;             
+    }
+
+    .swal2-confirm.vc-swal-confirm:hover {
+      background-color: #a7fffd !important; /* vc.neon */
+    }
+  </style>
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -163,7 +213,7 @@ $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
             <select
               id="id_empresa"
               name="id_empresa"
-              required
+              disabled
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
             >
               <option value="">Selecciona una empresa…</option>
@@ -277,9 +327,8 @@ $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
     const selectedPadreId   = "<?= htmlspecialchars($selectedPadreId, ENT_QUOTES, 'UTF-8') ?>";
 
     function updateAreasPadre() {
-      const empresaSelect   = document.getElementById('id_empresa');
       const areaPadreSelect = document.getElementById('id_area_padre');
-      const empresaId       = empresaSelect.value;
+      const empresaId       = selectedEmpresaId;
 
       areaPadreSelect.innerHTML = '<option value="">(Sin área padre)</option>';
 
@@ -301,11 +350,30 @@ $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
       }
     }
 
-    document.getElementById('id_empresa').addEventListener('change', updateAreasPadre);
-
-    // Inicial: empresa seleccionada + áreas padre
-    document.getElementById('id_empresa').value = selectedEmpresaId;
     updateAreasPadre();
   </script>
+
+  <?php if (!empty($flashError)): ?>
+  <script>
+    Swal.fire({
+      icon: 'error',
+      title: 'No se pudo guardar el área',
+      text: <?= json_encode($flashError, JSON_UNESCAPED_UNICODE) ?>,
+      iconColor: '#ff78b5', // opcional, paleta VC
+      background: '#ffffff',
+      color: '#0a2a5e',
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#36d1cc',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'vc-swal',
+        title: 'vc-swal-title',
+        htmlContainer: 'vc-swal-text',
+        confirmButton: 'vc-swal-confirm'
+      }
+    });
+  </script>
+  <?php endif; ?>
+
 </body>
 </html>

@@ -112,7 +112,7 @@ class Area
         global $pdo;
 
         $idEmpresa    = (int)($data['id_empresa']    ?? 0);
-        $idAreaPadre  = $data['id_area_padre'] ?? null;
+        $idAreaPadre  = $data['id_area_padre']       ?? null;
         $nombreArea   = trim((string)($data['nombre_area'] ?? ''));
         $descripcion  = trim((string)($data['descripcion'] ?? ''));
         $activa       = isset($data['activa']) ? (int)$data['activa'] : 1;
@@ -126,9 +126,15 @@ class Area
             ? (int)$idAreaPadre
             : null;
 
-        // (Opcional) validar que el área padre exista
-        if ($idAreaPadre !== null && !self::findById($idAreaPadre)) {
-            throw new \InvalidArgumentException('El área padre no existe.');
+        // Validar que el área padre exista y sea de la misma empresa (si se especifica)
+        if ($idAreaPadre !== null) {
+            $areaPadre = self::findById($idAreaPadre);
+            if (!$areaPadre) {
+                throw new \InvalidArgumentException('El área padre no existe.');
+            }
+            if ((int)$areaPadre['id_empresa'] !== $idEmpresa) {
+                throw new \InvalidArgumentException('El área padre debe pertenecer a la misma empresa.');
+            }
         }
 
         // Validar nombre único dentro de la empresa
@@ -162,53 +168,85 @@ class Area
             throw new \InvalidArgumentException('ID de área inválido.');
         }
 
-        // Si viene nombre_empresa o id_empresa, se valida la unicidad:
-        if (isset($data['id_empresa']) || isset($data['nombre_area'])) {
-            $idEmpresa   = isset($data['id_empresa']) ? (int)$data['id_empresa'] : null;
-            $nombreArea  = isset($data['nombre_area']) ? trim((string)$data['nombre_area']) : null;
-
-            if ($idEmpresa !== null && $nombreArea !== null &&
-                self::nameExistsInEmpresa($idEmpresa, $nombreArea, $id)) {
-                throw new \InvalidArgumentException('Ya existe un área con ese nombre en la misma empresa.');
-            }
+        // Tomamos el registro actual para conocer la empresa fija
+        $actual = self::findById($id);
+        if (!$actual) {
+            throw new \InvalidArgumentException('El área no existe.');
         }
+
+        $idEmpresa = (int)$actual['id_empresa'];
 
         $fields = [];
         $params = [];
 
-        foreach (self::ALLOWED_FIELDS as $field) {
-            if (!array_key_exists($field, $data)) continue;
-
-            if ($field === 'id_area_padre') {
-                $val = $data[$field];
-                $val = $val !== null && $val !== '' ? (int)$val : null;
-
-                // Evitar que un área sea padre de sí misma
-                if ($val === $id) {
-                    throw new \InvalidArgumentException('Un área no puede ser padre de sí misma.');
-                }
-                $fields[] = "$field = ?";
-                $params[] = $val;
-                continue;
+        // ── Nombre de área ─────────────────────────────────────────────
+        if (array_key_exists('nombre_area', $data)) {
+            $nombre = trim((string)$data['nombre_area']);
+            if ($nombre === '') {
+                throw new \InvalidArgumentException('El nombre de área no puede estar vacío.');
             }
 
-            if ($field === 'activa') {
-                $fields[] = "$field = ?";
-                $params[] = (int)$data[$field];
-                continue;
+            if (self::nameExistsInEmpresa($idEmpresa, $nombre, $id)) {
+                throw new \InvalidArgumentException('Ya existe un área con ese nombre en la misma empresa.');
             }
 
-            $fields[] = "$field = ?";
-            $params[] = is_string($data[$field]) ? trim((string)$data[$field]) : $data[$field];
+            $fields[] = 'nombre_area = ?';
+            $params[] = $nombre;
         }
 
-        if (empty($fields)) return;
+        // ── Descripción ────────────────────────────────────────────────
+        if (array_key_exists('descripcion', $data)) {
+            $fields[] = 'descripcion = ?';
+            $params[] = trim((string)$data['descripcion']);
+        }
 
+        // ── Estado (activa) ────────────────────────────────────────────
+        if (array_key_exists('activa', $data)) {
+            $fields[] = 'activa = ?';
+            $params[] = (int)$data['activa'] ? 1 : 0;
+        }
+
+        // ── Área padre ─────────────────────────────────────────────────
+        if (array_key_exists('id_area_padre', $data)) {
+            $val = $data['id_area_padre'];
+            $val = $val !== null && $val !== '' ? (int)$val : null;
+
+            // No puede ser padre de sí misma
+            if ($val === $id) {
+                throw new \InvalidArgumentException('Un área no puede ser padre de sí misma.');
+            }
+
+            if ($val !== null) {
+                $areaPadre = self::findById($val);
+                if (!$areaPadre) {
+                    throw new \InvalidArgumentException('El área padre no existe.');
+                }
+
+                if ((int)$areaPadre['id_empresa'] !== $idEmpresa) {
+                    throw new \InvalidArgumentException('El área padre debe pertenecer a la misma empresa.');
+                }
+
+                // Evitar ciclos en la jerarquía
+                if (self::isDescendantOf($val, $id)) {
+                    throw new \InvalidArgumentException('El área padre seleccionada genera un ciclo en la jerarquía.');
+                }
+            }
+
+            $fields[] = 'id_area_padre = ?';
+            $params[] = $val;
+        }
+
+        if (empty($fields)) {
+            return; // nada que actualizar
+        }
+
+        $sql = 'UPDATE areas SET ' . implode(', ', $fields) . ' WHERE id_area = ?';
         $params[] = $id;
-        $sql = "UPDATE areas SET " . implode(', ', $fields) . " WHERE id_area = ?";
+
         $st = $pdo->prepare($sql);
         $st->execute($params);
     }
+
 
     /**
      * Activa/desactiva un área.
@@ -309,4 +347,31 @@ class Area
 
         return $st->fetchAll();
     }
+
+    /**
+     * Devuelve true si $possibleParentId es descendiente (hijo, nieto, etc.) de $idArea.
+     * Sirve para evitar ciclos al cambiar el área padre.
+     */
+    public static function isDescendantOf(int $possibleParentId, int $idArea): bool
+    {
+        $current = $possibleParentId;
+
+        while ($current !== null) {
+            if ($current === $idArea) {
+                return true;
+            }
+
+            $row = self::findById($current);
+            if (!$row) {
+                break;
+            }
+
+            $current = $row['id_area_padre'] !== null
+                ? (int)$row['id_area_padre']
+                : null;
+        }
+
+        return false;
+    }
+
 }

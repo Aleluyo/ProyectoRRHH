@@ -82,12 +82,14 @@ class AreaController
         // Solo admin (ej. rol 1)
         requireRole(1);
 
+        $activaPost = $_POST['activa'] ?? '1';
+
         $data = [
             'id_empresa'    => $_POST['id_empresa']    ?? 0,
             'id_area_padre' => $_POST['id_area_padre'] ?? null,
             'nombre_area'   => $_POST['nombre_area']   ?? '',
             'descripcion'   => $_POST['descripcion']   ?? '',
-            'activa'        => isset($_POST['activa']) ? 1 : 0,
+            'activa'        => ($activaPost === '1') ? 1 : 0,
         ];
 
         try {
@@ -157,12 +159,13 @@ class AreaController
             exit;
         }
 
+        $activaPost = $_POST['activa'] ?? '0';
+
         $data = [
-            'id_empresa'    => $_POST['id_empresa']    ?? null,
             'id_area_padre' => $_POST['id_area_padre'] ?? null,
             'nombre_area'   => $_POST['nombre_area']   ?? '',
             'descripcion'   => $_POST['descripcion']   ?? '',
-            'activa'        => isset($_POST['activa']) ? 1 : 0,
+            'activa'        => ($activaPost === '1') ? 1 : 0,
         ];
 
         try {
