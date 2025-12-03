@@ -65,6 +65,7 @@ if (!isset($areas) || !is_array($areas)) {
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="stylesheet" href="<?= asset('css/eliminatemsg.css') ?>">
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -379,12 +380,21 @@ if (!isset($areas) || !is_array($areas)) {
 
       Swal.fire({
         title: '¿Desactivar área?',
-        text: nombre ? `Se desactivará "${nombre}".` : 'Se desactivará el área seleccionada.',
+         html: nombre 
+          ? `Se desactivará "<strong>${nombre}</strong>".` 
+          : 'Se desactivará la área seleccionada.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, desactivar',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#e11d48'
+        customClass: {
+            popup: 'vc-delete',
+            title: 'vc-delete-title',
+            htmlContainer: 'vc-delete-text',
+            confirmButton: 'vc-delete-confirm',
+            cancelButton: 'vc-delete-cancel'
+          },
+          buttonsStyling: false 
       }).then(result => {
         if (result.isConfirmed && href) {
           // Aquí haces la acción real (GET, POST, fetch, etc.)

@@ -1,0 +1,66 @@
+/*<!-- Estilo de SweetAlert para eliminado o desactivado --> */    
+    .swal2-popup.vc-delete {
+        border-radius: 1rem !important;
+        font-family: 'Josefin Sans', system-ui, sans-serif;
+        background: #ffffff;
+        padding: 0.93rem;
+      }
+
+      /* Título más grande */
+      .swal2-title.vc-delete-title {
+        font-size: 1.6rem !important;   
+        font-weight: 900;
+        color: #0a2a5e;
+        margin-bottom: 0.75rem !important;
+      }
+
+      /* Texto más grande */
+      .swal2-html-container.vc-delete-text {
+        font-size: 1.25rem !important;     
+        color: #475569;
+        margin-bottom: 1.8rem !important;
+      }
+
+      /* Contenedor de botones → separación */
+      .swal2-actions {
+        gap: 1rem !important;            /* ← Aumenta separación horizontal */
+        margin-top: 1rem !important;
+      }
+
+      /* Botón CONFIRMAR */
+      .swal2-confirm.vc-delete-confirm {
+        background-color: #ef4444 !important;
+        color: white !important;
+        font-size: 1.05rem !important;    
+        font-weight: 600 !important;
+        border-radius: 0.75rem !important;
+        padding: 0.7rem 1.9rem !important;
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3) !important;
+        border: none !important;
+      }
+
+      .swal2-confirm.vc-delete-confirm:hover {
+        background-color: #dc2626 !important;
+        transform: translateY(-2px);
+      }
+
+      /* Botón CANCELAR */
+      .swal2-cancel.vc-delete-cancel {
+        background-color: #e2e8f0 !important;
+        color: #475569 !important;
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        border-radius: 0.75rem !important;
+        padding: 0.7rem 1.9rem !important;
+        border: none !important;
+      }
+
+      .swal2-cancel.vc-delete-cancel:hover {
+        background-color: #cbd5e1 !important;
+      }
+
+      /* Icono de advertencia */
+      .swal2-warning {
+        border-color: #f8bb86 !important;
+        color: #f8bb86 !important;
+      }

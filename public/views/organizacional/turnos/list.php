@@ -65,6 +65,7 @@ if (!isset($turnos) || !is_array($turnos)) {
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="stylesheet" href="<?= asset('css/eliminatemsg.css') ?>">
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -399,14 +400,23 @@ if (!isset($turnos) || !is_array($turnos)) {
       const href   = btn.dataset.href;
 
       Swal.fire({
-        title: '¿Eliminar turno?',
-        text: nombre ? `Se eliminará "${nombre}".` : 'Se eliminará el turno seleccionado.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#e11d48'
-      }).then(result => {
+          title: '¿Eliminar turno?',
+          html: nombre 
+            ? `Se eliminará "<strong>${nombre}</strong>".` 
+            : 'Se eliminará el turno seleccionado.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar',
+          customClass: {
+            popup: 'vc-delete',
+            title: 'vc-delete-title',
+            htmlContainer: 'vc-delete-text',
+            confirmButton: 'vc-delete-confirm',
+            cancelButton: 'vc-delete-cancel'
+          },
+          buttonsStyling: false                
+        }).then(result => {
         if (result.isConfirmed && href) {
           window.location.href = href;
         }
