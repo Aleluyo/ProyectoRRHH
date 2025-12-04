@@ -374,4 +374,28 @@ class Area
         return false;
     }
 
+    /**
+     * Áreas activas cuyas empresas también están activas.
+     * Pensado para combos de alta de PUESTOS (Empresa - Área).
+     */
+    public static function getActivasConEmpresaActiva(): array
+    {
+        global $pdo;
+
+        $sql = "SELECT
+                    a.id_area,
+                    a.nombre_area,
+                    a.id_empresa,
+                    e.nombre AS nombre_empresa
+                FROM areas a
+                INNER JOIN empresas e ON e.id_empresa = a.id_empresa
+                WHERE a.activa = 1
+                  AND e.activa = 1
+                ORDER BY e.nombre ASC, a.nombre_area ASC";
+
+        $st = $pdo->prepare($sql);
+        $st->execute();
+
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

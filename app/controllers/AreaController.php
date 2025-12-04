@@ -58,7 +58,7 @@ class AreaController
         // Solo admin (ej. rol 1)
         requireRole(1);
 
-        $empresas = Empresa::all(1000, 0);
+        $empresas = Empresa::all(1000, 0, null, true);
 
         // Áreas activas agrupadas por empresa para el combo "Área padre"
         $areasPorEmpresa = [];

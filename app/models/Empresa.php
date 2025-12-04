@@ -236,4 +236,24 @@ class Empresa
 
         return (bool)$st->fetchColumn();
     }
+
+    /**
+     * Empresas activas para combos (altas de áreas, ubicaciones, etc.).
+     * Devuelve solo id y nombre, ordenadas alfabéticamente.
+     */
+    public static function getActivasParaCombo(): array
+    {
+        global $pdo;
+
+        $sql = "SELECT id_empresa, nombre
+                FROM empresas
+                WHERE activa = 1
+                ORDER BY nombre ASC";
+
+        $st = $pdo->prepare($sql);
+        $st->execute();
+
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
 }

@@ -47,7 +47,7 @@ class PuestoController
         $old     = [];
 
         $niveles = self::NIVELES;
-        $areas   = Area::allWithEmpresa(1000, 0);
+        $areas   = Area::getActivasConEmpresaActiva();
 
         // $niveles y $areas disponibles en la vista
         require __DIR__ . '/../../public/views/organizacional/puestos/create.php';
