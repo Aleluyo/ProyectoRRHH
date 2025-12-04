@@ -9,7 +9,11 @@ require_once __DIR__ . '/../app/controllers/AreaController.php';
 require_once __DIR__ . '/../app/controllers/PuestoController.php';
 require_once __DIR__ . '/../app/controllers/UbicacionController.php';
 require_once __DIR__ . '/../app/controllers/TurnoController.php';
-
+// Controladores de Reclutamiento y Selección
+require_once __DIR__ . '/../app/controllers/VacanteController.php';
+require_once __DIR__ . '/../app/controllers/CandidatoController.php';
+require_once __DIR__ . '/../app/controllers/PostulacionController.php';
+require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
 requireLogin();
 
 
@@ -43,6 +47,24 @@ if ($controllerName !== null && $actionName !== null) {
             http_response_code(404);
             echo "Controlador no encontrado";
             exit;
+        // Reclutamiento y Selección
+        case 'vacante':
+            $controller = new VacanteController();
+            break;
+        case 'candidato':
+            $controller = new CandidatoController();
+            break;
+        case 'postulacion':
+            $controller = new PostulacionController();
+            break;
+        case 'entrevista':
+            $controller = new EntrevistaController();
+            break;
+
+        default:
+            http_response_code(404);
+            echo "Controlador no encontrado";
+            exit;
     }
     // Verifica que el método (acción) exista en el controlador
     if (!method_exists($controller, $actionName)) {
@@ -65,6 +87,8 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 $modules = [
   ['title'=>'Empleados','sub'=>'Altas, expedientes y consultas','icon'=>'i-users','href'=>url('views/empleados/list.php'),'tag'=>'pink'],
+  // NUEVO módulo principal de Reclutamiento
+  ['title'=>'Reclutamiento y Selección','sub'=>'Vacantes, candidatos y entrevistas','icon'=>'i-users','href'=>url('views/reclutamiento/index.php'),'tag'=>'teal'],
   ['title'=>'Nómina','sub'=>'Recibos, cálculos y reportes','icon'=>'i-cash','href'=>url('views/nomina/list.php'),'tag'=>'teal'],
   ['title'=>'Asistencia','sub'=>'Entradas, salidas y faltas','icon'=>'i-cal-check','href'=>url('views/asistencia/list.php'),'tag'=>'peach'],
   ['title'=>'Permisos & Vacaciones','sub'=>'Gestión de ausencias','icon'=>'i-cal-plus','href'=>url('views/permisos/list.php'),'tag'=>'sand'],
