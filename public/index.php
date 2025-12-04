@@ -43,10 +43,6 @@ if ($controllerName !== null && $actionName !== null) {
         case 'turno':
             $controller = new TurnoController();
             break;
-        default: // Controlador no existe
-            http_response_code(404);
-            echo "Controlador no encontrado";
-            exit;
         // Reclutamiento y Selección
         case 'vacante':
             $controller = new VacanteController();
@@ -60,7 +56,6 @@ if ($controllerName !== null && $actionName !== null) {
         case 'entrevista':
             $controller = new EntrevistaController();
             break;
-
         default:
             http_response_code(404);
             echo "Controlador no encontrado";
