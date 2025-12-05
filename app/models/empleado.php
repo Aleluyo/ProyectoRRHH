@@ -194,4 +194,62 @@ class Empleado
         $st = $pdo->prepare($sql);
         return $st->execute($params);
     }
+
+    /**
+     * Crear un nuevo empleado
+     * @param array $data Datos del empleado
+     * @return int|false ID del empleado creado o false si falla
+     */
+    public static function create(array $data): int|false
+    {
+        global $pdo;
+
+        // Campos permitidos
+        $allowedFields = [
+            'nombre',
+            'curp',
+            'rfc',
+            'nss',
+            'fecha_nacimiento',
+            'genero',
+            'estado_civil',
+            'telefono',
+            'correo',
+            'direccion',
+            'id_puesto',
+            'fecha_ingreso',
+            'estado',
+            'fecha_baja',
+            'id_ubicacion',
+            'id_turno'
+        ];
+
+        $fields = [];
+        $placeholders = [];
+        $params = [];
+
+        foreach ($allowedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = $field;
+                $placeholders[] = ":$field";
+                $params[":$field"] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $fieldsStr = implode(', ', $fields);
+        $placeholdersStr = implode(', ', $placeholders);
+
+        $sql = "INSERT INTO empleados ($fieldsStr) VALUES ($placeholdersStr)";
+        $stmt = $pdo->prepare($sql);
+
+        if ($stmt->execute($params)) {
+            return (int) $pdo->lastInsertId();
+        }
+
+        return false;
+    }
 }

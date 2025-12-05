@@ -102,6 +102,77 @@ class EmpleadoController
     }
 
     /**
+     * Procesar alta de nuevo empleado
+     * POST: ?controller=empleado&action=store
+     */
+    public function store(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        // Verificar que sea POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . url('index.php?controller=empleado&action=create'));
+            exit;
+        }
+
+        // Obtener datos del formulario
+        $data = [
+            'nombre' => trim($_POST['nombre'] ?? ''),
+            'curp' => trim($_POST['curp'] ?? ''),
+            'rfc' => trim($_POST['rfc'] ?? ''),
+            'nss' => trim($_POST['nss'] ?? ''),
+            'fecha_nacimiento' => $_POST['fecha_nacimiento'] ?? null,
+            'genero' => $_POST['genero'] ?? null,
+            'estado_civil' => trim($_POST['estado_civil'] ?? ''),
+            'telefono' => trim($_POST['telefono'] ?? ''),
+            'correo' => trim($_POST['correo'] ?? ''),
+            'direccion' => trim($_POST['direccion'] ?? ''),
+            'id_empresa' => (int) ($_POST['id_empresa'] ?? 0),
+            'id_area' => (int) ($_POST['id_area'] ?? 0),
+            'id_puesto' => (int) ($_POST['id_puesto'] ?? 0),
+            'fecha_ingreso' => $_POST['fecha_ingreso'] ?? null,
+            'estado' => 'ACTIVO', // Por defecto ACTIVO
+            'id_ubicacion' => (int) ($_POST['id_ubicacion'] ?? 0),
+            'id_turno' => (int) ($_POST['id_turno'] ?? 0),
+        ];
+
+        // Validaciones básicas
+        if (empty($data['nombre'])) {
+            $_SESSION['toast_message'] = 'El nombre del empleado es requerido';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: ' . url('index.php?controller=empleado&action=create'));
+            exit;
+        }
+
+        if ($data['id_puesto'] === 0) {
+            $_SESSION['toast_message'] = 'El puesto es requerido';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: ' . url('index.php?controller=empleado&action=create'));
+            exit;
+        }
+
+        // Crear empleado
+        $idEmpleado = Empleado::create($data);
+
+        if ($idEmpleado) {
+            // TODO: Registrar en empleados_historial el alta del empleado
+
+            $_SESSION['toast_message'] = 'Empleado registrado correctamente';
+            $_SESSION['toast_type'] = 'success';
+
+            // Redirigir al expediente del nuevo empleado
+            header('Location: ' . url('index.php?controller=empleado&action=show&id=' . $idEmpleado));
+            exit;
+        } else {
+            $_SESSION['toast_message'] = 'Error al registrar el empleado';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: ' . url('index.php?controller=empleado&action=create'));
+            exit;
+        }
+    }
+
+    /**
      * Ver detalle completo del empleado (expediente)
      * GET: ?controller=empleado&action=show&id=X
      */
