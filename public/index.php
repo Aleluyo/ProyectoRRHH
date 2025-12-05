@@ -20,10 +20,9 @@ require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
 require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
+require_once __DIR__ . '/../app/controllers/ReportesController.php';
 
 requireLogin();
-
-
 
 // -----------------------------------------------------------------------------------------
 
@@ -76,6 +75,9 @@ if ($controllerName !== null && $actionName !== null) {
     case 'configuracion':
       $controller = new ConfiguracionController();
       break;
+    case 'reportes':
+      $controller = new ReportesController();
+      break;
     default:
       http_response_code(404);
       echo "Controlador no encontrado";
@@ -109,7 +111,7 @@ $modules = [
   ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
   ['title' => 'Usuarios', 'sub' => 'Control y roles de acceso', 'icon' => 'i-badge', 'href' => url('views/usuarios/list.php'), 'tag' => 'teal'],
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
-  ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('views/reportes/list.php'), 'tag' => 'peach'],
+  ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('index.php?controller=reportes&action=index'), 'tag' => 'peach'],
   ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('index.php?controller=configuracion&action=index'), 'tag' => 'sand'],
 ];
 ?>
