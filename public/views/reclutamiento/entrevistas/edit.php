@@ -8,27 +8,30 @@ require_once __DIR__ . '/../../../../app/middleware/Auth.php';
 requireLogin();
 requireRole(1);
 
-$area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
+$area = htmlspecialchars($_SESSION['area'] ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 // $entrevista viene desde EntrevistaController::edit()
 if (!isset($entrevista) || !is_array($entrevista)) {
-    $entrevista = [];
+  $entrevista = [];
 }
 
 $errors = $errors ?? ($_SESSION['errors'] ?? []);
-$old    = $old    ?? ($_SESSION['old_input'] ?? []);
+$old = $old ?? ($_SESSION['old_input'] ?? []);
 
-function v_old_ent(string $k, array $old, array $ent): string {
-    if (array_key_exists($k, $old)) return (string)$old[$k];
-    return isset($ent[$k]) ? (string)$ent[$k] : '';
+function v_old_ent(string $k, array $old, array $ent): string
+{
+  if (array_key_exists($k, $old))
+    return (string) $old[$k];
+  return isset($ent[$k]) ? (string) $ent[$k] : '';
 }
 
-$idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
+$idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
 ?>
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <title>Editar entrevista · Reclutamiento</title>
@@ -42,19 +45,19 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
         extend: {
           colors: {
             vc: {
-              pink:'#ff78b5', peach:'#ffc9a9', teal:'#36d1cc',
-              sand:'#ffe9c7', ink:'#0a2a5e', neon:'#a7fffd'
+              pink: '#ff78b5', peach: '#ffc9a9', teal: '#36d1cc',
+              sand: '#ffe9c7', ink: '#0a2a5e', neon: '#a7fffd'
             }
           },
           fontFamily: {
-            display:['Josefin Sans','system-ui','sans-serif'],
-            sans:['DM Sans','system-ui','sans-serif'],
-            vice:['Rage Italic','Yellowtail','cursive']
+            display: ['Josefin Sans', 'system-ui', 'sans-serif'],
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            vice: ['Rage Italic', 'Yellowtail', 'cursive']
           },
-          boxShadow:{ soft:'0 10px 28px rgba(10,42,94,.08)' },
-          backgroundImage:{
-            gridglow:'radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px)',
-            ribbon:'linear-gradient(90deg, #ff78b5,#ffc9a9,#36d1cc)'
+          boxShadow: { soft: '0 10px 28px rgba(10,42,94,.08)' },
+          backgroundImage: {
+            gridglow: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px)',
+            ribbon: 'linear-gradient(90deg, #ff78b5,#ffc9a9,#36d1cc)'
           }
         }
       }
@@ -63,11 +66,14 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Yellowtail&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Yellowtail&display=swap"
+    rel="stylesheet">
 
     <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
     <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
 </head>
+
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
   <div class="h-[1px] w-full bg-[image:linear-gradient(90deg,#ff78b5,#ffc9a9,#36d1cc)] opacity-70"></div>
   <div class="absolute inset-0 grid-bg opacity-15 pointer-events-none"></div>
@@ -82,7 +88,8 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
         <span class="hidden sm:inline-block truncate max-w-[220px]">
           <?= $puesto ?><?= $area ? ' &mdash; ' . $area : '' ?><?= $ciudad ? ' &mdash; ' . $ciudad : '' ?>
         </span>
-        <a href="<?= url('logout.php') ?>" class="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm hover:bg-vc-pink/10 text-vc-ink">
+        <a href="<?= url('logout.php') ?>"
+          class="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm hover:bg-vc-pink/10 text-vc-ink">
           Cerrar sesión
         </a>
       </div>
@@ -93,11 +100,19 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
     <div class="mb-5">
       <nav class="flex items-center gap-3 text-sm">
         <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">Inicio</a>
-        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        <a href="<?= url('views/reclutamiento/index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">Reclutamiento y Selección</a>
-        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        <a href="<?= url('index.php?controller=entrevista&action=index') ?>" class="text-muted-ink hover:text-vc-ink transition">Entrevistas</a>
-        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        <a href="<?= url('views/reclutamiento/index.php') ?>"
+          class="text-muted-ink hover:text-vc-ink transition">Reclutamiento y Selección</a>
+        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        <a href="<?= url('index.php?controller=entrevista&action=index') ?>"
+          class="text-muted-ink hover:text-vc-ink transition">Entrevistas</a>
+        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
         <span class="font-medium text-vc-pink">Editar entrevista #<?= $idEntrevista ?></span>
       </nav>
     </div>
@@ -110,14 +125,24 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
     </section>
 
     <section class="rounded-xl border border-black/10 bg-white/90 p-5 shadow-soft">
-      <form method="post" action="<?= url('index.php?controller=entrevista&action=update&id=' . $idEntrevista) ?>" class="space-y-4">
+      <form method="post" action="<?= url('index.php?controller=entrevista&action=update&id=' . $idEntrevista) ?>"
+        class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label for="id_postulacion" class="block text-sm font-medium text-vc-ink mb-1">ID Postulación</label>
-            <input type="number" name="id_postulacion" id="id_postulacion"
-              value="<?= htmlspecialchars(v_old_ent('id_postulacion', $old, $entrevista), ENT_QUOTES, 'UTF-8') ?>"
+            <label for="id_postulacion" class="block text-sm font-medium text-vc-ink mb-1">Postulación</label>
+            <select name="id_postulacion" id="id_postulacion"
               class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               required>
+              <option value="">Selecciona una postulación...</option>
+              <?php
+              $currentId = (int) v_old_ent('id_postulacion', $old, $entrevista);
+              foreach ($postulaciones as $p):
+                $sel = ($p['id'] === $currentId) ? 'selected' : '';
+                ?>
+                <option value="<?= $p['id'] ?>" <?= $sel ?>><?= htmlspecialchars($p['label'], ENT_QUOTES, 'UTF-8') ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
           </div>
 
           <div>
@@ -143,7 +168,7 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
             <select name="resultado" id="resultado"
               class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
               <option value="PENDIENTE" <?= $resSel === 'PENDIENTE' ? 'selected' : '' ?>>Pendiente</option>
-              <option value="APROBADO"  <?= $resSel === 'APROBADO'  ? 'selected' : '' ?>>Aprobado</option>
+              <option value="APROBADO" <?= $resSel === 'APROBADO' ? 'selected' : '' ?>>Aprobado</option>
               <option value="RECHAZADO" <?= $resSel === 'RECHAZADO' ? 'selected' : '' ?>>Rechazado</option>
             </select>
           </div>
@@ -152,13 +177,12 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
         <div>
           <label for="notas" class="block text-sm font-medium text-vc-ink mb-1">Notas</label>
           <textarea name="notas" id="notas" rows="4"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-          ><?= htmlspecialchars(v_old_ent('notas', $old, $entrevista), ENT_QUOTES, 'UTF-8') ?></textarea>
+            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"><?= htmlspecialchars(v_old_ent('notas', $old, $entrevista), ENT_QUOTES, 'UTF-8') ?></textarea>
         </div>
 
         <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
           <a href="<?= url('index.php?controller=entrevista&action=index') ?>"
-             class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50">
+            class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50">
             Cancelar
           </a>
           <button type="submit"
@@ -170,4 +194,5 @@ $idEntrevista = (int)($entrevista['id_entrevista'] ?? 0);
     </section>
   </main>
 </body>
+
 </html>

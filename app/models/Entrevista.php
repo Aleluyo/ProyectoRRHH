@@ -11,7 +11,6 @@ class Entrevista
 {
     private const ALLOWED_FIELDS = [
         'id_postulacion',
-        'entrevistador',
         'programada_para',
         'resultado',
         'notas',
@@ -20,7 +19,7 @@ class Entrevista
     private const RESULTADOS_VALIDOS = ['PENDIENTE', 'APROBADO', 'RECHAZADO'];
 
     /**
-     * Devuelve una entrevista por ID.
+     * Devuelve una entrevista por ID (con info básica de la postulación).
      */
     public static function findById(int $id): ?array
     {
@@ -30,7 +29,31 @@ class Entrevista
             throw new \InvalidArgumentException("ID de entrevista inválido.");
         }
 
-        $st = $pdo->prepare("SELECT * FROM entrevistas WHERE id_entrevista = ? LIMIT 1");
+        $sql = "
+            SELECT
+                e.*,
+                p.id_postulacion,
+                v.id_vacante,
+                a.nombre_area,
+                pu.nombre_puesto,
+                c.nombre AS candidato_nombre,
+                CONCAT(
+                    'Vacante ', v.id_vacante, ' · ',
+                    COALESCE(a.nombre_area, 'Sin área'), ' · ',
+                    COALESCE(pu.nombre_puesto, 'Sin puesto'), ' · ',
+                    COALESCE(c.nombre, 'Sin candidato')
+                ) AS postulacion_resumen
+            FROM entrevistas e
+            INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
+            INNER JOIN vacantes v      ON v.id_vacante    = p.id_vacante
+            LEFT  JOIN areas   a       ON a.id_area       = v.id_area
+            LEFT  JOIN puestos pu      ON pu.id_puesto    = v.id_puesto
+            LEFT  JOIN candidatos c    ON c.id_candidato  = p.id_candidato
+            WHERE e.id_entrevista = ?
+            LIMIT 1
+        ";
+
+        $st = $pdo->prepare($sql);
         $st->execute([$id]);
         $row = $st->fetch();
 
@@ -38,10 +61,8 @@ class Entrevista
     }
 
     /**
-     * ============================================================
-     *  NUEVO: listado general para la vista /entrevistas/list.php
-     *        con JOINs a postulaciones, vacantes, candidatos, etc.
-     * ============================================================
+     * Lista de entrevistas (para la pantalla principal).
+     * Incluye: resumen de la postulación y orden por ID ASC.
      */
     public static function all(
         int $limit = 500,
@@ -57,45 +78,40 @@ class Entrevista
         $params = [];
 
         if ($search !== null && trim($search) !== '') {
-            $q = '%' . trim($search) . '%';
-
-            // Búsqueda por candidato, vacante, fecha o resultado
-            $where[] = '(
-                c.nombre LIKE :q
-                OR v.id_vacante LIKE :q
-                OR DATE(e.programada_para) LIKE :q
-                OR e.resultado LIKE :q
-            )';
-            $params[':q'] = $q;
+            $search = '%' . trim($search) . '%';
+            $where[] = '(c.nombre LIKE :q OR a.nombre_area LIKE :q OR pu.nombre_puesto LIKE :q)';
+            $params[':q'] = $search;
         }
 
-        $sql = "SELECT
-                    e.*,
-                    p.id_vacante,
-                    p.id_candidato,
-                    v.id_area,
-                    v.id_puesto,
-                    v.id_ubicacion,
-                    c.nombre      AS candidato_nombre,
-                    a.nombre_area AS nombre_area,
-                    pu.nombre_puesto,
-                    u.nombre      AS ubicacion_nombre,
-                    -- Resumen legible que usamos en la columna 'Postulación'
-                    CONCAT('Vacante ', v.id_vacante, ' · ', c.nombre) AS postulacion_resumen
-                FROM entrevistas e
-                INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
-                INNER JOIN vacantes      v ON v.id_vacante     = p.id_vacante
-                INNER JOIN candidatos    c ON c.id_candidato   = p.id_candidato
-                LEFT  JOIN areas         a ON a.id_area        = v.id_area
-                LEFT  JOIN puestos      pu ON pu.id_puesto     = v.id_puesto
-                LEFT  JOIN ubicaciones   u ON u.id_ubicacion   = v.id_ubicacion";
-
+        $whereSql = '';
         if (!empty($where)) {
-            $sql .= " WHERE " . implode(' AND ', $where);
+            $whereSql = 'WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= " ORDER BY e.programada_para DESC
-                  LIMIT :limit OFFSET :offset";
+        $sql = "
+            SELECT
+                e.*,
+                p.id_postulacion,
+                v.id_vacante,
+                a.nombre_area,
+                pu.nombre_puesto,
+                c.nombre AS candidato_nombre,
+                CONCAT(
+                    'Vacante ', v.id_vacante, ' · ',
+                    COALESCE(a.nombre_area, 'Sin área'), ' · ',
+                    COALESCE(pu.nombre_puesto, 'Sin puesto'), ' · ',
+                    COALESCE(c.nombre, 'Sin candidato')
+                ) AS postulacion_resumen
+            FROM entrevistas e
+            INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
+            INNER JOIN vacantes v      ON v.id_vacante    = p.id_vacante
+            LEFT  JOIN areas   a       ON a.id_area       = v.id_area
+            LEFT  JOIN puestos pu      ON pu.id_puesto    = v.id_puesto
+            LEFT  JOIN candidatos c    ON c.id_candidato  = p.id_candidato
+            {$whereSql}
+            ORDER BY e.id_entrevista ASC
+            LIMIT :limit OFFSET :offset
+        ";
 
         $st = $pdo->prepare($sql);
 
@@ -107,11 +123,11 @@ class Entrevista
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
-        return $st->fetchAll();
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
-     * Lista entrevistas de UNA postulación específica.
+     * Lista entrevistas de una postulación (si lo necesitas en otra vista).
      */
     public static function byPostulacion(
         int $idPostulacion,
@@ -127,11 +143,13 @@ class Entrevista
         $limit  = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $sql = "SELECT *
-                FROM entrevistas
-                WHERE id_postulacion = :idPostulacion
-                ORDER BY programada_para DESC
-                LIMIT :limit OFFSET :offset";
+        $sql = "
+            SELECT *
+            FROM entrevistas
+            WHERE id_postulacion = :idPostulacion
+            ORDER BY programada_para DESC
+            LIMIT :limit OFFSET :offset
+        ";
 
         $st = $pdo->prepare($sql);
         $st->bindValue(':idPostulacion', $idPostulacion, \PDO::PARAM_INT);
@@ -139,19 +157,18 @@ class Entrevista
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
-        return $st->fetchAll();
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
      * Crea una entrevista.
+     * El entrevistador se toma del usuario logueado si existe, o 1 por defecto.
      */
     public static function create(array $data): int
     {
         global $pdo;
 
         $idPostulacion = self::normalizarId($data['id_postulacion'] ?? null, "postulación");
-        $entrevistador = self::normalizarId($data['entrevistador'] ?? null, "entrevistador");
-
         $programadaRaw = (string)($data['programada_para'] ?? '');
         $programada    = self::normalizarFechaHora($programadaRaw, "fecha/hora programada");
 
@@ -160,9 +177,20 @@ class Entrevista
 
         $notas         = trim((string)($data['notas'] ?? ''));
 
-        $sql = "INSERT INTO entrevistas
-                    (id_postulacion, entrevistador, programada_para, resultado, notas)
-                VALUES (?, ?, ?, ?, ?)";
+        // Entrevistador: usuario actual o 1 por defecto
+        $entrevistador = isset($_SESSION['id_usuario'])
+            ? (int)$_SESSION['id_usuario']
+            : 1;
+
+        if ($entrevistador <= 0) {
+            $entrevistador = 1;
+        }
+
+        $sql = "
+            INSERT INTO entrevistas
+                (id_postulacion, entrevistador, programada_para, resultado, notas)
+            VALUES (?, ?, ?, ?, ?)
+        ";
 
         $st = $pdo->prepare($sql);
         $st->execute([
@@ -200,10 +228,6 @@ class Entrevista
             switch ($field) {
                 case 'id_postulacion':
                     $value = self::normalizarId($value, "postulación");
-                    break;
-
-                case 'entrevistador':
-                    $value = self::normalizarId($value, "entrevistador");
                     break;
 
                 case 'programada_para':
@@ -264,7 +288,10 @@ class Entrevista
     }
 
     /**
-     * Normaliza fecha/hora (acepta 'Y-m-d H:i:s' o 'Y-m-d H:i').
+     * Normaliza fecha/hora:
+     * - Y-m-d H:i:s
+     * - Y-m-d H:i
+     * - Y-m-d\TH:i (formato de input datetime-local)
      */
     private static function normalizarFechaHora(string $valor, string $labelCampo): string
     {
@@ -274,10 +301,11 @@ class Entrevista
         }
 
         $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $valor)
-           ?: \DateTime::createFromFormat('Y-m-d H:i', $valor);
+           ?: \DateTime::createFromFormat('Y-m-d H:i', $valor)
+           ?: \DateTime::createFromFormat('Y-m-d\TH:i', $valor);
 
         if (!$dt) {
-            throw new \InvalidArgumentException("Formato inválido para {$labelCampo} (usa Y-m-d H:i o Y-m-d H:i:s).");
+            throw new \InvalidArgumentException("Formato inválido para {$labelCampo}.");
         }
 
         return $dt->format('Y-m-d H:i:s');
