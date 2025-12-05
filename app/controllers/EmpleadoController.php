@@ -321,23 +321,31 @@ class EmpleadoController
         if ($success) {
 
             require_once __DIR__ . '/../models/Movimiento.php';
+            require_once __DIR__ . '/../models/Puesto.php';
             $userId = $_SESSION['user_id'] ?? 1;
             $today = date('Y-m-d');
 
-            // 1. Detectar Cambio de Área
-            if ($empleadoActual['id_area'] != $data['id_area']) {
-                Movimiento::cambiarArea(
-                    $id, 
-                    $data['id_area'],
-                    $today,
-                    'Reasignación Administrativa',
-                    'Cambio realizado desde edición de perfil',
-                    $userId
-                );
-            }
-
-            // 2. Detectar Cambio de Puesto
+            // Detectar cambios que requieren registrar movimientos
+            
+            // 1. Detectar Cambio de Puesto (y potencialmente de área)
             if ($empleadoActual['id_puesto'] != $data['id_puesto']) {
+                // Obtener el área del puesto anterior y del nuevo puesto
+                $puestoAnterior = Puesto::findById($empleadoActual['id_puesto']);
+                $puestoNuevo = Puesto::findById($data['id_puesto']);
+                
+                // Si cambió el área, registrar cambio de área primero
+                if ($puestoAnterior && $puestoNuevo && $puestoAnterior['id_area'] != $puestoNuevo['id_area']) {
+                    Movimiento::cambiarArea(
+                        $id, 
+                        $puestoNuevo['id_area'],
+                        $today,
+                        'Reasignación Administrativa por cambio de puesto',
+                        'Cambio realizado desde edición de perfil',
+                        $userId
+                    );
+                }
+                
+                // Registrar cambio de puesto
                 Movimiento::cambiarPuesto(
                     $id, 
                     $data['id_puesto'],
