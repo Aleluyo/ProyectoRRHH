@@ -31,53 +31,6 @@ $actionName = $_GET['action'] ?? null;
 
 // Si ambos parámetros están presentes, procesamos la solicitud
 if ($controllerName !== null && $actionName !== null) {
-  // Enrutamiento según el controlador solicitado
-  switch ($controllerName) {
-    case 'empresa':
-      $controller = new EmpresaController();
-      break;
-    case 'area':
-      $controller = new AreaController();
-      break;
-    case 'puesto':
-      $controller = new PuestoController();
-      break;
-    case 'ubicacion':
-      $controller = new UbicacionController();
-      break;
-    case 'turno':
-      $controller = new TurnoController();
-      break;
-    // Reclutamiento y Selección
-    case 'vacante':
-      $controller = new VacanteController();
-      break;
-    case 'candidato':
-      $controller = new CandidatoController();
-      break;
-    case 'postulacion':
-      $controller = new PostulacionController();
-      break;
-    case 'entrevista':
-      $controller = new EntrevistaController();
-      break;
-    case 'asistencia':
-      $controller = new AsistenciasController();
-      break;
-    default:
-      http_response_code(404);
-      echo "Controlador no encontrado";
-      exit;
-  }
-  // Verifica que el método (acción) exista en el controlador
-  if (!method_exists($controller, $actionName)) {
-    http_response_code(404);
-    echo "Acción no encontrada";
-    exit;
-  }
-
-  // Ejecuta la acción solicitada y finaliza el script sin renderizar la página de inicio
-  $controller->{$actionName}();
 
   // Enrutamiento según el controlador solicitado
   switch ($controllerName) {
