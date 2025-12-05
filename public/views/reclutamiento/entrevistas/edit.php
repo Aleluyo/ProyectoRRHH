@@ -121,8 +121,20 @@ $idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
     </section>
 
     <section class="rounded-xl border border-black/10 bg-white/90 p-5 shadow-soft">
+      <?php if (!empty($errors)): ?>
+        <div class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200">
+          <p class="font-bold">Por favor corrige los siguientes errores:</p>
+          <ul class="list-disc list-inside mt-1">
+            <?php foreach ($errors as $err): ?>
+              <li><?= htmlspecialchars($err, ENT_QUOTES, 'UTF-8') ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
       <form method="post" action="<?= url('index.php?controller=entrevista&action=update&id=' . $idEntrevista) ?>"
         class="space-y-4">
+        <input type="hidden" name="id" value="<?= $idEntrevista ?>">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="id_postulacion" class="block text-sm font-medium text-vc-ink mb-1">Postulación</label>
@@ -142,9 +154,17 @@ $idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
           </div>
 
           <div>
-            <label for="fecha_programada" class="block text-sm font-medium text-vc-ink mb-1">Fecha y hora</label>
-            <input type="datetime-local" name="fecha_programada" id="fecha_programada"
-              value="<?= htmlspecialchars(v_old_ent('fecha_programada', $old, $entrevista), ENT_QUOTES, 'UTF-8') ?>"
+            <label for="programada_para" class="block text-sm font-medium text-vc-ink mb-1">Fecha y hora</label>
+            <?php
+            // Ajuste de formato para datetime-local (Y-m-d\TH:i)
+            $valFecha = v_old_ent('programada_para', $old, $entrevista);
+            $valFecha = str_replace(' ', 'T', trim($valFecha));
+            if (strlen($valFecha) > 16) {
+              $valFecha = substr($valFecha, 0, 16);
+            }
+            ?>
+            <input type="datetime-local" name="programada_para" id="programada_para"
+              value="<?= htmlspecialchars($valFecha, ENT_QUOTES, 'UTF-8') ?>"
               class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
               required>
           </div>

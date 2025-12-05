@@ -42,12 +42,14 @@ class Postulacion
                        c.correo AS candidato_correo,
                        v.id_vacante,
                        a.nombre_area,
-                       pu.nombre_puesto
+                       pu.nombre_puesto,
+                       e.nombre AS empresa_nombre
                 FROM postulaciones p
                 LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
                 LEFT JOIN vacantes   v  ON v.id_vacante   = p.id_vacante
                 LEFT JOIN areas      a  ON a.id_area      = v.id_area
                 LEFT JOIN puestos    pu ON pu.id_puesto   = v.id_puesto
+                LEFT JOIN empresas   e  ON e.id_empresa   = a.id_empresa
                 WHERE p.id_postulacion = ?
                 LIMIT 1";
 
@@ -90,12 +92,14 @@ class Postulacion
                        c.correo AS candidato_correo,
                        v.id_vacante,
                        a.nombre_area,
-                       pu.nombre_puesto
+                       pu.nombre_puesto,
+                       e.nombre AS empresa_nombre
                 FROM postulaciones p
                 LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
                 LEFT JOIN vacantes   v ON v.id_vacante   = p.id_vacante
                 LEFT JOIN areas      a ON a.id_area      = v.id_area
                 LEFT JOIN puestos    pu ON pu.id_puesto  = v.id_puesto
+                LEFT JOIN empresas   e  ON e.id_empresa  = a.id_empresa
                 {$whereSql}
                 ORDER BY p.aplicada_en DESC
                 LIMIT :limit OFFSET :offset";
@@ -142,9 +146,13 @@ class Postulacion
 
         $sql = "SELECT p.*,
                        c.nombre AS candidato_nombre,
-                       c.correo AS candidato_correo
+                       c.correo AS candidato_correo,
+                       e.nombre AS empresa_nombre
                 FROM postulaciones p
                 LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
+                LEFT JOIN vacantes   v ON v.id_vacante   = p.id_vacante
+                LEFT JOIN areas      a ON a.id_area      = v.id_area
+                LEFT JOIN empresas   e ON e.id_empresa   = a.id_empresa
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY p.aplicada_en DESC
                 LIMIT :limit OFFSET :offset";
@@ -357,6 +365,23 @@ class Postulacion
     }
 
     /* ====================== Helpers internos ====================== */
+
+    /**
+     * Verifica si ya existe una postulación para ese candidato en esa vacante.
+     */
+    public static function exists(int $idVacante, int $idCandidato): bool
+    {
+        global $pdo;
+
+        $sql = "SELECT 1 FROM postulaciones 
+                WHERE id_vacante = ? AND id_candidato = ? 
+                LIMIT 1";
+
+        $st = $pdo->prepare($sql);
+        $st->execute([$idVacante, $idCandidato]);
+
+        return (bool) $st->fetchColumn();
+    }
 
     private static function normalizarId($valor, string $labelCampo): int
     {
