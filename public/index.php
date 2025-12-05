@@ -156,16 +156,6 @@ $modules = [
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
   ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('views/reportes/list.php'), 'tag' => 'peach'],
   ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('views/configuracion/index.php'), 'tag' => 'sand'],
-
-
-  ['title' => 'Reclutamiento y Selección', 'sub' => 'Vacantes, candidatos y entrevistas', 'icon' => 'i-users', 'href' => url('views/reclutamiento/index.php'), 'tag' => 'teal'],
-  ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('views/nomina/list.php'), 'tag' => 'teal'],
-  ['title' => 'Asistencias', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('index.php?controller=asistencia&action=index'), 'tag' => 'peach'],
-  ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
-  ['title' => 'Usuarios', 'sub' => 'Control y roles de acceso', 'icon' => 'i-badge', 'href' => url('views/usuarios/list.php'), 'tag' => 'teal'],
-  ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
-  ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('views/reportes/list.php'), 'tag' => 'peach'],
-  ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('views/configuracion/index.php'), 'tag' => 'sand'],
 ];
 ?>
 <!doctype html>
