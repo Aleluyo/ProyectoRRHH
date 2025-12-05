@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Pestañas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'vc-pink': '#ff78b5',
+                        'vc-peach': '#ffc9a9',
+                        'vc-teal': '#36d1cc',
+                        'vc-ink': '#2d3748',
+                        'muted-ink': '#718096'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Prueba de Pestañas - Empleado de Prueba</h1>
+        
+        <!-- Tabs de información -->
+        <section>
+            <div class="border-b border-black/10 mb-6">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button
+                        class="tab-button active border-b-2 border-vc-pink py-4 px-1 text-sm font-medium text-vc-pink"
+                        data-tab="personal">
+                        Datos personales
+                    </button>
+                    <button
+                        class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-muted-ink hover:text-vc-ink hover:border-gray-300"
+                        data-tab="laboral">
+                        Datos laborales
+                    </button>
+                    <button
+                        class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-muted-ink hover:text-vc-ink hover:border-gray-300"
+                        data-tab="documentos">
+                        Documentos
+                    </button>
+                    <button
+                        class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-muted-ink hover:text-vc-ink hover:border-gray-300"
+                        data-tab="historial">
+                        Historial
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab: Datos personales -->
+            <div class="tab-content" id="tab-personal">
+                <div class="rounded-lg border border-black/10 bg-white p-8">
+                    <h3 class="font-semibold text-vc-ink text-lg mb-4">Información Personal</h3>
+                    <p class="text-sm text-muted-ink">Contenido de la pestaña de datos personales.</p>
+                </div>
+            </div>
+
+            <!-- Tab: Datos laborales -->
+            <div class="tab-content hidden" id="tab-laboral">
+                <div class="rounded-lg border border-black/10 bg-white p-8">
+                    <h3 class="font-semibold text-vc-ink text-lg mb-4">Información Laboral</h3>
+                    <p class="text-sm text-muted-ink">Contenido de la pestaña de datos laborales.</p>
+                </div>
+            </div>
+
+            <!-- Tab: Documentos -->
+            <div class="tab-content hidden" id="tab-documentos">
+                <div class="rounded-lg border border-black/10 bg-white p-8">
+                    <h3 class="font-semibold text-vc-ink text-lg mb-4">Documentos del Empleado</h3>
+                    <div class="space-y-3">
+                        <div class="border border-gray-200 rounded p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold">INE</h4>
+                                    <p class="text-sm text-muted-ink">Archivo: INE_123.pdf</p>
+                                </div>
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs">VERIFICADO</span>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold">CURP</h4>
+                                    <p class="text-sm text-muted-ink">Archivo: CURP_456.pdf</p>
+                                </div>
+                                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">PENDIENTE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Historial -->
+            <div class="tab-content hidden" id="tab-historial">
+                <div class="rounded-lg border border-black/10 bg-white p-8">
+                    <h3 class="font-semibold text-vc-ink text-lg mb-4">Historial de Movimientos</h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-blue-500 pl-4 py-2">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">Cambio de Área</span>
+                                <span class="text-xs text-muted-ink">05/12/2025</span>
+                            </div>
+                            <p class="text-sm">De: Recursos Humanos → A: Tecnología</p>
+                        </div>
+                        <div class="border-l-4 border-purple-500 pl-4 py-2">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-semibold">Cambio de Puesto</span>
+                                <span class="text-xs text-muted-ink">01/11/2025</span>
+                            </div>
+                            <p class="text-sm">De: Analista → A: Desarrollador Senior</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Tab switching
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        console.log('Botones encontrados:', tabButtons.length);
+        console.log('Contenidos encontrados:', tabContents.length);
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                console.log('Click en pestaña:', tabName);
+
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active', 'border-vc-pink', 'text-vc-pink');
+                    btn.classList.add('border-transparent', 'text-muted-ink');
+                });
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                    content.classList.remove('active');
+                });
+
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active', 'border-vc-pink', 'text-vc-pink');
+                button.classList.remove('border-transparent', 'text-muted-ink');
+                const targetTab = document.getElementById(`tab-${tabName}`);
+                if (targetTab) {
+                    targetTab.classList.remove('hidden');
+                    targetTab.classList.add('active');
+                    console.log('Mostrando pestaña:', tabName);
+                } else {
+                    console.error('No se encontró el contenedor de la pestaña:', `tab-${tabName}`);
+                }
+            });
+        });
+        
+        // Mostrar la primera pestaña por defecto al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstTab = document.getElementById('tab-personal');
+            if (firstTab) {
+                firstTab.classList.remove('hidden');
+                console.log('Primera pestaña mostrada al cargar');
+            }
+        });
+    </script>
+</body>
+</html>

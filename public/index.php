@@ -13,6 +13,7 @@ require_once __DIR__ . '/../app/controllers/TurnoController.php';
 require_once __DIR__ . '/../app/controllers/VacanteController.php';
 require_once __DIR__ . '/../app/controllers/CandidatoController.php';
 require_once __DIR__ . '/../app/controllers/PostulacionController.php';
+require_once __DIR__ . '/../app/controllers/TableroController.php'; // Kanban
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
 //Controladores de Empleados
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
@@ -21,6 +22,7 @@ require_once __DIR__ . '/../app/controllers/DocumentoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
+require_once __DIR__ . '/../app/controllers/PermisoController.php';
 require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
 require_once __DIR__ . '/../app/controllers/ReportesController.php';
 require_once __DIR__ . '/../app/controllers/NominaController.php';
@@ -62,6 +64,9 @@ if ($controllerName !== null && $actionName !== null) {
       break;
     case 'postulacion':
       $controller = new PostulacionController();
+      break;
+    case 'tablero':
+      $controller = new TableroController();
       break;
     case 'entrevista':
       $controller = new EntrevistaController();
@@ -123,7 +128,7 @@ $modules = [
   ['title' => 'Reclutamiento y Selección', 'sub' => 'Vacantes, candidatos y entrevistas', 'icon' => 'i-users', 'href' => url('views/reclutamiento/index.php'), 'tag' => 'teal'],
   ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('index.php?controller=nomina&action=index'), 'tag' => 'teal'],
   ['title' => 'Asistencias', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('index.php?controller=asistencia&action=index'), 'tag' => 'peach'],
-  ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
+  ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('index.php?controller=permiso&action=index'), 'tag' => 'sand'],
 
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
   ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('index.php?controller=reportes&action=index'), 'tag' => 'peach'],

@@ -207,11 +207,13 @@ class EmpleadoController
             exit;
         }
 
-        // Aquí más adelante cargaremos:
-        // - Cuentas bancarias
-        // - Contactos de emergencia
-        // - Documentos
-        // - Historial de movimientos
+        // Cargar documentos del empleado
+        require_once __DIR__ . '/../models/EmpleadoDocumento.php';
+        $documentos = EmpleadoDocumento::porEmpleado($id);
+        
+        // Cargar historial de movimientos
+        require_once __DIR__ . '/../models/Movimiento.php';
+        $movimientos = Movimiento::historialEmpleado($id);
 
         require __DIR__ . '/../../public/views/empleados/show.php';
     }

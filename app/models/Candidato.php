@@ -58,6 +58,9 @@ class Candidato
             $params[':q'] = $q;
         }
 
+        // Logical Delete Filter
+        $where[] = "activo = 1";
+
         if ($fuente !== null && trim($fuente) !== '') {
             $where[] = 'fuente = :fuente';
             $params[':fuente'] = trim($fuente);
@@ -183,17 +186,7 @@ class Candidato
      * Elimina un candidato.
      * OJO: no valida si tiene postulaciones asociadas.
      */
-    public static function delete(int $id): void
-    {
-        global $pdo;
 
-        if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de candidato inválido.");
-        }
-
-        $st = $pdo->prepare("DELETE FROM candidatos WHERE id_candidato = ?");
-        $st->execute([$id]);
-    }
 
     /**
      * Verifica si ya existe un candidato con ese correo.
@@ -249,5 +242,15 @@ class Candidato
         }
 
         return $valor;
+    }
+
+    /**
+     * Eliminado lógico (activo = 0).
+     */
+    public static function delete(int $id): bool
+    {
+        global $pdo;
+        $stmt = $pdo->prepare("UPDATE candidatos SET activo = 0 WHERE id_candidato = ?");
+        return $stmt->execute([$id]);
     }
 }

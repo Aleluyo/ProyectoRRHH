@@ -250,7 +250,7 @@ if (!empty($empleado['fecha_nacimiento'])) {
             </div>
 
             <!-- Tab: Datos personales -->
-            <div class="tab-content active" id="tab-personal">
+            <div class="tab-content" id="tab-personal">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="rounded-lg border border-black/10 bg-white p-4">
                         <h3 class="font-semibold text-vc-ink mb-3">Identificación</h3>
@@ -394,42 +394,277 @@ if (!empty($empleado['fecha_nacimiento'])) {
 
             <!-- Tab: Documentos -->
             <div class="tab-content hidden" id="tab-documentos">
-                <div class="rounded-lg border border-black/10 bg-white p-4">
-                    <p class="text-sm text-muted-ink">Documentos del expediente disponibles próximamente.</p>
-                </div>
+                <?php if (!empty($documentos)): ?>
+                    <div class="space-y-3">
+                        <?php foreach ($documentos as $doc): ?>
+                            <div class="rounded-lg border border-black/10 bg-white p-4 hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <h4 class="font-semibold text-vc-ink">
+                                                <?= htmlspecialchars($doc['tipo_documento'], ENT_QUOTES, 'UTF-8') ?>
+                                            </h4>
+                                            <?php
+                                            $estadoClasses = [
+                                                'PENDIENTE' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                                'VERIFICADO' => 'bg-green-100 text-green-800 border-green-200',
+                                                'RECHAZADO' => 'bg-red-100 text-red-800 border-red-200'
+                                            ];
+                                            $clase = $estadoClasses[$doc['estado']] ?? 'bg-gray-100 text-gray-800 border-gray-200';
+                                            ?>
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full border <?= $clase ?>">
+                                                <?= htmlspecialchars($doc['estado'], ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="text-sm text-muted-ink space-y-1">
+                                            <p>
+                                                <span class="font-medium">Archivo:</span>
+                                                <?= htmlspecialchars($doc['nombre_archivo'], ENT_QUOTES, 'UTF-8') ?>
+                                            </p>
+                                            <p>
+                                                <span class="font-medium">Subido:</span>
+                                                <?= date('d/m/Y H:i', strtotime($doc['fecha_subida'])) ?>
+                                            </p>
+                                            <?php if ($doc['estado'] === 'VERIFICADO' && $doc['fecha_verificacion']): ?>
+                                                <p>
+                                                    <span class="font-medium">Verificado:</span>
+                                                    <?= date('d/m/Y H:i', strtotime($doc['fecha_verificacion'])) ?>
+                                                    por <?= htmlspecialchars($doc['usuario_verificacion'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?>
+                                                </p>
+                                            <?php endif; ?>
+                                            <?php if ($doc['observaciones']): ?>
+                                                <p>
+                                                    <span class="font-medium">Observaciones:</span>
+                                                    <?= htmlspecialchars($doc['observaciones'], ENT_QUOTES, 'UTF-8') ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex flex-col gap-2 ml-4">
+                                        <a href="<?= url('index.php?controller=documento&action=descargar&id=' . $doc['id_documento']) ?>" 
+                                           class="px-3 py-1 text-xs font-medium text-white bg-vc-teal rounded hover:bg-vc-teal/90 transition-colors text-center">
+                                            Ver
+                                        </a>
+                                        
+                                        <?php if ($doc['estado'] === 'PENDIENTE'): ?>
+                                            <a href="<?= url('index.php?controller=documento&action=verificar&id=' . $doc['id_documento']) ?>" 
+                                               class="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors text-center"
+                                               onclick="return confirm('¿Verificar este documento?')">
+                                                Verificar
+                                            </a>
+                                            <a href="<?= url('index.php?controller=documento&action=rechazar&id=' . $doc['id_documento']) ?>" 
+                                               class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors text-center"
+                                               onclick="return confirm('¿Rechazar este documento?')">
+                                                Rechazar
+                                            </a>
+                                        <?php endif; ?>
+                                        
+                                        <a href="<?= url('index.php?controller=documento&action=eliminar&id=' . $doc['id_documento']) ?>" 
+                                           class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors text-center"
+                                           onclick="return confirm('¿Eliminar este documento permanentemente?')">
+                                            Eliminar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-lg border border-black/10 bg-white p-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-muted-ink mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-sm text-muted-ink mb-4">No hay documentos registrados para este empleado.</p>
+                        <a href="<?= url('index.php?controller=documento&action=subir&id=' . $empleado['id_empleado']) ?>" 
+                           class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Subir primer documento
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Tab: Historial -->
             <div class="tab-content hidden" id="tab-historial">
-                <div class="rounded-lg border border-black/10 bg-white p-4">
-                    <p class="text-sm text-muted-ink">Historial de movimientos disponible próximamente.</p>
-                </div>
+                <?php if (!empty($movimientos)): ?>
+                    <div class="rounded-lg border border-black/10 bg-white p-6">
+                        <div class="relative">
+                            <!-- Línea vertical del timeline -->
+                            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-vc-pink via-vc-peach to-vc-teal"></div>
+                            
+                            <div class="space-y-6">
+                                <?php foreach ($movimientos as $mov): ?>
+                                    <div class="relative pl-12">
+                                        <!-- Punto en el timeline -->
+                                        <?php
+                                        $colorPunto = [
+                                            'Baja' => 'bg-red-500 ring-red-200',
+                                            'Cambio de Área' => 'bg-blue-500 ring-blue-200',
+                                            'Cambio de Puesto' => 'bg-purple-500 ring-purple-200',
+                                            'Cambio de Jefe Inmediato' => 'bg-yellow-500 ring-yellow-200',
+                                            'Reingreso' => 'bg-green-500 ring-green-200'
+                                        ];
+                                        $colorClase = $colorPunto[$mov['tipo_movimiento']] ?? 'bg-gray-500 ring-gray-200';
+                                        ?>
+                                        <div class="absolute left-2.5 -translate-x-1/2 w-3 h-3 rounded-full <?= $colorClase ?> ring-4"></div>
+                                        
+                                        <div class="bg-white rounded-lg border border-black/10 p-4 hover:shadow-md transition-shadow">
+                                            <div class="flex items-start justify-between mb-2">
+                                                <div class="flex items-center gap-3">
+                                                    <?php
+                                                    $tipoClasses = [
+                                                        'Baja' => 'bg-red-100 text-red-800 border-red-200',
+                                                        'Cambio de Área' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                                        'Cambio de Puesto' => 'bg-purple-100 text-purple-800 border-purple-200',
+                                                        'Cambio de Jefe Inmediato' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                                        'Reingreso' => 'bg-green-100 text-green-800 border-green-200'
+                                                    ];
+                                                    $tipoCls = $tipoClasses[$mov['tipo_movimiento']] ?? 'bg-gray-100 text-gray-800 border-gray-200';
+                                                    ?>
+                                                    <span class="px-3 py-1 text-xs font-semibold rounded-full border <?= $tipoCls ?>">
+                                                        <?= htmlspecialchars($mov['tipo_movimiento'], ENT_QUOTES, 'UTF-8') ?>
+                                                    </span>
+                                                    <span class="text-xs text-muted-ink font-medium">
+                                                        <?= date('d/m/Y', strtotime($mov['fecha_movimiento'])) ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <?php if ($mov['motivo']): ?>
+                                                <p class="text-sm text-vc-ink mb-2">
+                                                    <span class="font-semibold">Motivo:</span>
+                                                    <?= htmlspecialchars($mov['motivo'], ENT_QUOTES, 'UTF-8') ?>
+                                                </p>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($mov['valor_anterior'] || $mov['valor_nuevo']): ?>
+                                                <div class="flex items-center gap-2 text-sm mb-2">
+                                                    <?php if ($mov['valor_anterior']): ?>
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded border border-gray-300">
+                                                            <?= htmlspecialchars($mov['valor_anterior'], ENT_QUOTES, 'UTF-8') ?>
+                                                        </span>
+                                                        <svg class="w-4 h-4 text-muted-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                                        </svg>
+                                                    <?php endif; ?>
+                                                    <?php if ($mov['valor_nuevo']): ?>
+                                                        <span class="px-2 py-1 bg-vc-teal/10 text-vc-teal font-medium rounded border border-vc-teal/30">
+                                                            <?= htmlspecialchars($mov['valor_nuevo'], ENT_QUOTES, 'UTF-8') ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($mov['observaciones']): ?>
+                                                <p class="text-xs text-muted-ink italic mb-2">
+                                                    "<?= htmlspecialchars($mov['observaciones'], ENT_QUOTES, 'UTF-8') ?>"
+                                                </p>
+                                            <?php endif; ?>
+                                            
+                                            <div class="flex items-center gap-4 text-xs text-muted-ink mt-3 pt-3 border-t border-black/5">
+                                                <span>
+                                                    <span class="font-medium">Autorizado por:</span>
+                                                    <?= htmlspecialchars($mov['usuario_registro'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                                <span>
+                                                    <span class="font-medium">Registrado:</span>
+                                                    <?= date('d/m/Y H:i', strtotime($mov['fecha_registro'])) ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-lg border border-black/10 bg-white p-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-muted-ink mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <p class="text-sm text-muted-ink mb-4">No hay movimientos registrados para este empleado.</p>
+                        <a href="<?= url('index.php?controller=movimiento&action=crear&id=' . $empleado['id_empleado']) ?>" 
+                           class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Registrar movimiento
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </section>
     </main>
 
     <script>
-        // Tab switching
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
+        // Función de inicialización de pestañas
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
 
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabName = button.dataset.tab;
+            console.log('Inicializando pestañas...');
+            console.log('Botones encontrados:', tabButtons.length);
+            console.log('Contenidos encontrados:', tabContents.length);
 
-                // Remove active class from all buttons and contents
-                tabButtons.forEach(btn => {
-                    btn.classList.remove('active', 'border-vc-pink', 'text-vc-pink');
-                    btn.classList.add('border-transparent', 'text-muted-ink');
+            if (tabButtons.length === 0 || tabContents.length === 0) {
+                console.error('No se encontraron pestañas o contenidos');
+                return;
+            }
+
+            // Configurar eventos de clic
+            tabButtons.forEach((button, index) => {
+                button.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    console.log('Click en pestaña:', tabName);
+
+                    // Remover clases activas de todos los botones
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'border-vc-pink', 'text-vc-pink');
+                        btn.classList.add('border-transparent', 'text-muted-ink');
+                    });
+
+                    // Ocultar todos los contenidos
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                        content.classList.remove('active');
+                    });
+
+                    // Activar el botón clickeado
+                    this.classList.add('active', 'border-vc-pink', 'text-vc-pink');
+                    this.classList.remove('border-transparent', 'text-muted-ink');
+
+                    // Mostrar el contenido correspondiente
+                    const targetTab = document.getElementById(`tab-${tabName}`);
+                    if (targetTab) {
+                        targetTab.classList.remove('hidden');
+                        targetTab.classList.add('active');
+                        console.log('Mostrando pestaña:', tabName);
+                    } else {
+                        console.error('No se encontró el contenedor:', `tab-${tabName}`);
+                    }
                 });
-                tabContents.forEach(content => content.classList.add('hidden'));
-
-                // Add active class to clicked button and corresponding content
-                button.classList.add('active', 'border-vc-pink', 'text-vc-pink');
-                button.classList.remove('border-transparent', 'text-muted-ink');
-                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             });
-        });
+
+            // Mostrar la primera pestaña por defecto
+            const firstTab = document.getElementById('tab-personal');
+            if (firstTab) {
+                firstTab.classList.remove('hidden');
+                firstTab.classList.add('active');
+                console.log('Primera pestaña mostrada');
+            }
+        }
+
+        // Inicializar cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTabs);
+        } else {
+            // DOM ya está listo, ejecutar inmediatamente
+            initTabs();
+        }
 
         //Implementacion de notificaciones flotantes 
 

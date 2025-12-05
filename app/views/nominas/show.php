@@ -65,23 +65,6 @@ require_once __DIR__ . '/../../../config/paths.php';
     <?php if (isset($_SESSION['flash_success'])): ?>
         <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm font-medium">
             <?= $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Botón Regenerar si está vacío -->
-    <?php if (empty($nominas) && $periodo['estado'] === 'ABIERTO'): ?>
-        <div class="mb-6 p-6 rounded-xl bg-orange-50 border border-orange-100 text-center">
-            <h3 class="font-bold text-orange-800 mb-2">Periodo sin registros</h3>
-            <p class="text-sm text-orange-700 mb-4">Este periodo está abierto pero no se ha generado el cálculo de nómina para los empleados.</p>
-            <a href="<?= url('index.php?controller=nomina&action=generate&id=' . $periodo['id_periodo']) ?>" class="inline-block bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700 transition">
-                Generar Nómina Ahora
-            </a>
-        </div>
-    <?php endif; ?>
-
-    <div class="bg-white border border-black/10 rounded-xl overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-black/5 bg-gray-50/50 text-xs uppercase tracking-wider text-vc-ink/50">
                         <th class="px-6 py-4">Empleado</th>
@@ -89,7 +72,7 @@ require_once __DIR__ . '/../../../config/paths.php';
                         <th class="px-6 py-4 text-right">Percepciones</th>
                         <th class="px-6 py-4 text-right">Deducciones</th>
                         <th class="px-6 py-4 text-right">Neto a Pagar</th>
-                        <th class="px-6 py-4 text-center">Recibo</th>
+                        <th class="px-6 py-4 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-black/5 text-sm">
@@ -117,16 +100,26 @@ require_once __DIR__ . '/../../../config/paths.php';
                                     $<?= number_format((float)$row['total_neto'], 2) ?>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="<?= url('index.php?controller=nomina&action=recibo&id=' . $row['id_nomina']) ?>" target="_blank" class="inline-block p-2 text-vc-teal hover:bg-vc-teal/10 rounded transition" title="Ver Recibo">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                           <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                           <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-                                           <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"></path>
-                                           <path d="M9 15h6"></path>
-                                           <path d="M9 19h6"></path>
-                                        </svg>
-                                    </a>
+                                    <div class="flex justify-center gap-2">
+                                        <a href="<?= url('index.php?controller=nomina&action=edit&id=' . $row['id_nomina']) ?>" class="p-2 text-vc-teal hover:bg-vc-teal/10 rounded transition" title="Editar Nómina">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                                <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4"></path>
+                                                <path d="M13.5 6.5l4 4"></path>
+                                            </svg>
+                                        </a>
+                                        <a href="<?= url('index.php?controller=nomina&action=recibo&id=' . $row['id_nomina']) ?>" target="_blank" class="p-2 text-gray-400 hover:text-vc-ink hover:bg-gray-100 rounded transition" title="Ver Recibo">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                               <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+                                               <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"></path>
+                                               <path d="M9 15h6"></path>
+                                               <path d="M9 19h6"></path>
+                                            </svg>
+                                        </a>
+                                    </div>
                                 </td>
+
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

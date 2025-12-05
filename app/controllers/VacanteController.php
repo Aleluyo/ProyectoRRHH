@@ -6,7 +6,6 @@ require_once __DIR__ . '/../models/Empresa.php';
 require_once __DIR__ . '/../models/Area.php';
 require_once __DIR__ . '/../models/Puesto.php';
 require_once __DIR__ . '/../models/Ubicacion.php';
-require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../middleware/Auth.php';
 
 class VacanteController
@@ -55,12 +54,10 @@ class VacanteController
         $empresas = Empresa::all(1000, 0, null);
         $areas = Area::all(1000, 0, null);
         $puestos = Puesto::all(1000, 0, null);
-        $puestos = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
-        $usuarios = Usuario::all(1000, 0, null);
 
         // En la vista estarán disponibles:
-        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones, $usuarios
+        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/create.php';
     }
 
@@ -145,9 +142,7 @@ class VacanteController
         $empresas = Empresa::all(1000, 0, null);
         $areas = Area::all(1000, 0, null);
         $puestos = Puesto::all(1000, 0, null);
-        $puestos = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
-        $usuarios = Usuario::all(1000, 0, null);
 
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/edit.php';
     }
