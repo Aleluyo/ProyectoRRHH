@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../models/PermisosVacaciones.php';
+require_once __DIR__ . '/../models/SaldosVacaciones.php';
 require_once __DIR__ . '/../middleware/Auth.php';
 require_once __DIR__ . '/../models/Empresa.php';
 require_once __DIR__ . '/../models/Empleado.php';
@@ -25,6 +26,21 @@ class PermisoController
         $empresas  = Empresa::getActivasParaCombo();
         $empleados = Empleado::all(500, 0, null, 'ACTIVO');
 
+        // Obtener saldo de vacaciones del usuario actual (si tiene empleado asociado)
+        $saldoActual = null;
+        $idUsuario = (int)($_SESSION['user_id'] ?? 0);
+        if ($idUsuario > 0) {
+            // Buscar si el usuario tiene un empleado asociado
+            global $pdo;
+            $st = $pdo->prepare("SELECT id_empleado FROM empleados WHERE id_usuario = ? LIMIT 1");
+            $st->execute([$idUsuario]);
+            $emp = $st->fetch(\PDO::FETCH_ASSOC);
+            if ($emp) {
+                $anioActual = (int)date('Y');
+                $saldoActual = SaldosVacaciones::obtenerSaldoActual((int)$emp['id_empleado'], $anioActual);
+            }
+        }
+
         // Debug simple para verificar que haya registros
         error_log('DEBUG PERMISOS: empresas=' . count($empresas) . ' empleados=' . count($empleados));
 
@@ -34,7 +50,8 @@ class PermisoController
             'solicitudes' => $solicitudes,
             'pendientes'  => $pendientes,
             'empresas'    => $empresas,
-            'empleados'   => $empleados
+            'empleados'   => $empleados,
+            'saldoActual' => $saldoActual
         ]);
 
         require __DIR__ . '/../../public/views/permisos/list.php';
@@ -70,17 +87,51 @@ class PermisoController
         error_log('DEBUG PERMISOS guardarSolicitud REQUEST: ' . json_encode($_REQUEST));
 
         try {
-            $aprobadores = $this->parseAprobadores($_POST['aprobadores'] ?? '');
             $payload = $_POST;
             $payload['creado_por'] = (int)($_SESSION['user_id'] ?? 0);
-            PermisosVacaciones::crearSolicitud($payload, $aprobadores);
+            PermisosVacaciones::crearSolicitud($payload);
             $_SESSION['flash_success'] = 'Solicitud registrada.';
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             $_SESSION['old_input'] = $_POST;
         }
 
+
         redirect('index.php?controller=permiso&action=index');
+    }
+
+    public function obtenerSaldo(): void
+    {
+        requireLogin();
+        header('Content-Type: application/json');
+
+        $idEmpleado = isset($_GET['id_empleado']) ? (int)$_GET['id_empleado'] : 0;
+        $anio = isset($_GET['anio']) ? (int)$_GET['anio'] : (int)date('Y');
+
+        if ($idEmpleado <= 0) {
+            echo json_encode(['error' => 'ID de empleado inválido']);
+            exit;
+        }
+
+        try {
+            // Inicializar saldo si no existe
+            SaldosVacaciones::inicializarSaldo($idEmpleado, $anio);
+            $saldo = SaldosVacaciones::obtenerSaldoActual($idEmpleado, $anio);
+            
+            if ($saldo) {
+                echo json_encode([
+                    'success' => true,
+                    'dias_asignados' => (float)$saldo['dias_asignados'],
+                    'dias_tomados' => (float)$saldo['dias_tomados'],
+                    'dias_disponibles' => (float)$saldo['dias_disponibles']
+                ]);
+            } else {
+                echo json_encode(['error' => 'No se pudo obtener el saldo']);
+            }
+        } catch (\Throwable $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+        exit;
     }
 
     public function decidir(): void
@@ -112,20 +163,4 @@ class PermisoController
         redirect('index.php?controller=permiso&action=index');
     }
 
-    private function parseAprobadores(string $raw): array
-    {
-        $clean = trim($raw);
-        if ($clean === '') return [];
-
-        $result = [];
-        $parts = preg_split('/[\n,;]+/', $clean);
-        $nivel = 1;
-        foreach ($parts as $part) {
-            $id = (int)trim($part);
-            if ($id > 0) {
-                $result[] = ['aprobador' => $id, 'nivel' => $nivel++];
-            }
-        }
-        return $result;
-    }
 }
