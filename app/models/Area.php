@@ -25,6 +25,37 @@ class Area
         return $row ?: null;
     }
 
+        /**
+     * Obtiene un área por ID, incluyendo datos de su empresa.
+     *
+     * Campos extra que devuelve:
+     * - nombre_empresa   → nombre de la empresa
+     * - activa_area      → estado activa del área (mismo que a.activa)
+     * - activa_empresa   → estado activa de la empresa (e.activa)
+     */
+    public static function findWithEmpresa(int $idArea): ?array
+    {
+        global $pdo;
+
+        $sql = "SELECT
+                    a.*,
+                    e.nombre AS nombre_empresa,
+                    a.activa AS activa_area,
+                    e.activa AS activa_empresa
+                FROM areas a
+                INNER JOIN empresas e ON e.id_empresa = a.id_empresa
+                WHERE a.id_area = ?
+                LIMIT 1";
+
+        $st = $pdo->prepare($sql);
+        $st->execute([$idArea]);
+
+        $row = $st->fetch(\PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+
     /**
      * Verifica si existe un nombre de área dentro de una empresa
      * (opcionalmente excluyendo un ID).

@@ -84,6 +84,9 @@ $descripcion = htmlspecialchars(
     ENT_QUOTES,
     'UTF-8'
 );
+// Banderas que vienen del controlador (si no vienen, por defecto false)
+$areaEsInactiva    = $areaEsInactiva    ?? false;
+$empresaEsInactiva = $empresaEsInactiva ?? false;
 ?>
 <!doctype html>
 <html lang="es">
@@ -229,9 +232,9 @@ $descripcion = htmlspecialchars(
             icon: 'error',
             title: 'No se pudo actualizar el puesto',
             text: <?= json_encode($flashError, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>,
-            iconColor: '#ff78b5', // vc.pink
+            iconColor: '#ff78b5',
             background: '#ffffff',
-            color: '#0a2a5e',     // vc.ink
+            color: '#0a2a5e',
             confirmButtonText: 'Entendido',
             confirmButtonColor: '#36d1cc',
             buttonsStyling: false,
@@ -290,7 +293,20 @@ $descripcion = htmlspecialchars(
                   $nombreArea    = htmlspecialchars((string)($a['nombre_area']    ?? ('Área ' . $idAreaOpt)), ENT_QUOTES, 'UTF-8');
                   $nombreEmpresa = htmlspecialchars((string)($a['nombre_empresa'] ?? ''), ENT_QUOTES, 'UTF-8');
 
-                  $label    = ($nombreEmpresa ? $nombreEmpresa . ' · ' : '') . $nombreArea;
+                  $label = ($nombreEmpresa ? $nombreEmpresa . ' · ' : '') . $nombreArea;
+
+                  // Si es el área base del puesto y está inactiva su área y/o empresa, lo indicamos
+                  if ($idAreaOpt === $idAreaBase) {
+                      if ($empresaEsInactiva) {
+                          $label .= ' (empresa inactiva)';
+                      }
+                      if ($areaEsInactiva) {
+                          $label .= $empresaEsInactiva
+                              ? ' / área inactiva'
+                              : ' (área inactiva)';
+                      }
+                  }
+
                   $selected = ($idAreaOpt === $idAreaSeleccionada) ? 'selected' : '';
                 ?>
                 <option value="<?= htmlspecialchars((string)$idAreaOpt, ENT_QUOTES, 'UTF-8') ?>" <?= $selected ?>>
@@ -306,6 +322,20 @@ $descripcion = htmlspecialchars(
               <p class="mt-1 text-xs text-muted-ink">
                 El valor guardado será el área, pero se muestra la empresa para mayor contexto.
               </p>
+              <?php if ($empresaEsInactiva || $areaEsInactiva): ?>
+                <p class="mt-1 text-xs text-red-500">
+                  <?php if ($empresaEsInactiva && $areaEsInactiva): ?>
+                    La empresa y el área actuales están desactivadas; se mantienen para históricos.
+                    Puedes mover el puesto a otra área activa si lo necesitas.
+                  <?php elseif ($empresaEsInactiva): ?>
+                    La empresa actual está desactivada; se mantiene para históricos.
+                    Puedes mover el puesto a otra área activa si lo necesitas.
+                  <?php else: ?>
+                    El área actual está desactivada; se mantiene para históricos.
+                    Puedes mover el puesto a otra área activa si lo necesitas.
+                  <?php endif; ?>
+                </p>
+              <?php endif; ?>
             <?php endif; ?>
           </div>
 
@@ -371,8 +401,8 @@ $descripcion = htmlspecialchars(
                   pattern="^[0-9]+(\.[0-9]{0,2})?$"
                   oninput="
                     this.value = this.value
-                      .replace(/[^0-9.]/g,'')       // solo dígitos y punto
-                      .replace(/(\..*?)\..*/g,'$1') // deja solo un punto
+                      .replace(/[^0-9.]/g,'')
+                      .replace(/(\..*?)\..*/g,'$1')
                   "
                   class="block w-full rounded-lg border border-black/10 bg-white pl-6 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
                   placeholder="Ej. 15000 o 15000.50"

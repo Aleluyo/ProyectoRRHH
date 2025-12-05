@@ -96,6 +96,10 @@ class PuestoController
     {
         requireRole(1);
 
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id <= 0) {
@@ -110,12 +114,45 @@ class PuestoController
             exit;
         }
 
-        $errors  = [];
         $niveles = self::NIVELES;
 
-        $areas = Area::allWithEmpresa(1000, 0);
+        $idAreaActual = (int)($puesto['id_area'] ?? 0);
 
-        // $puesto, $niveles, $areas disponibles en la vista
+        // 1) Base: solo áreas activas de empresas activas
+        $areas = Area::getActivasConEmpresaActiva();
+
+        // 2) Cargar área actual (con empresa) aunque esté inactiva
+        $areaActual        = null;
+        $areaEsInactiva    = false;
+        $empresaEsInactiva = false;
+
+        if ($idAreaActual > 0) {
+            $areaActual = Area::findWithEmpresa($idAreaActual);
+
+            if ($areaActual) {
+                $areaEsInactiva    = isset($areaActual['activa_area'])    && (int)$areaActual['activa_area']    === 0;
+                $empresaEsInactiva = isset($areaActual['activa_empresa']) && (int)$areaActual['activa_empresa'] === 0;
+
+                // Ver si ya está incluida (porque podría seguir activa)
+                $yaIncluida = false;
+                foreach ($areas as $a) {
+                    if ((int)($a['id_area'] ?? 0) === $idAreaActual) {
+                        $yaIncluida = true;
+                        break;
+                    }
+                }
+
+                // Si NO está incluida, se agrega para que aparezca en el combo
+                if (!$yaIncluida) {
+                    $areas[] = [
+                        'id_area'        => $areaActual['id_area'],
+                        'nombre_area'    => $areaActual['nombre_area'],
+                        'id_empresa'     => $areaActual['id_empresa'],
+                        'nombre_empresa' => $areaActual['nombre_empresa'],
+                    ];
+                }
+            }
+        }
         require __DIR__ . '/../../public/views/organizacional/puestos/edit.php';
     }
 
@@ -137,9 +174,42 @@ class PuestoController
             exit;
         }
 
+        // Cargamos el puesto actual para conocer su área original
+        $puestoActual = Puesto::findById($id);
+        if (!$puestoActual) {
+            header('Location: index.php?controller=puesto&action=index');
+            exit;
+        }
+
+        $idAreaActual = (int)($puestoActual['id_area'] ?? 0);
+
         try {
+            $idAreaNueva = isset($_POST['id_area']) ? (int)$_POST['id_area'] : 0;
+
+            if ($idAreaNueva <= 0) {
+                throw new \InvalidArgumentException('El área es obligatoria.');
+            }
+
+            // Área destino con info de empresa
+            $areaDestino = Area::findWithEmpresa($idAreaNueva);
+            if (!$areaDestino) {
+                throw new \InvalidArgumentException('El área seleccionada no existe.');
+            }
+
+            $areaDestinoInactiva    = isset($areaDestino['activa_area'])    && (int)$areaDestino['activa_area']    === 0;
+            $empresaDestinoInactiva = isset($areaDestino['activa_empresa']) && (int)$areaDestino['activa_empresa'] === 0;
+
+            // Regla 1.2:
+            // - Si NO cambió de área → permitimos aunque esté inactiva (históricos)
+            // - Si SÍ cambió de área → solo si área y empresa destino están activas
+            if ($idAreaNueva !== $idAreaActual && ($areaDestinoInactiva || $empresaDestinoInactiva)) {
+                throw new \InvalidArgumentException(
+                    'Solo se pueden asignar puestos a áreas activas de empresas activas.'
+                );
+            }
+
             $data = [
-                'id_area'       => $_POST['id_area']       ?? 0,
+                'id_area'       => $idAreaNueva,
                 'nombre_puesto' => $_POST['nombre_puesto'] ?? '',
                 'nivel'         => $_POST['nivel']         ?? 'OPERATIVO',
                 'salario_base'  => $_POST['salario_base']  ?? null,

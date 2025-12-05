@@ -1410,3 +1410,12 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+/********************************************************************************************************************************/
+
+/*   CAMBIOS  */
+ALTER TABLE puestos
+  ADD COLUMN activa TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Puesto activo';
+
+ALTER TABLE turnos
+  ADD COLUMN activo TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Turno activo';

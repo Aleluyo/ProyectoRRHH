@@ -37,6 +37,9 @@ $idUbicacion = (int)($ubicacion['id_ubicacion'] ?? 0);
 $nombreSede  = $ubicacion['nombre'] ?? '';
 $idEmpresa   = (int)($ubicacion['id_empresa'] ?? 0);
 
+// Bandera que viene del controlador: true si la empresa está inactiva y no se debe cambiar
+$empresaSoloLectura = $empresaSoloLectura ?? false;
+
 $direccionRaw = $ubicacion['direccion'] ?? '';
 
 $ciudadCol   = $ubicacion['ciudad']        ?? '';
@@ -323,21 +326,32 @@ $direccionForm = $old['direccion'] ?? $direccionRaw;
               name="id_empresa"
               required
               class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+              <?= $empresaSoloLectura ? 'disabled' : '' ?>
             >
               <option value="">Seleccione una empresa…</option>
               <?php foreach ($empresas as $emp): ?>
                 <?php
-                  $idEmp    = (int)$emp['id_empresa'];
-                  $nombreEmp = e((string)$emp['nombre']);
+                  $idEmp       = (int)$emp['id_empresa'];
+                  $nombreEmp   = e((string)$emp['nombre']);
+                  $activaEmp   = isset($emp['activa']) ? (int)$emp['activa'] : 1;
+                  $textoOpcion = $nombreEmp . ($activaEmp === 0 ? ' (inactiva)' : '');
                 ?>
                 <option
                   value="<?= $idEmp ?>"
                   <?= $idEmp === $idEmpresa ? 'selected' : '' ?>
                 >
-                  <?= $nombreEmp ?>
+                  <?= $textoOpcion ?>
                 </option>
               <?php endforeach; ?>
             </select>
+
+            <?php if ($empresaSoloLectura): ?>
+              <!-- IMPORTANTE: al estar disabled, el select no se envía; mantenemos el id por hidden -->
+              <input type="hidden" name="id_empresa" value="<?= $idEmpresa ?>">
+              <p class="mt-1 text-xs text-red-500">
+                La empresa está desactivada; se mantiene solo para históricos y no puede cambiarse desde aquí.
+              </p>
+            <?php endif; ?>
           </div>
 
           <!-- Nombre sede -->
