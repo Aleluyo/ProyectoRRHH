@@ -90,9 +90,12 @@ class Nomina
     /**
      * Obtener todas las nóminas con detalles para reportes
      */
-    public static function getAllExtended(int $limit = 10000, int $offset = 0): array
+    public static function getAllExtended(int $limit = 10000, int $offset = 0, ?string $fechaInicio = null, ?string $fechaFin = null): array
     {
         global $pdo;
+        $where = [];
+        $params = [];
+
         $sql = "SELECT ne.*, 
                        e.nombre as empleado_nombre, e.rfc, e.nss,
                        p.nombre_puesto, a.nombre_area,
@@ -101,13 +104,30 @@ class Nomina
                 INNER JOIN empleados e ON e.id_empleado = ne.id_empleado
                 INNER JOIN periodos_nomina pn ON pn.id_periodo = ne.id_periodo
                 LEFT JOIN puestos p ON p.id_puesto = e.id_puesto
-                LEFT JOIN areas a ON a.id_area = p.id_area
-                ORDER BY pn.fecha_inicio DESC, e.nombre ASC
-                LIMIT :limit OFFSET :offset";
+                LEFT JOIN areas a ON a.id_area = p.id_area";
+
+        if ($fechaInicio) {
+            $where[] = "pn.fecha_inicio >= :inicio";
+            $params[':inicio'] = $fechaInicio;
+        }
+        if ($fechaFin) {
+            $where[] = "pn.fecha_fin <= :fin";
+            $params[':fin'] = $fechaFin;
+        }
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+        }
+
+        $sql .= " ORDER BY pn.fecha_inicio DESC, e.nombre ASC
+                  LIMIT :limit OFFSET :offset";
         
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

@@ -90,6 +90,9 @@ if ($controllerName !== null && $actionName !== null) {
     case 'nomina':
       $controller = new NominaController();
       break;
+    case 'permiso':
+      $controller = new PermisoController();
+      break;
     default:
       http_response_code(404);
       echo "Controlador no encontrado";
