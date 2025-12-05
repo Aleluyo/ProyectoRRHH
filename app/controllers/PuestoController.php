@@ -11,27 +11,37 @@ class PuestoController
     private const NIVELES = ['OPERATIVO', 'SUPERVISOR', 'GERENCIAL', 'DIRECTIVO'];
 
     /**
-     * Lista de puestos
-     * GET: ?controller=puesto&action=index&q=texto&id_area=1&nivel=OPERATIVO
-     */
+    * Lista de puestos
+    * GET: ?controller=puesto&action=index&q=texto&id_area=1&nivel=OPERATIVO
+    */
     public function index(): void
     {
         requireLogin();
         requireRole(1);
 
-        $search = $_GET['q']        ?? null;
-        $idArea = isset($_GET['id_area']) ? (int)$_GET['id_area'] : null;
-        $nivel  = $_GET['nivel']    ?? null;
+        $search = $_GET['q'] ?? null;
+        $idArea = isset($_GET['id_area']) && $_GET['id_area'] !== ''
+            ? (int)$_GET['id_area']
+            : null;
+        $nivel  = $_GET['nivel'] ?? null;
 
-        $puestos = Puesto::all(500, 0, $search, $idArea, $nivel);
+        //por defecto solo activos; si showInactive=1 → también inactivos
+        $showInactive = isset($_GET['showInactive']) && $_GET['showInactive'] === '1';
+
+        // Si NO se marca el checkbox → solo activos
+        // Si se marca → null (sin filtro de activos)
+        $onlyActive = $showInactive ? null : true;
+
+        $puestos = Puesto::all(500, 0, $search, $idArea, $nivel, $onlyActive);
 
         // Niveles disponibles para filtros o selects en la vista
         $niveles = self::NIVELES;
 
+        // Áreas para filtros (si las usas en la vista)
         $areas = Area::allWithEmpresa(1000, 0);
 
         // Variables disponibles en la vista:
-        // $puestos, $search, $idArea, $nivel, $niveles, $areas
+        // $puestos, $search, $idArea, $nivel, $niveles, $areas, $showInactive
         require __DIR__ . '/../../public/views/organizacional/puestos/list.php';
     }
 
@@ -251,6 +261,31 @@ class PuestoController
             } catch (\Throwable $e) {
                 $_SESSION['flash_error'] = $e->getMessage();
             }
+        }
+
+        header('Location: index.php?controller=puesto&action=index');
+        exit;
+    }
+
+    /**
+     * Activar / desactivar puesto (eliminado lógico).
+     * GET: ?controller=puesto&action=toggle&id=1&active=0
+     */
+    public function toggle(): void
+    {
+        requireRole(1);
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $id     = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $active = isset($_GET['active']) ? (bool)$_GET['active'] : true;
+
+        if ($id > 0) {
+            Puesto::setActive($id, $active);
+            $_SESSION['flash_success'] = $active
+                ? 'Puesto activado correctamente.'
+                : 'Puesto desactivado correctamente.';
         }
 
         header('Location: index.php?controller=puesto&action=index');

@@ -17,7 +17,16 @@ class EmpresaController
         requireRole(1);
 
         $search     = $_GET['q']         ?? null;
-        $onlyActive = isset($_GET['onlyActive']) ? (bool)$_GET['onlyActive'] : null;
+
+        // Checkbox "Ver también inactivas"
+        $showInactive = isset($_GET['showInactive']) && $_GET['showInactive'] === '1';
+
+        // Por defecto (sin showInactive) → solo activas
+        // Empresa::all:
+        //   - true  => WHERE activa = 1
+        //   - false => WHERE activa = 0 
+        //   - null  => sin filtro (todas)
+        $onlyActive = $showInactive ? null : true;
 
         $empresas = Empresa::all(500, 0, $search, $onlyActive);
 

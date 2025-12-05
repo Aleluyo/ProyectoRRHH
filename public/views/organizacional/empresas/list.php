@@ -20,6 +20,9 @@ if (!isset($empresas) || !is_array($empresas)) {
     $empresas = [];
 }
 
+// Valor del checkbox "Ver también inactivas"
+$showInactive = isset($showInactive) ? (bool)$showInactive : false;
+
 ?>
 <!doctype html>
 <html lang="es">
@@ -196,6 +199,13 @@ if (!isset($empresas) || !is_array($empresas)) {
           </button>
         </div>
       </div>
+      <!-- Checkbox ver inactivas -->
+        <div class="sm:ml-2 justify-start">
+          <label class="inline-flex items-center gap-2 text-xs text-muted-ink">
+            <input type="checkbox" id="chkShowInactive" class="rounded border-slate-300" <?= $showInactive ? 'checked' : '' ?>>
+            <span>Ver también inactivas</span>
+          </label>
+        </div>
     </section>
   </main>
 
@@ -274,7 +284,10 @@ if (!isset($empresas) || !is_array($empresas)) {
       const pageItems = filteredData.slice(start, start + rowsPerPage);
 
       tbody.innerHTML = pageItems.map(emp => {
-        const activaValor = emp.activa == 1 ? '1' : '0';
+        const isActiva = String(emp.activa) === '1';
+        const activaBadge = isActiva
+          ? '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Activa</span>'
+          : '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactiva</span>';
         const nombre    = escapeHtml(emp.nombre);
         const rfc       = escapeHtml(emp.rfc ?? '');
         const correo    = escapeHtml(emp.correo_contacto ?? '');
@@ -289,7 +302,7 @@ if (!isset($empresas) || !is_array($empresas)) {
             <td class="px-3 py-2 whitespace-nowrap text-xs">${correo}</td>
             <td class="px-3 py-2 whitespace-nowrap text-xs">${telefono}</td>
             <td class="px-3 py-2 max-w-xs truncate" title="${direccion}">${direccion}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-center">${activaValor}</td>
+           <td class="px-3 py-2 whitespace-nowrap text-center">${activaBadge}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -303,9 +316,10 @@ if (!isset($empresas) || !is_array($empresas)) {
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${emp.id_empresa}"
                   data-nombre="${nombre}"
-                  data-href="${toggleBaseUrl}&id=${emp.id_empresa}"
+                  data-href="${toggleBaseUrl}&id=${emp.id_empresa}&active=${isActiva ? 0 : 1}"
+                  data-mode="${isActiva ? 'desactivar' : 'activar'}"
                 >
-                  Desactivar
+                  ${isActiva ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
             </td>
@@ -373,38 +387,66 @@ if (!isset($empresas) || !is_array($empresas)) {
       });
     });
 
-    // SweetAlert para desactivar
+    // SweetAlert para activar/desactivar
     document.addEventListener('click', event => {
       const btn = event.target.closest('.btn-delete');
       if (!btn) return;
 
       const nombre = btn.dataset.nombre || '';
       const href   = btn.dataset.href;
+      const mode   = btn.dataset.mode === 'activar' ? 'activar' : 'desactivar';
+
+      const title = mode === 'activar' ? '¿Activar empresa?' : '¿Desactivar empresa?';
+      const confirmText = mode === 'activar' ? 'Sí, activar' : 'Sí, desactivar';
 
       Swal.fire({
-        title: '¿Desactivar empresa?',
+        title: title,
         html: nombre 
-          ? `Se desactivará "<strong>${nombre}</strong>".` 
-          : 'Se desactivará la empresa seleccionada.',
+          ? `Se ${mode}á "<strong>${nombre}</strong>".` 
+          : `Se ${mode}á la empresa seleccionada.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
+        confirmButtonText: confirmText,
         cancelButtonText: 'Cancelar',
         customClass: {
-            popup: 'vc-delete',
-            title: 'vc-delete-title',
-            htmlContainer: 'vc-delete-text',
-            confirmButton: 'vc-delete-confirm',
-            cancelButton: 'vc-delete-cancel'
-          },
-          buttonsStyling: false 
+          popup: 'vc-delete',
+          title: 'vc-delete-title',
+          htmlContainer: 'vc-delete-text',
+          confirmButton: 'vc-delete-confirm',
+          cancelButton: 'vc-delete-cancel'
+        },
+        buttonsStyling: false 
       }).then(result => {
         if (result.isConfirmed && href) {
-          // Aquí haces la acción real (GET, POST, fetch, etc.)
           window.location.href = href;
         }
       });
     });
+
+
+    // Checkbox "Ver también inactivas" → recarga con showInactive=1
+    const chkShowInactive = document.getElementById('chkShowInactive');
+
+    if (chkShowInactive) {
+      chkShowInactive.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+
+        // Siempre aseguramos controller/action por si se pierde en la URL
+        url.searchParams.set('controller', 'empresa');
+        url.searchParams.set('action', 'index');
+
+        if (chkShowInactive.checked) {
+          // Ver también inactivas → quitamos filtro de activos
+          url.searchParams.set('showInactive', '1');
+        } else {
+          // Solo activas → sin parámetro showInactive
+          url.searchParams.delete('showInactive');
+        }
+
+        window.location.href = url.toString();
+      });
+    }
+
     // Render inicial
     renderTable();
   </script>

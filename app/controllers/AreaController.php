@@ -21,13 +21,18 @@ class AreaController
         requireLogin();
         requireRole(1);
 
-        $search     = $_GET['q']          ?? null;
-        $idEmpresa  = isset($_GET['id_empresa']) && $_GET['id_empresa'] !== ''
-                        ? (int)$_GET['id_empresa']
-                        : null;
-        $soloActivas = isset($_GET['solo_activas']) && $_GET['solo_activas'] === '1'
-                        ? true
-                        : null;
+        $search = $_GET['q'] ?? null;
+
+        $idEmpresa = isset($_GET['id_empresa']) && $_GET['id_empresa'] !== ''
+            ? (int)$_GET['id_empresa']
+            : null;
+
+        // por defecto solo activas; si showInactive=1 → también inactivas
+        $showInactive = isset($_GET['showInactive']) && $_GET['showInactive'] === '1';
+
+        // Si NO se marca el checkbox → solo activas
+        // Si se marca → null (sin filtro, trae todas)
+        $soloActivas = $showInactive ? null : true;
 
         $page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 50;
@@ -37,18 +42,19 @@ class AreaController
         $areas = Area::all($perPage, $offset, $search, $idEmpresa, $soloActivas);
 
         // Para combos de filtro
-        $empresas = Empresa::all(1000, 0);
+        $empresas = Empresa::all(1000, 0, null, true);
 
         // Filtros actuales para la vista
         $filtros = [
-            'q'            => $search,
-            'id_empresa'   => $idEmpresa,
-            'solo_activas' => $soloActivas,
-            'page'         => $page,
+            'q'           => $search,
+            'id_empresa'  => $idEmpresa,
+            'showInactive'=> $showInactive,
+            'page'        => $page,
         ];
 
         require __DIR__ . '/../../public/views/organizacional/areas/list.php';
     }
+
 
     /**
      * Formulario de nueva área.
@@ -239,5 +245,28 @@ class AreaController
             http_response_code(500);
             echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+     /**
+     * Activar / desactivar área (versión simple por GET, como en Empresas).
+     * GET: ?controller=area&action=toggle&id=1&active=0
+     */
+    public function toggle(): void
+    {
+        requireRole(1);
+        session_start();
+
+        $id     = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $active = isset($_GET['active']) ? (bool)$_GET['active'] : true;
+
+        if ($id > 0) {
+            Area::setActive($id, $active);
+            $_SESSION['flash_success'] = $active
+                ? 'Área activada correctamente.'
+                : 'Área desactivada correctamente.';
+        }
+
+        header('Location: index.php?controller=area&action=index');
+        exit;
     }
 }

@@ -17,7 +17,17 @@ class TurnoController
 
         $search = $_GET['q'] ?? null;
 
-        $turnos = Turno::all(500, 0, $search);
+        // Checkbox "Ver también inactivas"
+        $showInactive = isset($_GET['showInactive']) && $_GET['showInactive'] === '1';
+
+        // Por defecto (sin showInactive) → solo activas
+        // Empresa::all:
+        //   - true  => WHERE activa = 1
+        //   - false => WHERE activa = 0 
+        //   - null  => sin filtro (todas)
+        $onlyActive = $showInactive ? null : true;
+
+        $turnos = Turno::all(500, 0, $search, $onlyActive);
 
         // Disponibles en la vista:
         // $turnos, $search
@@ -209,7 +219,8 @@ class TurnoController
         header('Location: index.php?controller=turno&action=index');
         exit;
     }
- /**
+
+    /**
      * Valida datos de turno para crear/editar
      */
     private function validarTurno(array $data, ?int $idTurno = null): array
@@ -292,5 +303,29 @@ class TurnoController
         }
 
         return $errors;
+    }
+
+    /**
+     * Activar / desactivar empresa
+     * POST o GET: ?controller=empresa&action=toggle&id=1&active=0
+     */
+    public function toggle(): void
+    {
+        requireRole(1);
+
+        session_start();
+
+        $id     = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $active = isset($_GET['active']) ? (bool)$_GET['active'] : true;
+
+        if ($id > 0) {
+            Turno::setActive($id, $active);
+            $_SESSION['flash_success'] = $active
+                ? 'Turno activada correctamente.'
+                : 'Turno desactivada correctamente.';
+        }
+
+        header('Location: index.php?controller=turno&action=index');
+        exit;
     }
 }

@@ -23,6 +23,9 @@ if (!isset($empresas) || !is_array($empresas)) {
     $empresas = [];
 }
 
+// Valor del checkbox "Ver también inactivas"
+$showInactive = isset($showInactive) ? (bool)$showInactive : false;
+
 ?>
 <!doctype html>
 <html lang="es">
@@ -200,6 +203,13 @@ if (!isset($empresas) || !is_array($empresas)) {
           </button>
         </div>
       </div>
+      <!-- Checkbox ver inactivas -->
+        <div class="sm:ml-2 justify-start">
+          <label class="inline-flex items-center gap-2 text-xs text-muted-ink">
+            <input type="checkbox" id="chkShowInactive" class="rounded border-slate-300" <?= $showInactive ? 'checked' : '' ?>>
+            <span>Ver también inactivas</span>
+          </label>
+        </div>
     </section>
   </main>
 
@@ -275,7 +285,6 @@ if (!isset($empresas) || !is_array($empresas)) {
 
       emptyMessage.classList.add('hidden');
 
-      // Ordenar
       filteredData.sort((a, b) => {
         const res = compareByField(a, b, sortField);
         return sortDir === 'asc' ? res : -res;
@@ -298,7 +307,11 @@ if (!isset($empresas) || !is_array($empresas)) {
         const estado      = escapeHtml(ubi.estado_region ?? '');
         const pais        = escapeHtml(ubi.pais ?? '');
         const direccion   = escapeHtml(ubi.direccion ?? '');
-        const activaValor = ubi.activa == 1 ? '1' : '0';
+
+        const isActiva = String(ubi.activa) === '1';
+        const activaBadge = isActiva
+          ? '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Activa</span>'
+          : '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactiva</span>';
 
         return `
           <tr class="border-t border-slate-200 hover:bg-slate-50">
@@ -309,7 +322,7 @@ if (!isset($empresas) || !is_array($empresas)) {
             <td class="px-3 py-2 whitespace-nowrap text-xs">${estado}</td>
             <td class="px-3 py-2 whitespace-nowrap text-xs">${pais}</td>
             <td class="px-3 py-2 max-w-xs truncate" title="${direccion}">${direccion}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-center">${activaValor}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-center">${activaBadge}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -323,9 +336,10 @@ if (!isset($empresas) || !is_array($empresas)) {
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${ubi.id_ubicacion}"
                   data-nombre="${nombre}"
-                  data-href="${toggleBaseUrl}&id=${ubi.id_ubicacion}"
+                  data-href="${toggleBaseUrl}&id=${ubi.id_ubicacion}&active=${isActiva ? 0 : 1}"
+                  data-mode="${isActiva ? 'desactivar' : 'activar'}"
                 >
-                  Desactivar
+                  ${isActiva ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
             </td>
@@ -338,6 +352,7 @@ if (!isset($empresas) || !is_array($empresas)) {
       btnPrev.disabled = currentPage === 1;
       btnNext.disabled = currentPage === totalPages;
     }
+
 
     // Búsqueda en vivo
     searchInput.addEventListener('input', () => {
@@ -403,37 +418,60 @@ if (!isset($empresas) || !is_array($empresas)) {
       });
     });
 
-    // SweetAlert para desactivar
+    // SweetAlert para activar / desactivar ubicación
     document.addEventListener('click', event => {
       const btn = event.target.closest('.btn-delete');
       if (!btn) return;
 
       const nombre = btn.dataset.nombre || '';
       const href   = btn.dataset.href;
+      const mode   = btn.dataset.mode || 'desactivar'; // 'activar' o 'desactivar'
+      const isDeactivate = mode === 'desactivar';
 
       Swal.fire({
-        title: '¿Desactivar ubicación?',
-        html: nombre 
-          ? `Se desactivará "<strong>${nombre}</strong>".` 
-          : 'Se desactivará la ubicación seleccionada.',
+        title: isDeactivate ? '¿Desactivar ubicación?' : '¿Activar ubicación?',
+        html: nombre
+          ? `${isDeactivate 
+              ? 'Se desactivará' 
+              : 'Se activará'} "<strong>${nombre}</strong>".`
+          : isDeactivate
+            ? 'Se desactivará la ubicación seleccionada.'
+            : 'Se activará la ubicación seleccionada.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
+        confirmButtonText: isDeactivate ? 'Sí, desactivar' : 'Sí, activar',
         cancelButtonText: 'Cancelar',
         customClass: {
-            popup: 'vc-delete',
-            title: 'vc-delete-title',
-            htmlContainer: 'vc-delete-text',
-            confirmButton: 'vc-delete-confirm',
-            cancelButton: 'vc-delete-cancel'
-          },
-          buttonsStyling: false 
+          popup: 'vc-delete',
+          title: 'vc-delete-title',
+          htmlContainer: 'vc-delete-text',
+          confirmButton: 'vc-delete-confirm',
+          cancelButton: 'vc-delete-cancel'
+        },
+        buttonsStyling: false 
       }).then(result => {
         if (result.isConfirmed && href) {
           window.location.href = href;
         }
       });
     });
+
+    // Checkbox "Ver también inactivas" → recarga con parámetro showInactive
+    const chkShowInactive = document.getElementById('chkShowInactive');
+    if (chkShowInactive) {
+      chkShowInactive.addEventListener('change', () => {
+        const params = new URLSearchParams(window.location.search);
+
+        if (chkShowInactive.checked) {
+          params.set('showInactive', '1');
+        } else {
+          params.delete('showInactive');
+        }
+
+        window.location.search = params.toString();
+      });
+    }
+
 
     // Render inicial
     renderTable();

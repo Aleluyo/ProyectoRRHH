@@ -20,6 +20,9 @@ if (!isset($turnos) || !is_array($turnos)) {
     $turnos = [];
 }
 
+// Valor del checkbox "Ver también inactivas"
+$showInactive = isset($showInactive) ? (bool)$showInactive : false;
+
 ?>
 <!doctype html>
 <html lang="es">
@@ -159,6 +162,7 @@ if (!isset($turnos) || !is_array($turnos)) {
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="hora_salida">Hora salida</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="tolerancia_minutos">Tolerancia (min)</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="dias_laborales">Días laborales</th>
+              <th class="px-3 py-2 text-center cursor-pointer select-none" data-sort="activo">Activo</th>
               <th class="px-3 py-2 text-center">Acciones</th>
             </tr>
           </thead>
@@ -195,6 +199,13 @@ if (!isset($turnos) || !is_array($turnos)) {
           </button>
         </div>
       </div>
+       <!-- Checkbox ver inactivas -->
+        <div class="sm:ml-2 justify-start">
+          <label class="inline-flex items-center gap-2 text-xs text-muted-ink">
+            <input type="checkbox" id="chkShowInactive" class="rounded border-slate-300" <?= $showInactive ? 'checked' : '' ?>>
+            <span>Ver también inactivos</span>
+          </label>
+        </div>
     </section>
   </main>
 
@@ -214,10 +225,25 @@ if (!isset($turnos) || !is_array($turnos)) {
     const tableStatus = document.getElementById('tableStatus');
     const btnPrev = document.getElementById('btnPrev');
     const btnNext = document.getElementById('btnNext');
+    const chkShowInactive = document.getElementById('chkShowInactive');
     const headerCells = document.querySelectorAll('th[data-sort]');
 
+    if (chkShowInactive) {
+      chkShowInactive.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+
+        if (chkShowInactive.checked) {
+          url.searchParams.set('showInactive', '1');
+        } else {
+          url.searchParams.delete('showInactive');
+        }
+
+        window.location.href = url.toString();
+      });
+    }
+
     const editBaseUrl   = "<?= url('index.php?controller=turno&action=edit') ?>";
-    const deleteBaseUrl = "<?= url('index.php?controller=turno&action=delete') ?>";
+    const toggleBaseUrl = "<?= url('index.php?controller=turno&action=toggle') ?>";
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -292,6 +318,10 @@ if (!isset($turnos) || !is_array($turnos)) {
       const pageItems = filteredData.slice(start, start + rowsPerPage);
 
       tbody.innerHTML = pageItems.map(tur => {
+        const isActiva = String(tur.activo) === '1';
+        const activaBadge = isActiva
+          ? '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Activa</span>'
+          : '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactiva</span>';
         const idTurno   = tur.id_turno;
         const nombre    = escapeHtml(tur.nombre_turno ?? '');
         const hEntrada  = escapeHtml(tur.hora_entrada ?? '');
@@ -308,6 +338,7 @@ if (!isset($turnos) || !is_array($turnos)) {
             <td class="px-3 py-2 whitespace-nowrap text-xs">${hSalida}</td>
             <td class="px-3 py-2 whitespace-nowrap text-xs text-center">${tolerancia}</td>
             <td class="px-3 py-2 max-w-xs truncate" title="${escapeHtml(diasCod)}">${diasLabel}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-center">${activaBadge}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -321,9 +352,10 @@ if (!isset($turnos) || !is_array($turnos)) {
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${idTurno}"
                   data-nombre="${nombre}"
-                  data-href="${deleteBaseUrl}&id=${idTurno}"
+                  data-href="${toggleBaseUrl}&id=${tur.id_turno}&active=${isActiva ? 0 : 1}"
+                  data-mode="${isActiva ? 'desactivar' : 'activar'}"
                 >
-                  Eliminar
+                  ${isActiva ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
             </td>
@@ -391,22 +423,28 @@ if (!isset($turnos) || !is_array($turnos)) {
       });
     });
 
-    // SweetAlert para eliminar
+   // SweetAlert para activar / desactivar turno
     document.addEventListener('click', event => {
       const btn = event.target.closest('.btn-delete');
       if (!btn) return;
 
       const nombre = btn.dataset.nombre || '';
       const href   = btn.dataset.href;
+      const mode   = btn.dataset.mode || 'desactivar'; // 'activar' o 'desactivar'
+      const isDeactivate = mode === 'desactivar';
 
       Swal.fire({
-          title: '¿Eliminar turno?',
+          title: isDeactivate ? '¿Desactivar turno?' : '¿Activar turno?',
           html: nombre 
-            ? `Se eliminará "<strong>${nombre}</strong>".` 
-            : 'Se eliminará el turno seleccionado.',
+            ? `${isDeactivate 
+                ? 'Se desactivará' 
+                : 'Se activará'} "<strong>${nombre}</strong>".`
+            : isDeactivate
+              ? 'Se desactivará el turno seleccionado.'
+              : 'Se activará el turno seleccionado.',
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonText: 'Sí, eliminar',
+          confirmButtonText: isDeactivate ? 'Sí, desactivar' : 'Sí, activar',
           cancelButtonText: 'Cancelar',
           customClass: {
             popup: 'vc-delete',
@@ -417,11 +455,12 @@ if (!isset($turnos) || !is_array($turnos)) {
           },
           buttonsStyling: false                
         }).then(result => {
-        if (result.isConfirmed && href) {
-          window.location.href = href;
-        }
-      });
+          if (result.isConfirmed && href) {
+            window.location.href = href;
+          }
+        });
     });
+
 
     // Render inicial
     renderTable();

@@ -17,9 +17,18 @@ class UbicacionController
         requireRole(1);
 
         $search     = $_GET['q']          ?? null;
-        $onlyActive = isset($_GET['onlyActive']) ? (bool)$_GET['onlyActive'] : null;
-        $idEmpresa  = isset($_GET['id_empresa']) ? (int)$_GET['id_empresa'] : null;
+        
+        // Checkbox "Ver también inactivas"
+        $showInactive = isset($_GET['showInactive']) && $_GET['showInactive'] === '1';
 
+        // Por defecto (sin showInactive) → solo activas
+        // Ubicacion::all:
+        //   - true  => WHERE activa = 1
+        //   - false => WHERE activa = 0 
+        //   - null  => sin filtro (todas)
+        $onlyActive = $showInactive ? null : true;
+
+        $idEmpresa = isset($_GET['id_empresa']) ? (int)$_GET['id_empresa'] : null;
         if ($idEmpresa !== null && $idEmpresa <= 0) {
             $idEmpresa = null;
         }

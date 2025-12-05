@@ -37,7 +37,7 @@ class Turno
     /**
      * Lista de turnos con paginado y búsqueda por nombre.
      */
-    public static function all(int $limit = 500, int $offset = 0, ?string $search = null): array
+    public static function all(int $limit = 500, int $offset = 0, ?string $search = null, ?bool $onlyActive = null): array
     {
         global $pdo;
 
@@ -52,6 +52,12 @@ class Turno
             $where[]        = '(nombre_turno LIKE :q)';
             $params[':q']   = $q;
         }
+
+          if ($onlyActive !== null) {
+            $where[] = 'activo = :activa';
+            $params[':activa'] = $onlyActive ? 1 : 0;
+        }
+
 
         $sql = "SELECT * FROM turnos";
 
@@ -310,5 +316,20 @@ class Turno
         $st->execute($params);
 
         return (bool)$st->fetchColumn();
+    }
+
+    /**
+     * Activar / Desactivar turno.
+     */
+    public static function setActive(int $id, bool $active): void
+    {
+        global $pdo;
+
+        if ($id <= 0) {
+        throw new \InvalidArgumentException("ID de turno inválido.");
+        }   
+
+        $st = $pdo->prepare("UPDATE turnos SET activo = ? WHERE id_turno = ?");
+        $st->execute([$active ? 1 : 0, $id]);
     }
 }

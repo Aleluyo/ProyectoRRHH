@@ -19,6 +19,8 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 if (!isset($puestos) || !is_array($puestos)) {
     $puestos = [];
 }
+// Valor del checkbox "Ver también inactivas" (viene del controlador)
+$showInactive = isset($showInactive) ? (bool)$showInactive : false;
 ?>
 <!doctype html>
 <html lang="es">
@@ -158,6 +160,7 @@ if (!isset($puestos) || !is_array($puestos)) {
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="nivel">Nivel</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="salario_base">Salario base</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="descripcion">Descripción</th>
+              <th class="px-3 py-2 text-center cursor-pointer select-none" data-sort="activa">Activo</th>
               <th class="px-3 py-2 text-center">Acciones</th>
             </tr>
           </thead>
@@ -194,6 +197,13 @@ if (!isset($puestos) || !is_array($puestos)) {
           </button>
         </div>
       </div>
+      <!-- Checkbox ver inactivas -->
+        <div class="sm:ml-2 justify-start">
+          <label class="inline-flex items-center gap-2 text-xs text-muted-ink">
+            <input type="checkbox" id="chkShowInactive" class="rounded border-slate-300" <?= $showInactive ? 'checked' : '' ?>>
+            <span>Ver también inactivos</span>
+          </label>
+        </div>
     </section>
   </main>
 
@@ -213,10 +223,28 @@ if (!isset($puestos) || !is_array($puestos)) {
     const tableStatus  = document.getElementById('tableStatus');
     const btnPrev      = document.getElementById('btnPrev');
     const btnNext      = document.getElementById('btnNext');
+    const chkShowInactive = document.getElementById('chkShowInactive');   
     const headerCells  = document.querySelectorAll('th[data-sort]');
 
+    if (chkShowInactive) {
+      chkShowInactive.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+
+        url.searchParams.set('controller', 'puesto');
+        url.searchParams.set('action', 'index');
+
+        if (chkShowInactive.checked) {
+          url.searchParams.set('showInactive', '1');
+        } else {
+          url.searchParams.delete('showInactive');
+        }
+
+        window.location.href = url.toString();
+      });
+    }
+
     const editBaseUrl   = "<?= url('index.php?controller=puesto&action=edit') ?>";
-    const deleteBaseUrl = "<?= url('index.php?controller=puesto&action=delete') ?>";
+    const toggleBaseUrl = "<?= url('index.php?controller=puesto&action=toggle') ?>";
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -281,6 +309,12 @@ if (!isset($puestos) || !is_array($puestos)) {
         const nivel       = escapeHtml(p.nivel ?? '');
         const descripcion = escapeHtml(p.descripcion ?? '');
 
+        // Estado activa
+        const isActive = String(p.activa) === '1';
+        const activaBadge = isActive
+          ? '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Activo</span>'
+          : '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactivo</span>';
+
         let salarioBase = '';
         if (p.salario_base !== null && p.salario_base !== undefined && p.salario_base !== '') {
           const num = Number(p.salario_base);
@@ -306,6 +340,9 @@ if (!isset($puestos) || !is_array($puestos)) {
               ${salarioBase !== '' ? '$ ' + salarioBase : ''}
             </td>
             <td class="px-3 py-2 max-w-xs truncate" title="${descripcion}">${descripcion}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-center">
+              ${activaBadge}
+            </td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -316,12 +353,13 @@ if (!isset($puestos) || !is_array($puestos)) {
                 </a>
                 <button
                   type="button"
-                  class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
+                  class="btn-toggle rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${idPuesto}"
                   data-nombre="${nombre}"
-                  data-href="${deleteBaseUrl}&id=${idPuesto}"
+                  data-href="${toggleBaseUrl}&id=${idPuesto}&active=${isActive ? 0 : 1}"
+                  data-mode="${isActive ? 'desactivar' : 'activar'}"
                 >
-                  Eliminar
+                  ${isActive ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
             </td>
@@ -389,32 +427,36 @@ if (!isset($puestos) || !is_array($puestos)) {
       });
     });
 
-    // SweetAlert para eliminar
+    // SweetAlert para activar / desactivar
     document.addEventListener('click', event => {
-      const btn = event.target.closest('.btn-delete');
+      const btn = event.target.closest('.btn-toggle');
       if (!btn) return;
 
       const nombre = btn.dataset.nombre || '';
       const href   = btn.dataset.href;
+      const mode   = btn.dataset.mode === 'activar' ? 'activar' : 'desactivar';
+
+      const title = mode === 'activar' ? '¿Activar puesto?' : '¿Desactivar puesto?';
+      const confirmText = mode === 'activar' ? 'Sí, activar' : 'Sí, desactivar';
 
       Swal.fire({
-          title: '¿Eliminar puesto?',
-          html: nombre 
-            ? `Se eliminará "<strong>${nombre}</strong>".` 
-            : 'Se eliminará el puesto seleccionado.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, eliminar',
-          cancelButtonText: 'Cancelar',
-          customClass: {
-            popup: 'vc-delete',
-            title: 'vc-delete-title',
-            htmlContainer: 'vc-delete-text',
-            confirmButton: 'vc-delete-confirm',
-            cancelButton: 'vc-delete-cancel'
-          },
-          buttonsStyling: false                 
-        }).then(result => {
+        title: title,
+        html: nombre
+          ? `Se ${mode}á "<strong>${nombre}</strong>".`
+          : `Se ${mode}á el puesto seleccionado.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: confirmText,
+        cancelButtonText: 'Cancelar',
+        customClass: {
+          popup: 'vc-delete',
+          title: 'vc-delete-title',
+          htmlContainer: 'vc-delete-text',
+          confirmButton: 'vc-delete-confirm',
+          cancelButton: 'vc-delete-cancel'
+        },
+        buttonsStyling: false
+      }).then(result => {
         if (result.isConfirmed && href) {
           window.location.href = href;
         }

@@ -52,13 +52,15 @@ class Puesto
      * @param string|null $search  Búsqueda por nombre/descripcion.
      * @param int|null    $idArea  Filtrar por área.
      * @param string|null $nivel   Filtrar por nivel (enum).
+     * @param bool|null   $onlyActive true = solo activos, false = solo inactivos, null = todos
      */
     public static function all(
         int $limit = 500,
         int $offset = 0,
         ?string $search = null,
         ?int $idArea = null,
-        ?string $nivel = null
+        ?string $nivel = null,
+        ?bool $onlyActive = true 
     ): array {
         global $pdo;
 
@@ -75,16 +77,25 @@ class Puesto
         }
 
         if ($idArea !== null && $idArea > 0) {
-            $where[]           = 'id_area = :id_area';
+            $where[]           = 'p.id_area = :id_area';
             $params[':id_area'] = $idArea;
         }
 
         if ($nivel !== null && trim($nivel) !== '') {
             $nivel = strtoupper(trim($nivel));
             if (in_array($nivel, self::NIVELES_VALIDOS, true)) {
-                $where[]           = 'nivel = :nivel';
+                $where[]           = 'p.nivel = :nivel';
                 $params[':nivel']  = $nivel;
             }
+        }
+
+    // filtro por activos/inactivos
+    // true  → p.activa = 1
+    // false → p.activa = 0
+    // null  → sin filtro
+        if ($onlyActive !== null) {
+            $where[]              = 'p.activa = :activa';
+            $params[':activa']    = $onlyActive ? 1 : 0;
         }
 
         $sql = "SELECT 
@@ -99,7 +110,7 @@ class Puesto
             $sql .= " WHERE " . implode(' AND ', $where);
         }
 
-        $sql .= " ORDER BY nombre_puesto ASC
+        $sql .= " ORDER BY p.nombre_puesto ASC
                   LIMIT :limit OFFSET :offset";
 
         $st = $pdo->prepare($sql);
@@ -322,5 +333,20 @@ class Puesto
         $st->execute($params);
 
         return (bool)$st->fetchColumn();
+    }
+
+    /**
+    * Activa / desactiva un puesto (eliminado lógico).
+    */
+    public static function setActive(int $id, bool $active): void
+    {
+        global $pdo;
+
+        if ($id <= 0) {
+            throw new \InvalidArgumentException("ID inválido.");
+        }
+
+        $st = $pdo->prepare("UPDATE puestos SET activa = ? WHERE id_puesto = ?");
+        $st->execute([$active ? 1 : 0, $id]);
     }
 }

@@ -20,6 +20,8 @@ if (!isset($areas) || !is_array($areas)) {
     $areas = [];
 }
 
+// Valor del checkbox "Ver también inactivas" (viene del controlador)
+$showInactive = isset($showInactive) ? (bool)$showInactive : false;
 ?>
 <!doctype html>
 <html lang="es">
@@ -195,6 +197,13 @@ if (!isset($areas) || !is_array($areas)) {
           </button>
         </div>
       </div>
+      <!-- Checkbox ver inactivas -->
+        <div class="sm:ml-2 justify-start">
+          <label class="inline-flex items-center gap-2 text-xs text-muted-ink">
+            <input type="checkbox" id="chkShowInactive" class="rounded border-slate-300" <?= $showInactive ? 'checked' : '' ?>>
+            <span>Ver también inactivas</span>
+          </label>
+        </div>
     </section>
   </main>
 
@@ -214,10 +223,28 @@ if (!isset($areas) || !is_array($areas)) {
     const tableStatus = document.getElementById('tableStatus');
     const btnPrev = document.getElementById('btnPrev');
     const btnNext = document.getElementById('btnNext');
+    const chkShowInactive = document.getElementById('chkShowInactive');
     const headerCells = document.querySelectorAll('th[data-sort]');
 
     const editBaseUrl   = "<?= url('index.php?controller=area&action=edit') ?>";
     const toggleBaseUrl = "<?= url('index.php?controller=area&action=toggle') ?>";
+
+    if (chkShowInactive) {
+      chkShowInactive.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+
+        url.searchParams.set('controller', 'area');
+        url.searchParams.set('action', 'index');
+
+        if (chkShowInactive.checked) {
+          url.searchParams.set('showInactive', '1');
+        } else {
+          url.searchParams.delete('showInactive');
+        }
+
+        window.location.href = url.toString();
+      });
+    }
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -273,7 +300,10 @@ if (!isset($areas) || !is_array($areas)) {
       const pageItems = filteredData.slice(start, start + rowsPerPage);
 
       tbody.innerHTML = pageItems.map(area => {
-        const activaValor = area.activa == 1 ? '1' : '0';
+        const isActiva = String(area.activa) === '1';
+        const activaBadge = isActiva
+          ? '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Activa</span>'
+          : '<span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactiva</span>';
         const empresaNombre   = escapeHtml(area.empresa_nombre ?? '');
         const nombreArea      = escapeHtml(area.nombre_area ?? '');
         const areaPadreNombre = escapeHtml(area.area_padre_nombre ?? '');
@@ -286,7 +316,7 @@ if (!isset($areas) || !is_array($areas)) {
             <td class="px-3 py-2 whitespace-nowrap">${nombreArea}</td>
             <td class="px-3 py-2 whitespace-nowrap text-xs">${areaPadreNombre}</td>
             <td class="px-3 py-2 max-w-xs truncate text-xs" title="${descripcion}">${descripcion}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-center">${activaValor}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-center">${activaBadge}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -300,9 +330,10 @@ if (!isset($areas) || !is_array($areas)) {
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
                   data-id="${area.id_area}"
                   data-nombre="${nombreArea}"
-                  data-href="${toggleBaseUrl}&id=${area.id_area}"
+                  data-href="${toggleBaseUrl}&id=${area.id_area}&active=${isActiva ? 0 : 1}"
+                  data-mode="${isActiva ? 'desactivar' : 'activar'}"
                 >
-                  Desactivar
+                  ${isActiva ? 'Desactivar' : 'Activar'}
                 </button>
               </div>
             </td>
@@ -370,34 +401,37 @@ if (!isset($areas) || !is_array($areas)) {
       });
     });
 
-    // SweetAlert para desactivar
+    // SweetAlert para activar/desactivar
     document.addEventListener('click', event => {
       const btn = event.target.closest('.btn-delete');
       if (!btn) return;
 
       const nombre = btn.dataset.nombre || '';
       const href   = btn.dataset.href;
+      const mode   = btn.dataset.mode === 'activar' ? 'activar' : 'desactivar';
+
+      const title = mode === 'activar' ? '¿Activar área?' : '¿Desactivar área?';
+      const confirmText = mode === 'activar' ? 'Sí, activar' : 'Sí, desactivar';
 
       Swal.fire({
-        title: '¿Desactivar área?',
-         html: nombre 
-          ? `Se desactivará "<strong>${nombre}</strong>".` 
-          : 'Se desactivará la área seleccionada.',
+        title: title,
+        html: nombre 
+          ? `Se ${mode}á "<strong>${nombre}</strong>".` 
+          : `Se ${mode}á el área seleccionada.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sí, desactivar',
+        confirmButtonText: confirmText,
         cancelButtonText: 'Cancelar',
         customClass: {
-            popup: 'vc-delete',
-            title: 'vc-delete-title',
-            htmlContainer: 'vc-delete-text',
-            confirmButton: 'vc-delete-confirm',
-            cancelButton: 'vc-delete-cancel'
-          },
-          buttonsStyling: false 
+          popup: 'vc-delete',
+          title: 'vc-delete-title',
+          htmlContainer: 'vc-delete-text',
+          confirmButton: 'vc-delete-confirm',
+          cancelButton: 'vc-delete-cancel'
+        },
+        buttonsStyling: false 
       }).then(result => {
         if (result.isConfirmed && href) {
-          // Aquí haces la acción real (GET, POST, fetch, etc.)
           window.location.href = href;
         }
       });
