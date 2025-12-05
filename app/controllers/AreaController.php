@@ -129,6 +129,14 @@ class AreaController
         }
 
         $empresas = Empresa::all(1000, 0);
+
+        $empresaEsInactiva = false;
+        if (!empty($area['id_empresa'])) {
+            $empresaActual = Empresa::findById((int)$area['id_empresa']);
+            if ($empresaActual && isset($empresaActual['activa']) && (int)$empresaActual['activa'] === 0) {
+                $empresaEsInactiva = true;
+            }
+        }
         
         // Áreas agrupadas por empresa para el combo de "Área padre"
         $areasPorEmpresa = [];

@@ -28,7 +28,7 @@ class UbicacionController
         $ubicaciones = Ubicacion::all(500, 0, $search, $onlyActive, $idEmpresa);
 
         // Lista de empresas para filtro / combos en la vista
-        $empresas = Empresa::all(500, 0, null, true);
+        $empresas = Empresa::all(500, 0, null, null);
 
         // Variables disponibles en la vista:
         // $ubicaciones, $empresas, $search, $onlyActive, $idEmpresa
@@ -206,17 +206,44 @@ class UbicacionController
         }
 
         $errors   = [];
-        // Para el select de empresa en edición
+        
+        $idEmpresaActual = (int)$ubicacion['id_empresa'];
+
+        // Empresa actual de la ubicación
+        $empresaActual = Empresa::findById($idEmpresaActual);
+        $empresaEstaActiva = $empresaActual && (int)$empresaActual['activa'] === 1;
+
+        // Por defecto: solo empresas activas
         $empresas = Empresa::all(500, 0, null, true);
+
+        // Bandera para la vista: ¿debo bloquear el select?
+        $empresaSoloLectura = false;
+
+        // Si la empresa actual está inactiva: la agregamos a la lista y bloqueamos el select
+        if (!$empresaEstaActiva && $empresaActual) {
+            $yaIncluida = false;
+            foreach ($empresas as $e) {
+                if ((int)$e['id_empresa'] === $idEmpresaActual) {
+                    $yaIncluida = true;
+                    break;
+                }
+            }
+
+            if (!$yaIncluida) {
+                $empresas[] = $empresaActual;
+            }
+
+            $empresaSoloLectura = true;
+        }
 
         // $ubicacion, $empresas, $errors disponibles en la vista
         require __DIR__ . '/../../public/views/organizacional/ubicaciones/edit.php';
     }
 
     /**
-     * Actualizar ubicación
-     * POST: ?controller=ubicacion&action=update&id=1
-     */
+    * Actualizar ubicación
+    * POST: ?controller=ubicacion&action=update&id=1
+    */
     public function update(): void
     {
         requireRole(1);
@@ -229,11 +256,45 @@ class UbicacionController
             exit;
         }
 
+        // cargar la ubicación y la empresa actual
+        $ubicacionActual = Ubicacion::findById($id);
+        if (!$ubicacionActual) {
+            header('Location: index.php?controller=ubicacion&action=index');
+            exit;
+        }
+
+        $idEmpresaActual = (int)$ubicacionActual['id_empresa'];
+
         try {
             // 1) Leer y TRIM de todo
             $idEmpresa = isset($_POST['id_empresa']) ? (int)$_POST['id_empresa'] : 0;
+
+            // Empresa actual (para saber si está activa o no)
+            $empresaActual = Empresa::findById($idEmpresaActual);
+            $empresaActualActiva = $empresaActual && (int)$empresaActual['activa'] === 1;
+
+            // Si la empresa actual está INACTIVA → no permitir cambiarla: se fuerza al valor actual
+            if (!$empresaActualActiva) {
+                $idEmpresa = $idEmpresaActual;
+            }
+
+            if ($idEmpresa <= 0) {
+                throw new InvalidArgumentException('La empresa es obligatoria.');
+            }
+
+            // Validar que la empresa destino exista
+            $empresaDestino = Empresa::findById($idEmpresa);
+            if (!$empresaDestino) {
+                throw new InvalidArgumentException('La empresa seleccionada no existe.');
+            }
+
+            // Si se intenta CAMBIAR de empresa, solo se permite si la nueva está activa
+            if ($idEmpresa !== $idEmpresaActual && (int)$empresaDestino['activa'] !== 1) {
+                throw new InvalidArgumentException('Solo se pueden asignar empresas activas.');
+            }
+
             $nombre    = trim($_POST['nombre']        ?? '');
-            $nombre = preg_replace('/\s+/u', ' ', $nombre);
+            $nombre    = preg_replace('/\s+/u', ' ', $nombre);
 
             $calle        = trim($_POST['calle']           ?? '');
             $numExt       = trim($_POST['numero_exterior'] ?? '');
@@ -247,10 +308,6 @@ class UbicacionController
             $activa       = isset($_POST['activa']) ? 1 : 0;
 
             // 2) Validar obligatorios (después de trim)
-            if ($idEmpresa <= 0) {
-                throw new InvalidArgumentException('La empresa es obligatoria.');
-            }
-
             if ($nombre === '') {
                 throw new InvalidArgumentException('El nombre de la sede es obligatorio.');
             }
@@ -302,7 +359,6 @@ class UbicacionController
             }
 
             // 4) Validar NOMBRE DUPLICADO 
-            //    Aquí usamos el nuevo tercer parámetro para excluir el propio id.
             if (Ubicacion::existsNombreEnEmpresa($idEmpresa, $nombre, $id)) {
                 throw new InvalidArgumentException('Ya existe una ubicación con ese nombre para esta empresa.');
             }

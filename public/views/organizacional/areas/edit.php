@@ -50,6 +50,8 @@ $selectedPadreId   = (string)($old['id_area_padre'] ?? ($area['id_area_padre'] ?
 $nombreAreaValue   = htmlspecialchars((string)($old['nombre_area'] ?? $area['nombre_area'] ?? ''), ENT_QUOTES, 'UTF-8');
 $descripcionValue  = htmlspecialchars((string)($old['descripcion'] ?? $area['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8');
 $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
+// Bandera desde el controlador: true si la empresa del área está inactiva
+$empresaEsInactiva = $empresaEsInactiva ?? false;
 ?>
 <!doctype html>
 <html lang="es">
@@ -219,14 +221,35 @@ $activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
               <option value="">Selecciona una empresa…</option>
               <?php foreach ($empresas as $emp): ?>
                 <?php
-                  $idEmp   = (string)$emp['id_empresa'];
-                  $nombreE = htmlspecialchars((string)$emp['nombre'], ENT_QUOTES, 'UTF-8');
+                  $idEmp     = (string)$emp['id_empresa'];
+                  $nombreE   = htmlspecialchars((string)$emp['nombre'], ENT_QUOTES, 'UTF-8');
+                  $activaEmp = isset($emp['activa']) ? (int)$emp['activa'] : 1;
+
+                  // Si la empresa está inactiva, lo indicamos en el texto
+                  if ($activaEmp === 0) {
+                      $nombreE .= ' (inactiva)';
+                  }
+
                   $selected = $idEmp === $selectedEmpresaId ? 'selected' : '';
                 ?>
                 <option value="<?= htmlspecialchars($idEmp, ENT_QUOTES, 'UTF-8') ?>" <?= $selected ?>>
                   <?= $nombreE ?>
                 </option>
               <?php endforeach; ?>
+            </select>
+
+            <!-- Hidden para conservar el id_empresa en el POST si algún día lo usas en backend -->
+            <input
+              type="hidden"
+              name="id_empresa"
+              value="<?= htmlspecialchars($selectedEmpresaId, ENT_QUOTES, 'UTF-8') ?>"
+            >
+
+            <?php if ($empresaEsInactiva): ?>
+              <p class="mt-1 text-xs text-red-500">
+                La empresa de esta área está desactivada; se mantiene solo para históricos y no puede cambiarse desde aquí.
+              </p>
+            <?php endif; ?>
             </select>
           </div>
 
