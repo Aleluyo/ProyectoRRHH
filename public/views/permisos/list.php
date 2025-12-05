@@ -206,7 +206,7 @@ if (!isset($empleados) || !is_array($empleados)) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label class="text-sm text-muted-ink">Empleado</label>
-              <select name="id_empleado" class="w-full rounded-lg border border-black/10 px-3 py-2" required>
+              <select name="id_empleado" id="select-empleado" class="w-full rounded-lg border border-black/10 px-3 py-2" required>
                 <option value="">Selecciona</option>
                 <?php foreach ($empleados as $emp): ?>
                   <option value="<?= (int)$emp['id_empleado'] ?>"><?= htmlspecialchars($emp['nombre'], ENT_QUOTES, 'UTF-8') ?></option>
@@ -215,7 +215,7 @@ if (!isset($empleados) || !is_array($empleados)) {
             </div>
             <div>
               <label class="text-sm text-muted-ink">Tipo</label>
-              <select name="tipo" class="w-full rounded-lg border border-black/10 px-3 py-2" required>
+              <select name="tipo" id="select-tipo" class="w-full rounded-lg border border-black/10 px-3 py-2" required>
                 <option value="VACACIONES">Vacaciones</option>
                 <option value="PERMISO">Permiso</option>
                 <option value="INCAPACIDAD">Incapacidad</option>
@@ -230,13 +230,16 @@ if (!isset($empleados) || !is_array($empleados)) {
               <label class="text-sm text-muted-ink">Fecha fin</label>
               <input type="date" name="fecha_fin" class="w-full rounded-lg border border-black/10 px-3 py-2" required>
             </div>
-            <div>
-              <label class="text-sm text-muted-ink">Días (opcional)</label>
-              <input type="number" step="0.5" name="dias" class="w-full rounded-lg border border-black/10 px-3 py-2" placeholder="Calcula automático si se deja vacío">
+            <div id="vacaciones-info" class="hidden md:col-span-2 rounded-lg bg-vc-teal/10 border border-vc-teal/20 px-3 py-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-vc-ink">Días disponibles:</span>
+                <span id="dias-disponibles" class="text-lg font-semibold text-vc-teal">--</span>
+              </div>
             </div>
             <div>
-              <label class="text-sm text-muted-ink">Aprobadores (IDs separados por coma)</label>
-              <input type="text" name="aprobadores" class="w-full rounded-lg border border-black/10 px-3 py-2" placeholder="1,2 para niveles secuenciales">
+              <label class="text-sm text-muted-ink">Días (opcional)</label>
+              <input type="number" step="0.5" name="dias" id="input-dias" class="w-full rounded-lg border border-black/10 px-3 py-2" placeholder="Calcula automático si se deja vacío">
+              <p id="warning-dias" class="hidden text-xs text-rose-600 mt-1">⚠️ Supera los días disponibles</p>
             </div>
             <div class="md:col-span-2">
               <label class="text-sm text-muted-ink">Motivo</label>
@@ -244,13 +247,34 @@ if (!isset($empleados) || !is_array($empleados)) {
             </div>
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-vc-pink px-4 py-2 text-sm font-semibold text-vc-ink shadow-soft hover:translate-y-[1px] transition">
+            <button type="submit" id="btn-enviar" class="inline-flex items-center gap-2 rounded-lg bg-vc-pink px-4 py-2 text-sm font-semibold text-vc-ink shadow-soft hover:translate-y-[1px] transition">
               Enviar solicitud
             </button>
           </div>
         </form>
       </div>
     </div>
+
+    <!-- Sección de saldo actual del usuario (si está disponible) -->
+    <?php if ($saldoActual): ?>
+    <div class="rounded-xl border border-black/5 bg-gradient-to-br from-vc-teal/5 to-vc-pink/5 shadow-soft p-4">
+      <h3 class="font-display text-lg text-vc-ink mb-2">Mis Días de Vacaciones <?= date('Y') ?></h3>
+      <div class="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <p class="text-2xl font-bold text-vc-teal"><?= number_format((float)$saldoActual['dias_asignados'], 1) ?></p>
+          <p class="text-xs text-muted-ink">Asignados</p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-vc-pink"><?= number_format((float)$saldoActual['dias_tomados'], 1) ?></p>
+          <p class="text-xs text-muted-ink">Tomados</p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-vc-ink"><?= number_format((float)$saldoActual['dias_disponibles'], 1) ?></p>
+          <p class="text-xs text-muted-ink">Disponibles</p>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
 
     <div class="rounded-xl border border-black/5 bg-white/80 shadow-soft">
       <div class="flex items-center justify-between px-4 py-3 border-b border-black/5">
@@ -335,6 +359,89 @@ if (!isset($empleados) || !is_array($empleados)) {
       </div>
     </div>
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const selectEmpleado = document.getElementById('select-empleado');
+      const selectTipo = document.getElementById('select-tipo');
+      const vacacionesInfo = document.getElementById('vacaciones-info');
+      const diasDisponibles = document.getElementById('dias-disponibles');
+      const inputDias = document.getElementById('input-dias');
+      const warningDias = document.getElementById('warning-dias');
+      const btnEnviar = document.getElementById('btn-enviar');
+      
+      let saldoActual = null;
+
+      // Cargar saldo cuando se selecciona un empleado
+      selectEmpleado.addEventListener('change', function() {
+        const idEmpleado = this.value;
+        if (idEmpleado && selectTipo.value === 'VACACIONES') {
+          cargarSaldo(idEmpleado);
+        } else {
+          ocultarInfo();
+        }
+      });
+
+      // Mostrar/ocultar info según tipo
+      selectTipo.addEventListener('change', function() {
+        if (this.value === 'VACACIONES' && selectEmpleado.value) {
+          cargarSaldo(selectEmpleado.value);
+        } else {
+          ocultarInfo();
+        }
+      });
+
+      // Validar días solicitados
+      inputDias.addEventListener('input', function() {
+        validarDias();
+      });
+
+      function cargarSaldo(idEmpleado) {
+        fetch(`index.php?controller=permiso&action=obtenerSaldo&id_empleado=${idEmpleado}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              saldoActual = data;
+              diasDisponibles.textContent = data.dias_disponibles.toFixed(1);
+              vacacionesInfo.classList.remove('hidden');
+              validarDias();
+            } else {
+              console.error('Error al cargar saldo:', data.error);
+              ocultarInfo();
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            ocultarInfo();
+          });
+      }
+
+      function ocultarInfo() {
+        vacacionesInfo.classList.add('hidden');
+        warningDias.classList.add('hidden');
+        saldoActual = null;
+      }
+
+      function validarDias() {
+        if (!saldoActual || selectTipo.value !== 'VACACIONES') {
+          warningDias.classList.add('hidden');
+          return;
+        }
+
+        const diasSolicitados = parseFloat(inputDias.value);
+        if (isNaN(diasSolicitados) || diasSolicitados <= 0) {
+          warningDias.classList.add('hidden');
+          return;
+        }
+
+        if (diasSolicitados > saldoActual.dias_disponibles) {
+          warningDias.classList.remove('hidden');
+        } else {
+          warningDias.classList.add('hidden');
+        }
+      }
+    });
+  </script>
 </body>
 </html>
 

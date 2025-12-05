@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/SaldosVacaciones.php';
 
 /**
  * Modelo para políticas de vacaciones y solicitudes de permisos.
@@ -134,7 +135,7 @@ class PermisosVacaciones
         return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public static function crearSolicitud(array $data, array $aprobadores = []): int
+    public static function crearSolicitud(array $data): int
     {
         global $pdo;
 
@@ -164,11 +165,23 @@ class PermisosVacaciones
             $dias = max(1, ($tsFin - $tsInicio) / 86400 + 1);
         }
 
-        if (empty($aprobadores)) {
-            $aprobadores = [
-                ['aprobador' => $creadoPor, 'nivel' => 1],
-            ];
+        // Validar saldo de vacaciones si es tipo VACACIONES
+        if ($tipo === 'VACACIONES') {
+            $anio = (int)date('Y', $tsInicio);
+            $tieneDisponibles = SaldosVacaciones::validarDiasDisponibles($idEmpleado, $dias, $anio);
+            
+            if (!$tieneDisponibles) {
+                $diasDisponibles = SaldosVacaciones::obtenerDiasDisponibles($idEmpleado, $anio);
+                throw new \InvalidArgumentException(
+                    "No tienes suficientes días de vacaciones. Disponibles: {$diasDisponibles}, Solicitados: {$dias}"
+                );
+            }
         }
+
+        // Always use the creator as the default approver
+        $aprobadores = [
+            ['aprobador' => $creadoPor, 'nivel' => 1],
+        ];
 
         $pdo->beginTransaction();
         try {
@@ -243,6 +256,23 @@ class PermisosVacaciones
 
             $pdo->prepare("UPDATE solicitudes_permiso SET estado = ? WHERE id_solicitud = ?")
                 ->execute([$nuevoEstado, $idSolicitud]);
+
+            // Si se aprueba totalmente, actualizar saldo de vacaciones
+            if ($nuevoEstado === 'APROBADO') {
+                // Obtener info de la solicitud
+                $solicitudSt = $pdo->prepare("SELECT id_empleado, tipo, dias, fecha_inicio FROM solicitudes_permiso WHERE id_solicitud = ?");
+                $solicitudSt->execute([$idSolicitud]);
+                $solicitud = $solicitudSt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($solicitud && $solicitud['tipo'] === 'VACACIONES') {
+                    $idEmpleado = (int)$solicitud['id_empleado'];
+                    $dias = (float)$solicitud['dias'];
+                    $anio = (int)date('Y', strtotime($solicitud['fecha_inicio']));
+                    
+                    // Actualizar días tomados
+                    SaldosVacaciones::actualizarDiasTomados($idEmpleado, $dias, $anio);
+                }
+            }
 
             $pdo->commit();
         } catch (\Throwable $e) {
