@@ -96,38 +96,64 @@ require_once __DIR__ . '/../../../config/paths.php';
         </div>
     </div>
 
-    <!-- Filtros (Placeholder) -->
-    <div class="bg-white border border-black/10 rounded-xl p-5 mb-8 shadow-soft">
-        <div class="flex items-center gap-2 mb-4 text-vc-ink font-bold">
-            <svg class="w-5 h-5"><use href="#i-filter"/></svg>
-            <h2>Filtros Avanzados</h2>
+    <!-- Generador de Reportes -->
+    <div class="bg-white border border-black/10 rounded-xl p-6 mb-8 shadow-soft">
+        <div class="flex items-center gap-2 mb-4 text-vc-ink font-bold border-b border-gray-100 pb-2">
+            <svg class="w-5 h-5 text-vc-teal"><use href="#i-filter"/></svg>
+            <h2 class="text-lg">Generar Reporte Personalizado</h2>
         </div>
-        <form class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-vc-ink/50 mb-1">Módulo</label>
-                <select class="w-full h-10 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal">
-                    <option>Todos</option>
-                    <option>Empleados</option>
-                    <option>Nómina</option>
-                    <option>Asistencias</option>
-                    <option>Reclutamiento</option>
+        <form id="report-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="md:col-span-1">
+                <label class="block text-xs font-bold uppercase tracking-wider text-vc-ink/50 mb-1">Tipo de Reporte</label>
+                <select id="report-type" class="w-full h-11 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal focus:ring-1 focus:ring-vc-teal transition">
+                    <option value="" disabled selected>Seleccionar...</option>
+                    <option value="nomina">Nómina</option>
+                    <option value="empleados">Empleados</option>
+                    <option value="asistencias">Asistencias</option>
+                    <option value="vacantes">Vacantes</option>
+                    <option value="candidatos">Candidatos</option>
+                    <option value="movimientos">Movimientos de Personal</option>
+                    <option value="turnos">Turnos</option>
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-vc-ink/50 mb-1">Fecha Inicio</label>
-                <input type="date" class="w-full h-10 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal">
+                <input type="date" id="date-start" class="w-full h-11 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal transition">
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-vc-ink/50 mb-1">Fecha Fin</label>
-                <input type="date" class="w-full h-10 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal">
+                <input type="date" id="date-end" class="w-full h-11 rounded-lg border border-black/10 bg-gray-50 px-3 text-sm focus:outline-none focus:border-vc-teal transition">
             </div>
-            <div class="md:col-span-3 flex justify-end">
-                <button type="button" class="bg-vc-teal/10 text-vc-teal hover:bg-vc-teal/20 px-4 py-2 rounded-lg text-sm font-bold transition">
-                    Aplicar Filtros
+            <div>
+                <button type="button" id="btn-download" class="w-full bg-vc-teal text-white hover:bg-teal-600 h-11 rounded-lg text-sm font-bold transition shadow-lg shadow-vc-teal/30 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
+                    Descargar
                 </button>
             </div>
         </form>
     </div>
+
+    <script>
+        document.getElementById('btn-download').addEventListener('click', function() {
+            const type = document.getElementById('report-type').value;
+            const start = document.getElementById('date-start').value;
+            const end = document.getElementById('date-end').value;
+
+            if (!type) {
+                alert('Por favor selecciona un tipo de reporte.');
+                return;
+            }
+
+            // Construir URL
+            let baseUrl = 'index.php?controller=reportes&action=' + type;
+            
+            if (start) baseUrl += '&fecha_inicio=' + start;
+            if (end) baseUrl += '&fecha_fin=' + end;
+
+            // Trigger download
+            window.location.href = baseUrl;
+        });
+    </script>
 
     <!-- Lista de Reportes -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -139,15 +165,14 @@ require_once __DIR__ . '/../../../config/paths.php';
                 <div class="p-2 bg-vc-pink/10 rounded-lg text-vc-pink">
                     <svg class="w-6 h-6"><use href="#i-chart"/></svg>
                 </div>
-                <a href="<?= url('index.php?controller=reportes&action=empleados') ?>" class="text-gray-400 hover:text-vc-ink transition" title="Exportar CSV">
-                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
-                </a>
+
             </div>
             <h3 class="font-display text-lg text-vc-ink mb-1">Reporte de Empleados</h3>
             <p class="text-sm text-muted-ink mb-4">Listado general, altas, bajas y cambios de puesto.</p>
-            <div class="flex gap-2 text-xs font-bold text-vc-ink/50">
-                <span class="bg-gray-100 px-2 py-1 rounded">CSV</span>
-                <span class="bg-gray-100 px-2 py-1 rounded">PDF</span>
+            <div class="flex gap-2">
+                <a href="<?= url('index.php?controller=reportes&action=empleados') ?>" class="text-xs font-bold bg-vc-pink/10 text-vc-pink hover:bg-vc-pink hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> CSV
+                </a>
             </div>
         </div>
 
@@ -158,14 +183,14 @@ require_once __DIR__ . '/../../../config/paths.php';
                 <div class="p-2 bg-vc-teal/10 rounded-lg text-vc-teal">
                     <svg class="w-6 h-6"><use href="#i-chart"/></svg>
                 </div>
-                <a href="<?= url('index.php?controller=reportes&action=nomina') ?>" class="text-gray-400 hover:text-vc-ink transition" title="Exportar CSV">
-                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
-                </a>
+
             </div>
             <h3 class="font-display text-lg text-vc-ink mb-1">Reporte de Nómina</h3>
             <p class="text-sm text-muted-ink mb-4">Resumen de pagos, deducciones y bonificaciones.</p>
-            <div class="flex gap-2 text-xs font-bold text-vc-ink/50">
-                <span class="bg-gray-100 px-2 py-1 rounded">CSV</span>
+            <div class="flex gap-2">
+                <a href="<?= url('index.php?controller=reportes&action=nomina') ?>" class="text-xs font-bold bg-vc-teal/10 text-vc-teal hover:bg-vc-teal hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> CSV
+                </a>
             </div>
         </div>
 
@@ -176,15 +201,14 @@ require_once __DIR__ . '/../../../config/paths.php';
                 <div class="p-2 bg-vc-peach/10 rounded-lg text-vc-peach">
                     <svg class="w-6 h-6"><use href="#i-chart"/></svg>
                 </div>
-                <a href="<?= url('index.php?controller=reportes&action=asistencias') ?>" class="text-gray-400 hover:text-vc-ink transition" title="Exportar CSV">
-                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
-                </a>
+
             </div>
             <h3 class="font-display text-lg text-vc-ink mb-1">Reporte de Asistencias</h3>
             <p class="text-sm text-muted-ink mb-4">Registro de entradas, salidas, retardos y faltas.</p>
-            <div class="flex gap-2 text-xs font-bold text-vc-ink/50">
-                <span class="bg-gray-100 px-2 py-1 rounded">CSV</span>
-                <span class="bg-gray-100 px-2 py-1 rounded">XLSX</span>
+            <div class="flex gap-2">
+                <a href="<?= url('index.php?controller=reportes&action=asistencias') ?>" class="text-xs font-bold bg-vc-peach/10 text-vc-peach hover:bg-vc-peach hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> CSV
+                </a>
             </div>
         </div>
 
@@ -204,27 +228,16 @@ require_once __DIR__ . '/../../../config/paths.php';
             <h3 class="font-display text-lg text-vc-ink mb-1">Reclutamiento</h3>
             <p class="text-sm text-muted-ink mb-4">Vacantes y Candidatos.</p>
             <div class="flex gap-2">
-                <a href="<?= url('index.php?controller=reportes&action=vacantes') ?>" class="text-xs font-bold bg-gray-100 hover:bg-vc-neon/20 px-2 py-1 rounded transition">Vacantes CSV</a>
-                <a href="<?= url('index.php?controller=reportes&action=candidatos') ?>" class="text-xs font-bold bg-gray-100 hover:bg-vc-neon/20 px-2 py-1 rounded transition">Candidatos CSV</a>
+                <a href="<?= url('index.php?controller=reportes&action=vacantes') ?>" class="text-xs font-bold bg-vc-teal/10 text-vc-teal hover:bg-vc-teal hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> Vacantes
+                </a>
+                <a href="<?= url('index.php?controller=reportes&action=candidatos') ?>" class="text-xs font-bold bg-vc-teal/10 text-vc-teal hover:bg-vc-teal hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> Candidatos
+                </a>
             </div>
         </div>
 
-        <!-- Reporte Card: Organizacional -->
-        <div class="group bg-white border border-black/10 rounded-xl p-5 hover:border-vc-ink/50 transition shadow-sm hover:shadow-soft relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-1 h-full bg-vc-ink/30 group-hover:bg-vc-ink transition"></div>
-            <div class="flex justify-between items-start mb-3">
-                <div class="p-2 bg-vc-ink/10 rounded-lg text-vc-ink">
-                    <svg class="w-6 h-6"><use href="#i-chart"/></svg>
-                </div>
-            </div>
-            <h3 class="font-display text-lg text-vc-ink mb-1">Estructura</h3>
-            <p class="text-sm text-muted-ink mb-4">Áreas, Puestos y Ubicaciones.</p>
-            <div class="flex flex-wrap gap-2">
-                <a href="<?= url('index.php?controller=reportes&action=areas') ?>" class="text-xs font-bold bg-gray-100 hover:bg-vc-ink/10 px-2 py-1 rounded transition">Áreas</a>
-                <a href="<?= url('index.php?controller=reportes&action=puestos') ?>" class="text-xs font-bold bg-gray-100 hover:bg-vc-ink/10 px-2 py-1 rounded transition">Puestos</a>
-                <a href="<?= url('index.php?controller=reportes&action=ubicaciones') ?>" class="text-xs font-bold bg-gray-100 hover:bg-vc-ink/10 px-2 py-1 rounded transition">Ubicaciones</a>
-            </div>
-        </div>
+
 
         <!-- Reporte Card: Turnos -->
         <div class="group bg-white border border-black/10 rounded-xl p-5 hover:border-vc-pink/50 transition shadow-sm hover:shadow-soft relative overflow-hidden">
@@ -233,14 +246,32 @@ require_once __DIR__ . '/../../../config/paths.php';
                 <div class="p-2 bg-vc-pink/10 rounded-lg text-vc-pink">
                     <svg class="w-6 h-6"><use href="#i-chart"/></svg>
                 </div>
-                <a href="<?= url('index.php?controller=reportes&action=turnos') ?>" class="text-gray-400 hover:text-vc-ink transition" title="Exportar CSV">
-                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
-                </a>
+
             </div>
             <h3 class="font-display text-lg text-vc-ink mb-1">Turnos</h3>
             <p class="text-sm text-muted-ink mb-4">Catálogo de turnos y horarios.</p>
-            <div class="flex gap-2 text-xs font-bold text-vc-ink/50">
-                <span class="bg-gray-100 px-2 py-1 rounded">CSV</span>
+            <div class="flex gap-2">
+                <a href="<?= url('index.php?controller=reportes&action=turnos') ?>" class="text-xs font-bold bg-vc-pink/10 text-vc-pink hover:bg-vc-pink hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> CSV
+                </a>
+            </div>
+        </div>
+
+        <!-- Reporte Card: Movimientos -->
+        <div class="group bg-white border border-black/10 rounded-xl p-5 hover:border-blue-500/50 transition shadow-sm hover:shadow-soft relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500/30 group-hover:bg-blue-500 transition"></div>
+            <div class="flex justify-between items-start mb-3">
+                <div class="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                    <svg class="w-6 h-6"><use href="#i-chart"/></svg>
+                </div>
+
+            </div>
+            <h3 class="font-display text-lg text-vc-ink mb-1">Movimientos de Personal</h3>
+            <p class="text-sm text-muted-ink mb-4">Altas, bajas, cambios de área y puesto.</p>
+            <div class="flex gap-2">
+                <a href="<?= url('index.php?controller=reportes&action=movimientos') ?>" class="text-xs font-bold bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <svg class="w-4 h-4"><use href="#i-download"/></svg> CSV
+                </a>
             </div>
         </div>
 

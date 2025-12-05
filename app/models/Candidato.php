@@ -46,20 +46,20 @@ class Candidato
     ): array {
         global $pdo;
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = [];
+        $where = [];
         $params = [];
 
         if ($search !== null && trim($search) !== '') {
             $q = '%' . trim($search) . '%';
-            $where[]      = '(nombre LIKE :q OR correo LIKE :q OR telefono LIKE :q)';
+            $where[] = '(nombre LIKE :q OR correo LIKE :q OR telefono LIKE :q)';
             $params[':q'] = $q;
         }
 
         if ($fuente !== null && trim($fuente) !== '') {
-            $where[]        = 'fuente = :fuente';
+            $where[] = 'fuente = :fuente';
             $params[':fuente'] = trim($fuente);
         }
 
@@ -92,11 +92,11 @@ class Candidato
     {
         global $pdo;
 
-        $nombre   = trim((string)($data['nombre'] ?? ''));
-        $correo   = self::normalizarCorreo($data['correo'] ?? null);
+        $nombre = trim((string) ($data['nombre'] ?? ''));
+        $correo = self::normalizarCorreo($data['correo'] ?? null);
         $telefono = self::normalizarTelefono($data['telefono'] ?? null);
-        $cv       = trim((string)($data['cv'] ?? ''));
-        $fuente   = trim((string)($data['fuente'] ?? ''));
+        $cv = trim((string) ($data['cv'] ?? ''));
+        $fuente = trim((string) ($data['fuente'] ?? ''));
 
         if ($nombre === '') {
             throw new \InvalidArgumentException("El nombre del candidato es obligatorio.");
@@ -115,7 +115,7 @@ class Candidato
             $fuente !== '' ? $fuente : null,
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     /**
@@ -141,7 +141,7 @@ class Candidato
 
             switch ($field) {
                 case 'nombre':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         throw new \InvalidArgumentException("El nombre del candidato es obligatorio.");
                     }
@@ -157,7 +157,7 @@ class Candidato
 
                 case 'cv':
                 case 'fuente':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         $value = null;
                     }
@@ -175,7 +175,7 @@ class Candidato
         $params[] = $id;
 
         $sql = "UPDATE candidatos SET " . implode(", ", $fields) . " WHERE id_candidato = ?";
-        $st  = $pdo->prepare($sql);
+        $st = $pdo->prepare($sql);
         $st->execute($params);
     }
 
@@ -204,7 +204,7 @@ class Candidato
 
         $correo = self::normalizarCorreo($correo);
 
-        $sql    = "SELECT COUNT(*) FROM candidatos WHERE correo = ?";
+        $sql = "SELECT COUNT(*) FROM candidatos WHERE correo = ?";
         $params = [$correo];
 
         if ($excludeId !== null) {
@@ -215,14 +215,14 @@ class Candidato
         $st = $pdo->prepare($sql);
         $st->execute($params);
 
-        return (bool)$st->fetchColumn();
+        return (bool) $st->fetchColumn();
     }
 
     /* ====================== Helpers internos ====================== */
 
     private static function normalizarCorreo($valor): ?string
     {
-        $valor = $valor === null ? '' : trim((string)$valor);
+        $valor = $valor === null ? '' : trim((string) $valor);
 
         if ($valor === '') {
             return null;
@@ -237,7 +237,7 @@ class Candidato
 
     private static function normalizarTelefono($valor): ?string
     {
-        $valor = $valor === null ? '' : trim((string)$valor);
+        $valor = $valor === null ? '' : trim((string) $valor);
 
         if ($valor === '') {
             return null;

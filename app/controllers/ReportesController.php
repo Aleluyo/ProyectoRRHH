@@ -33,6 +33,9 @@ class ReportesController {
 
         $filename = "nomina_" . date('Y-m-d') . ".csv";
         
+        // Limpiar buffer de salida para evitar corrupción
+        if (ob_get_level()) ob_end_clean();
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
@@ -45,7 +48,10 @@ class ReportesController {
             'Percepciones', 'Deducciones', 'Neto'
         ]);
 
-        $nominas = Nomina::getAllExtended(10000, 0);
+        $fechaInicio = $_GET['fecha_inicio'] ?? null;
+        $fechaFin = $_GET['fecha_fin'] ?? null;
+
+        $nominas = Nomina::getAllExtended(10000, 0, $fechaInicio, $fechaFin);
 
         foreach ($nominas as $n) {
             fputcsv($output, [
@@ -82,6 +88,8 @@ class ReportesController {
 
         $filename = "empleados_" . date('Y-m-d') . ".csv";
         
+         if (ob_get_level()) ob_end_clean();
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
@@ -100,7 +108,10 @@ class ReportesController {
         ]);
 
         // Obtener datos
-        $empleados = Empleado::all(10000, 0); // Traer todos
+        $fechaInicio = $_GET['fecha_inicio'] ?? null;
+        $fechaFin = $_GET['fecha_fin'] ?? null;
+
+        $empleados = Empleado::all(10000, 0, null, null, null, null, null, $fechaInicio, $fechaFin); // Traer todos
 
         foreach ($empleados as $emp) {
             fputcsv($output, [
@@ -140,6 +151,8 @@ class ReportesController {
 
         $filename = "asistencias_" . date('Y-m-d') . ".csv";
         
+         if (ob_get_level()) ob_end_clean();
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
@@ -182,6 +195,8 @@ class ReportesController {
 
         $filename = "vacantes_" . date('Y-m-d') . ".csv";
         
+         if (ob_get_level()) ob_end_clean();
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
@@ -190,7 +205,10 @@ class ReportesController {
 
         fputcsv($output, ['ID', 'Area', 'Puesto', 'Ubicacion', 'Solicitante', 'Estatus', 'Fecha Publicacion', 'Requisitos']);
 
-        $vacantes = Vacante::all(10000, 0);
+        $fechaInicio = $_GET['fecha_inicio'] ?? null;
+        $fechaFin = $_GET['fecha_fin'] ?? null;
+
+        $vacantes = Vacante::all(10000, 0, null, $fechaInicio, $fechaFin);
 
         foreach ($vacantes as $v) {
             fputcsv($output, [
@@ -219,6 +237,8 @@ class ReportesController {
 
         $filename = "candidatos_" . date('Y-m-d') . ".csv";
         
+         if (ob_get_level()) ob_end_clean();
+
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
@@ -244,111 +264,11 @@ class ReportesController {
         exit;
     }
 
-    public function areas() {
-        require_once __DIR__ . '/../models/Area.php';
 
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['user_id']) || $_SESSION['rol'] != 1) {
-            redirect('index.php');
-        }
 
-        $filename = "areas_" . date('Y-m-d') . ".csv";
-        
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        fputcsv($output, ['ID', 'Empresa', 'Nombre Area', 'Descripcion', 'Activa']);
 
-        $areas = Area::all(10000, 0);
 
-        foreach ($areas as $a) {
-            fputcsv($output, [
-                $a['id_area'],
-                $a['empresa_nombre'] ?? $a['id_empresa'],
-                $a['nombre_area'],
-                $a['descripcion'],
-                $a['activa'] ? 'SI' : 'NO'
-            ]);
-        }
-        
-        fclose($output);
-        exit;
-    }
-
-    public function puestos() {
-        require_once __DIR__ . '/../models/Puesto.php';
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['user_id']) || $_SESSION['rol'] != 1) {
-            redirect('index.php');
-        }
-
-        $filename = "puestos_" . date('Y-m-d') . ".csv";
-        
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        fputcsv($output, ['ID', 'Empresa', 'Area', 'Nombre Puesto', 'Nivel', 'Salario Base', 'Descripcion']);
-
-        $puestos = Puesto::all(10000, 0);
-
-        foreach ($puestos as $p) {
-            fputcsv($output, [
-                $p['id_puesto'],
-                $p['nombre_empresa'] ?? '',
-                $p['nombre_area'] ?? $p['id_area'],
-                $p['nombre_puesto'],
-                $p['nivel'],
-                $p['salario_base'],
-                $p['descripcion']
-            ]);
-        }
-        
-        fclose($output);
-        exit;
-    }
-
-    public function ubicaciones() {
-        require_once __DIR__ . '/../models/Ubicacion.php';
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['user_id']) || $_SESSION['rol'] != 1) {
-            redirect('index.php');
-        }
-
-        $filename = "ubicaciones_" . date('Y-m-d') . ".csv";
-        
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        fputcsv($output, ['ID', 'Nombre', 'Direccion', 'Ciudad', 'Estado', 'Pais', 'Activa']);
-
-        $ubicaciones = Ubicacion::all(10000, 0);
-
-        foreach ($ubicaciones as $u) {
-            fputcsv($output, [
-                $u['id_ubicacion'],
-                $u['nombre'],
-                $u['direccion'],
-                $u['ciudad'],
-                $u['estado_region'],
-                $u['pais'],
-                $u['activa'] ? 'SI' : 'NO'
-            ]);
-        }
-        
-        fclose($output);
-        exit;
-    }
 
     public function turnos() {
         require_once __DIR__ . '/../models/Turno.php';
@@ -359,6 +279,8 @@ class ReportesController {
         }
 
         $filename = "turnos_" . date('Y-m-d') . ".csv";
+
+         if (ob_get_level()) ob_end_clean();
         
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -378,6 +300,51 @@ class ReportesController {
                 $t['hora_salida'],
                 $t['tolerancia_minutos'],
                 $t['dias_laborales']
+            ]);
+        }
+        
+        fclose($output);
+        exit;
+    }
+
+
+    public function movimientos() {
+        require_once __DIR__ . '/../models/Movimiento.php';
+
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (empty($_SESSION['user_id']) || $_SESSION['rol'] != 1) {
+            redirect('index.php');
+        }
+
+        $filename = "movimientos_" . date('Y-m-d') . ".csv";
+        
+         if (ob_get_level()) ob_end_clean();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        fputcsv($output, ['ID', 'Empleado', 'Tipo', 'Fecha', 'Motivo', 'Anterior', 'Nuevo', 'Observaciones', 'Registrado']);
+
+        $fechaInicio = $_GET['fecha_inicio'] ?? null;
+        $fechaFin = $_GET['fecha_fin'] ?? null;
+        $tipo = $_GET['tipo'] ?? null;
+
+        $movs = Movimiento::all(10000, 0, null, $tipo, $fechaInicio, $fechaFin);
+
+        foreach ($movs as $m) {
+            fputcsv($output, [
+                $m['id_movimiento'],
+                $m['nombre_empleado'] ?? $m['id_empleado'],
+                $m['tipo_movimiento'],
+                $m['fecha_movimiento'],
+                $m['motivo'],
+                $m['valor_anterior'],
+                $m['valor_nuevo'],
+                $m['observaciones'],
+                $m['fecha_registro']
             ]);
         }
         
