@@ -214,6 +214,14 @@ class EmpleadoController
         // Cargar historial de movimientos
         require_once __DIR__ . '/../models/Movimiento.php';
         $movimientos = Movimiento::historialEmpleado($id);
+        
+        // Cargar información bancaria
+        require_once __DIR__ . '/../models/EmpleadoBanco.php';
+        $cuentasBancarias = EmpleadoBanco::porEmpleado($id);
+        
+        // Cargar contactos de emergencia
+        require_once __DIR__ . '/../models/EmpleadoContacto.php';
+        $contactos = EmpleadoContacto::porEmpleado($id);
 
         require __DIR__ . '/../../public/views/empleados/show.php';
     }
