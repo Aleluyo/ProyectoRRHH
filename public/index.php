@@ -14,14 +14,11 @@ require_once __DIR__ . '/../app/controllers/VacanteController.php';
 require_once __DIR__ . '/../app/controllers/CandidatoController.php';
 require_once __DIR__ . '/../app/controllers/PostulacionController.php';
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
-require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
 //Controladores de Empleados
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
-// Controladores de Empleados
-require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 requireLogin();
 
 
