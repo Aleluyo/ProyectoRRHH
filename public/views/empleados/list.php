@@ -124,13 +124,6 @@ if (!isset($empleados) || !is_array($empleados)) {
                     <span
                         class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-ink">Buscar</span>
                 </div>
-
-                <!-- Botón de agregar -->
-                <a href="<?= url('index.php?controller=empleado&action=create') ?>"
-                    class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition">
-                    <span class="mr-2 text-lg leading-none">+</span>
-                    Agregar empleado
-                </a>
             </div>
         </section>
 

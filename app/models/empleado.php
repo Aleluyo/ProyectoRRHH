@@ -115,7 +115,9 @@ class Empleado
                     e.*,
                     p.nombre_puesto,
                     a.nombre_area,
+                    a.id_area,
                     emp.nombre   AS empresa_nombre,
+                    emp.id_empresa,
                     u.nombre     AS ubicacion_nombre,
                     t.nombre_turno AS turno_nombre
                 FROM empleados e
@@ -132,5 +134,64 @@ class Empleado
 
         $row = $st->fetch(\PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Actualiza los datos de un empleado
+     * 
+     * @param int $idEmpleado ID del empleado a actualizar
+     * @param array $data Datos a actualizar
+     * @return bool True si se actualizó correctamente
+     */
+
+    //Metodo para actualizar los datos del empleado, sin que se quede la pantalla en blanco
+    public static function update(int $idEmpleado, array $data): bool
+    {
+        global $pdo;
+
+        if ($idEmpleado <= 0) {
+            return false;
+        }
+
+        // Campos permitidos para actualizar
+        $allowedFields = [
+            'nombre',
+            'curp',
+            'rfc',
+            'nss',
+            'fecha_nacimiento',
+            'genero',
+            'estado_civil',
+            'telefono',
+            'correo',
+            'direccion',
+            'id_puesto',
+            'fecha_ingreso',
+            'estado',
+            'fecha_baja',
+            'id_ubicacion',
+            'id_turno'
+        ];
+
+        $fields = [];
+        $params = [];
+
+        foreach ($allowedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "$field = :$field";
+                $params[":$field"] = $data[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $params[':id'] = $idEmpleado;
+
+        $sql = "UPDATE empleados SET " . implode(', ', $fields) . " WHERE id_empleado = :id";
+
+        $st = $pdo->prepare($sql);
+        return $st->execute($params);
     }
 }
