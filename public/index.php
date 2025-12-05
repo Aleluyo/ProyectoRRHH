@@ -20,6 +20,7 @@ require_once __DIR__ . '/../app/controllers/MovimientoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
+require_once __DIR__ . '/../app/controllers/PermisoController.php';
 require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
 require_once __DIR__ . '/../app/controllers/ReportesController.php';
 
@@ -81,6 +82,9 @@ if ($controllerName !== null && $actionName !== null) {
       break;
     case 'reportes':
       $controller = new ReportesController();
+      break;
+    case 'permiso':
+      $controller = new PermisoController();
       break;
     default:
       http_response_code(404);
