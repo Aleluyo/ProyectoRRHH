@@ -65,7 +65,9 @@ class Vacante
     public static function all(
         int $limit = 500,
         int $offset = 0,
-        ?string $search = null
+        ?string $search = null,
+        ?string $fechaInicio = null,
+        ?string $fechaFin = null
     ): array {
         global $pdo;
 
@@ -85,6 +87,15 @@ class Vacante
                OR v.estatus       LIKE :q
             )";
             $params[':q'] = $q;
+        }
+
+        if ($fechaInicio) {
+            $where[] = 'v.fecha_publicacion >= :fecha_inicio';
+            $params[':fecha_inicio'] = $fechaInicio;
+        }
+        if ($fechaFin) {
+            $where[] = 'v.fecha_publicacion <= :fecha_fin';
+            $params[':fecha_fin'] = $fechaFin;
         }
 
         $sql = "

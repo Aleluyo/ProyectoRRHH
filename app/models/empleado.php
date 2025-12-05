@@ -24,7 +24,10 @@ class Empleado
         ?string $estado = null,
         ?int $idEmpresa = null,
         ?int $idArea = null,
-        ?int $idPuesto = null
+
+        ?int $idPuesto = null,
+        ?string $fechaInicio = null,
+        ?string $fechaFin = null
     ): array {
         global $pdo;
 
@@ -63,6 +66,17 @@ class Empleado
         if ($idPuesto !== null) {
             $where[] = 'p.id_puesto = :id_puesto';
             $params[':id_puesto'] = $idPuesto;
+
+        }
+
+        // Filtro por fecha de ingreso
+        if ($fechaInicio) {
+            $where[] = 'e.fecha_ingreso >= :fecha_inicio';
+            $params[':fecha_inicio'] = $fechaInicio;
+        }
+        if ($fechaFin) {
+            $where[] = 'e.fecha_ingreso <= :fecha_fin';
+            $params[':fecha_fin'] = $fechaFin;
         }
 
         $sql = "SELECT

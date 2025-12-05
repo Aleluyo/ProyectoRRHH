@@ -21,7 +21,6 @@ require_once __DIR__ . '/../app/controllers/DocumentoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
-require_once __DIR__ . '/../app/controllers/PermisoController.php';
 require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
 require_once __DIR__ . '/../app/controllers/ReportesController.php';
 require_once __DIR__ . '/../app/controllers/NominaController.php';
@@ -90,9 +89,12 @@ if ($controllerName !== null && $actionName !== null) {
       break;
     case 'nomina':
       $controller = new NominaController();
+<<<<<<< HEAD
       break;
     case 'permiso':
       $controller = new PermisoController();
+=======
+>>>>>>> 84cd84e57d1ae5cf1f47c9f380c28a2cbe1eb22e
       break;
     default:
       http_response_code(404);
