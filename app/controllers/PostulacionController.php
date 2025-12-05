@@ -337,16 +337,31 @@ class PostulacionController
     /**
      * Elimina una postulación.
      */
-    public static function delete(int $id): void
+    public function delete(): void
     {
-        global $pdo;
+        requireLogin();
+        requireRole(1);
+
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
         if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de postulación inválido.");
+            session_start();
+            $_SESSION['flash_error'] = "ID de postulación inválido.";
+            header('Location: index.php?controller=postulacion&action=index');
+            exit;
         }
 
-        $st = $pdo->prepare("DELETE FROM postulaciones WHERE id_postulacion = ?");
-        $st->execute([$id]);
+        try {
+            Postulacion::delete($id);
+            session_start();
+            $_SESSION['flash_success'] = "Postulación eliminada correctamente.";
+        } catch (\Throwable $e) {
+            session_start();
+            $_SESSION['flash_error'] = 'No se pudo eliminar la postulación: ' . $e->getMessage();
+        }
+
+        header('Location: index.php?controller=postulacion&action=index');
+        exit;
     }
 
     /* ====================== Helpers internos ====================== */

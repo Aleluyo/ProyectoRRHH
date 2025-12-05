@@ -236,8 +236,8 @@ class Entrevista
             throw new \InvalidArgumentException("ID de entrevista inválido.");
         }
 
-        // Borrado lógico setear resultado CANCELADA
-        $st = $pdo->prepare("UPDATE entrevistas SET resultado = 'CANCELADA' WHERE id_entrevista = ?");
+        // Borrado físico
+        $st = $pdo->prepare("DELETE FROM entrevistas WHERE id_entrevista = ?");
         $st->execute([$id]);
     }
 

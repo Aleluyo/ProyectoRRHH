@@ -65,6 +65,7 @@ $idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
   <link
     href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Yellowtail&display=swap"
     rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
   <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
@@ -196,16 +197,42 @@ $idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"><?= htmlspecialchars(v_old_ent('notas', $old, $entrevista), ENT_QUOTES, 'UTF-8') ?></textarea>
         </div>
 
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
-          <a href="<?= url('index.php?controller=entrevista&action=index') ?>"
-            class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50">
-            Cancelar
-          </a>
-          <button type="submit"
-            class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition">
-            Guardar cambios
+        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:justify-between items-center">
+          <button type="button" id="btnDelete"
+            class="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700 hover:bg-rose-100 transition">
+            Eliminar
           </button>
+
+          <div class="flex gap-3 w-full sm:w-auto justify-end">
+            <a href="<?= url('index.php?controller=entrevista&action=index') ?>"
+              class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50">
+              Cancelar
+            </a>
+            <button type="submit"
+              class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition">
+              Guardar cambios
+            </button>
+          </div>
         </div>
+
+        <script>
+          document.getElementById('btnDelete').addEventListener('click', () => {
+            Swal.fire({
+              title: '¿Eliminar entrevista?',
+              text: "Esta acción no se puede deshacer.",
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#d33',
+              cancelButtonColor: '#3085d6',
+              confirmButtonText: 'Sí, eliminar',
+              cancelButtonText: 'Cancelar'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                window.location.href = "<?= url('index.php?controller=entrevista&action=delete&id=' . $idEntrevista) ?>";
+              }
+            });
+          });
+        </script>
       </form>
     </section>
   </main>
