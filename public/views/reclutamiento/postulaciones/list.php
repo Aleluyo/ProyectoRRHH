@@ -42,7 +42,9 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
             sans:['DM Sans','system-ui','sans-serif'],
             vice:['Rage Italic','Yellowtail','cursive']
           },
-          boxShadow: { soft:'0 10px 28px rgba(10,42,94,.08)' },
+          boxShadow: {
+            soft:'0 10px 28px rgba(10,42,94,.08)'
+          },
           backgroundImage: {
             gridglow:'radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px)',
             ribbon:'linear-gradient(90deg, #ff78b5, #ffc9a9, #36d1cc)'
@@ -66,6 +68,7 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
 
+  <!-- Línea superior + fondo -->
   <div class="h-[1px] w-full bg-[image:linear-gradient(90deg,#ff78b5,#ffc9a9,#36d1cc)] opacity-70"></div>
   <div class="absolute inset-0 grid-bg opacity-15 pointer-events-none"></div>
 
@@ -87,11 +90,14 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
     </div>
   </header>
 
+  <!-- Contenido principal -->
   <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
     <!-- Breadcrumb -->
     <div class="mb-5">
       <nav class="flex items-center gap-3 text-sm">
-        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">Inicio</a>
+        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+          Inicio
+        </a>
         <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -115,6 +121,7 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <!-- Barra de búsqueda -->
         <div class="relative">
           <input
             id="searchInput"
@@ -125,6 +132,7 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-ink">Buscar</span>
         </div>
 
+        <!-- Botón de agregar -->
         <a
           href="<?= url('index.php?controller=postulacion&action=create') ?>"
           class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition"
@@ -142,33 +150,42 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
           <thead class="bg-slate-100/80 text-xs uppercase tracking-wide text-muted-ink">
             <tr>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_postulacion">ID</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_vacante">Vacante</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_candidato">Candidato</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="etapa">Etapa</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="fecha_postulacion">Fecha</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="vacante_label">Vacante</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="candidato_nombre">Candidato</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="estado">Etapa</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="fecha_aplicacion">Fecha</th>
               <th class="px-3 py-2 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody id="tbodyPostulaciones" class="align-top bg-white">
+            <!-- Filas generadas por JS -->
           </tbody>
         </table>
       </div>
 
+      <!-- Mensaje sin resultados -->
       <p id="emptyMessage" class="mt-3 text-sm text-muted-ink hidden">
         No se encontraron postulaciones que coincidan con tu búsqueda.
       </p>
 
+      <!-- Estado + paginación -->
       <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div id="tableStatus" class="text-sm text-muted-ink">
           Total: 0 · Página 0 / 0
         </div>
         <div class="flex gap-2 justify-end">
-          <button id="btnPrev" type="button"
-            class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-muted-ink disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50">
+          <button
+            id="btnPrev"
+            type="button"
+            class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-muted-ink disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+          >
             Anterior
           </button>
-          <button id="btnNext" type="button"
-            class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-muted-ink disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50">
+          <button
+            id="btnNext"
+            type="button"
+            class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-muted-ink disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+          >
             Siguiente
           </button>
         </div>
@@ -177,6 +194,7 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
   </main>
 
   <script>
+    // Datos recibidos desde PHP
     const postulacionesData = <?= json_encode($postulaciones, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || [];
 
     const rowsPerPage = 10;
@@ -196,51 +214,65 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
     const editBaseUrl   = "<?= url('index.php?controller=postulacion&action=edit') ?>";
     const deleteBaseUrl = "<?= url('index.php?controller=postulacion&action=delete') ?>";
 
-    function escapeHtml(v) {
-      return String(v ?? '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-        .replace(/'/g,'&#039;');
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     function compareByField(a, b, field) {
       const va = (a[field] ?? '').toString().toLowerCase();
       const vb = (b[field] ?? '').toString().toLowerCase();
-      const na = Number(va), nb = Number(vb);
-      const aNum = !Number.isNaN(na) && va.trim() !== '';
-      const bNum = !Number.isNaN(nb) && vb.trim() !== '';
-      if (aNum && bNum) return na - nb;
+
+      const na = Number(va);
+      const nb = Number(vb);
+      const aIsNum = !Number.isNaN(na) && va.trim() !== '';
+      const bIsNum = !Number.isNaN(nb) && vb.trim() !== '';
+
+      if (aIsNum && bIsNum) {
+        return na - nb;
+      }
       return va.localeCompare(vb);
     }
 
-    function etapaBadge(etapa) {
+    function formatEtapaBadge(etapa) {
       const e = (etapa || '').toString().toUpperCase();
-      let cls = 'bg-slate-100 text-slate-700';
-      if (e === 'SCREENING') cls = 'bg-sky-100 text-sky-800';
-      else if (e === 'ENTREVISTA') cls = 'bg-vc-peach/40 text-vc-ink';
-      else if (e === 'PRUEBA') cls = 'bg-amber-100 text-amber-800';
-      else if (e === 'OFERTA') cls = 'bg-emerald-100 text-emerald-800';
-      else if (e === 'CONTRATADO') cls = 'bg-emerald-200 text-emerald-900';
-      else if (e === 'DESCARTADO') cls = 'bg-rose-100 text-rose-800';
-      return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${cls}">${escapeHtml(e)}</span>`;
+      let bg = 'bg-slate-100 text-slate-700';
+
+      if (e === 'POSTULADO')   bg = 'bg-sky-100 text-sky-800';
+      else if (e === 'SCREENING')  bg = 'bg-amber-100 text-amber-800';
+      else if (e === 'ENTREVISTA') bg = 'bg-indigo-100 text-indigo-800';
+      else if (e === 'PRUEBA')     bg = 'bg-purple-100 text-purple-800';
+      else if (e === 'OFERTA')     bg = 'bg-emerald-100 text-emerald-800';
+      else if (e === 'CONTRATADO') bg = 'bg-emerald-200 text-emerald-900';
+      else if (e === 'RECHAZADO')  bg = 'bg-rose-100 text-rose-800';
+
+      return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${bg}">${escapeHtml(e)}</span>`;
     }
 
     function renderTable() {
-      if (!Array.isArray(filteredData)) filteredData = [];
+      if (!Array.isArray(filteredData)) {
+        filteredData = [];
+      }
 
       if (filteredData.length === 0) {
         tbody.innerHTML = '';
         emptyMessage.classList.remove('hidden');
         tableStatus.textContent = 'Total: 0 · Página 0 / 0';
-        btnPrev.disabled = true; btnNext.disabled = true;
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
         return;
       }
 
       emptyMessage.classList.add('hidden');
 
+      // Ordenar
       filteredData.sort((a, b) => {
-        const r = compareByField(a, b, sortField);
-        return sortDir === 'asc' ? r : -r;
+        const res = compareByField(a, b, sortField);
+        return sortDir === 'asc' ? res : -res;
       });
 
       const total = filteredData.length;
@@ -250,86 +282,119 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
       const start = (currentPage - 1) * rowsPerPage;
       const pageItems = filteredData.slice(start, start + rowsPerPage);
 
-      tbody.innerHTML = pageItems.map(p => {
-        const id   = p.id_postulacion;
-        const vac  = escapeHtml(p.id_vacante ?? '');
-        const cand = escapeHtml(p.id_candidato ?? '');
-        const etapa = p.etapa ?? '';
-        const fecha = escapeHtml(p.fecha_postulacion ?? '');
-        const label = `Postulación #${id}`;
+      tbody.innerHTML = pageItems.map(po => {
+        const idPost = po.id_postulacion;
+
+        const vacanteLabel = escapeHtml(po.vacante_label      ?? po.id_vacante    ?? '');
+        const candidato    = escapeHtml(po.candidato_nombre   ?? po.id_candidato  ?? '');
+        const etapa        = po.estado ?? '';
+        const fecha        = escapeHtml(po.fecha_aplicacion   ?? (po.aplicada_en || '').toString().substring(0, 10));
 
         return `
           <tr class="border-t border-slate-200 hover:bg-slate-50">
-            <td class="px-3 py-2 whitespace-nowrap text-xs text-muted-ink">${id}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${vac}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${cand}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${etapaBadge(etapa)}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs text-muted-ink">${idPost}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">${vacanteLabel}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">${candidato}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">
+              ${formatEtapaBadge(etapa)}
+            </td>
             <td class="px-3 py-2 whitespace-nowrap text-xs">${fecha}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
-                <a href="${editBaseUrl}&id=${id}"
-                   class="rounded-md border border-black/10 bg-white px-2 py-1 text-xs hover:bg-vc-sand/60">
+                <a
+                  href="${editBaseUrl}&id=${idPost}"
+                  class="rounded-md border border-black/10 bg-white px-2 py-1 text-xs hover:bg-vc-sand/60"
+                >
                   Editar
                 </a>
-                <button type="button"
+                <button
+                  type="button"
                   class="btn-delete rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
-                  data-label="${label}" data-href="${deleteBaseUrl}&id=${id}">
+                  data-id="${idPost}"
+                  data-label="Postulación #${idPost}"
+                  data-href="${deleteBaseUrl}&id=${idPost}"
+                >
                   Eliminar
                 </button>
               </div>
             </td>
-          </tr>`;
+          </tr>
+        `;
       }).join('');
 
       tableStatus.textContent = `Total: ${total} · Página ${currentPage} / ${totalPages}`;
+
       btnPrev.disabled = currentPage === 1;
       btnNext.disabled = currentPage === totalPages;
     }
 
+    // Búsqueda en vivo
     searchInput.addEventListener('input', () => {
       const term = searchInput.value.trim().toLowerCase();
+
       if (term === '') {
         filteredData = [...postulacionesData];
       } else {
-        filteredData = postulacionesData.filter(p =>
-          Object.values(p).some(val =>
-            String(val ?? '').toLowerCase().includes(term)
+        filteredData = postulacionesData.filter(po =>
+          Object.values(po).some(value =>
+            String(value ?? '').toLowerCase().includes(term)
           )
         );
       }
+
       currentPage = 1;
       renderTable();
     });
 
+    // Paginación
     btnPrev.addEventListener('click', () => {
-      if (currentPage > 1) { currentPage--; renderTable(); }
+      if (currentPage > 1) {
+        currentPage -= 1;
+        renderTable();
+      }
     });
 
     btnNext.addEventListener('click', () => {
       const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
-      if (currentPage < totalPages) { currentPage++; renderTable(); }
+      if (currentPage < totalPages) {
+        currentPage += 1;
+        renderTable();
+      }
     });
 
+    // Orden por encabezado
     headerCells.forEach(th => {
       th.addEventListener('click', () => {
         const field = th.dataset.sort;
         if (!field) return;
-        if (sortField === field) sortDir = (sortDir === 'asc' ? 'desc' : 'asc');
-        else { sortField = field; sortDir = 'asc'; }
-        headerCells.forEach(c => c.classList.remove('text-vc-ink','font-semibold'));
-        th.classList.add('text-vc-ink','font-semibold');
+
+        if (sortField === field) {
+          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortField = field;
+          sortDir = 'asc';
+        }
+
+        headerCells.forEach(cell => cell.classList.remove('text-vc-ink', 'font-semibold'));
+        th.classList.add('text-vc-ink', 'font-semibold');
+
         renderTable();
       });
     });
 
-    document.addEventListener('click', e => {
-      const btn = e.target.closest('.btn-delete');
+    // SweetAlert para eliminar
+    document.addEventListener('click', event => {
+      const btn = event.target.closest('.btn-delete');
       if (!btn) return;
-      const label = btn.dataset.label || 'la postulación seleccionada';
+
+      const label = btn.dataset.label || '';
       const href  = btn.dataset.href;
+
       Swal.fire({
         title: '¿Eliminar postulación?',
-        html: `Se eliminará <strong>${escapeHtml(label)}</strong>.`,
+        html: label
+          ? `Se eliminará <strong>${label}</strong>.`
+          : 'Se eliminará la postulación seleccionada.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, eliminar',
@@ -342,11 +407,14 @@ if (!isset($postulaciones) || !is_array($postulaciones)) {
           cancelButton: 'vc-delete-cancel'
         },
         buttonsStyling: false
-      }).then(res => {
-        if (res.isConfirmed && href) window.location.href = href;
+      }).then(result => {
+        if (result.isConfirmed && href) {
+          window.location.href = href;
+        }
       });
     });
 
+    // Render inicial
     renderTable();
   </script>
 </body>

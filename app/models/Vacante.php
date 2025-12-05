@@ -3,10 +3,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/db.php';
 
-/**
- * Modelo Vacante para RRHH_TEC
- * Maneja la requisición y administración de vacantes.
- */
 class Vacante
 {
     private const ALLOWED_FIELDS = [
@@ -19,9 +15,18 @@ class Vacante
         'fecha_publicacion',
     ];
 
-    /**
-     * Devuelve una vacante por ID.
-     */
+    private const ESTATUS_VALIDOS = [
+        'EN_APROBACION',
+        'APROBADA',
+        'ABIERTA',
+        'EN_PROCESO',
+        'CERRADA',
+    ];
+
+    /* =========================================================
+     *  BÁSICOS
+     * ======================================================= */
+
     public static function findById(int $id): ?array
     {
         global $pdo;
@@ -30,7 +35,23 @@ class Vacante
             throw new \InvalidArgumentException("ID de vacante inválido.");
         }
 
-        $st = $pdo->prepare("SELECT * FROM vacantes WHERE id_vacante = ? LIMIT 1");
+        $sql = "
+            SELECT
+                v.*,
+                a.nombre_area         AS area_nombre,
+                e.nombre              AS empresa_nombre,
+                p.nombre_puesto       AS puesto_nombre,
+                u.nombre              AS ubicacion_nombre
+            FROM vacantes v
+            LEFT JOIN areas       a ON a.id_area      = v.id_area
+            LEFT JOIN empresas    e ON e.id_empresa   = a.id_empresa
+            LEFT JOIN puestos     p ON p.id_puesto    = v.id_puesto
+            LEFT JOIN ubicaciones u ON u.id_ubicacion = v.id_ubicacion
+            WHERE v.id_vacante = ?
+            LIMIT 1
+        ";
+
+        $st = $pdo->prepare($sql);
         $st->execute([$id]);
         $row = $st->fetch();
 
@@ -38,14 +59,13 @@ class Vacante
     }
 
     /**
-     * Lista de vacantes con paginado, búsqueda por texto y filtro por estatus.
-     * $search busca en requisitos (puedes ampliar a más campos si quieres).
+     * Lista de vacantes con JOIN a empresa/área/puesto/ubicación.
+     * $search busca por empresa, área, puesto, ubicación o estatus.
      */
     public static function all(
         int $limit = 500,
         int $offset = 0,
-        ?string $search = null,
-        ?string $estatus = null
+        ?string $search = null
     ): array {
         global $pdo;
 
@@ -57,61 +77,87 @@ class Vacante
 
         if ($search !== null && trim($search) !== '') {
             $q = '%' . trim($search) . '%';
-            $where[]      = '(requisitos LIKE :q)';
+            $where[]        = "(
+                  e.nombre        LIKE :q
+               OR a.nombre_area   LIKE :q
+               OR p.nombre_puesto LIKE :q
+               OR u.nombre        LIKE :q
+               OR v.estatus       LIKE :q
+            )";
             $params[':q'] = $q;
         }
 
-        if ($estatus !== null && trim($estatus) !== '') {
-            $where[]           = 'estatus = :estatus';
-            $params[':estatus'] = trim($estatus);
-        }
-
-        $sql = "SELECT * FROM vacantes";
+        $sql = "
+            SELECT
+                v.*,
+                a.nombre_area         AS area_nombre,
+                e.nombre              AS empresa_nombre,
+                p.nombre_puesto       AS puesto_nombre,
+                u.nombre              AS ubicacion_nombre
+            FROM vacantes v
+            LEFT JOIN areas       a ON a.id_area      = v.id_area
+            LEFT JOIN empresas    e ON e.id_empresa   = a.id_empresa
+            LEFT JOIN puestos     p ON p.id_puesto    = v.id_puesto
+            LEFT JOIN ubicaciones u ON u.id_ubicacion = v.id_ubicacion
+        ";
 
         if (!empty($where)) {
-            $sql .= " WHERE " . implode(' AND ', $where);
+            $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= " ORDER BY creada_en DESC
-                  LIMIT :limit OFFSET :offset";
+        // IMPORTANTE: sin comillas en IS NULL y sin coma al final
+        $sql .= "
+            ORDER BY
+                v.fecha_publicacion IS NULL,
+                v.fecha_publicacion DESC,
+                v.id_vacante DESC
+            LIMIT :limit OFFSET :offset
+        ";
 
         $st = $pdo->prepare($sql);
 
         foreach ($params as $k => $v) {
             $st->bindValue($k, $v);
         }
-
-        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
         return $st->fetchAll();
     }
 
-    /**
-     * Crea una vacante (requisición).
-     */
+    /* =========================================================
+     *  CREATE / UPDATE / DELETE (iguales a como ya los tenías,
+     *  sólo con validaciones básicas)
+     * ======================================================= */
+
     public static function create(array $data): int
     {
         global $pdo;
 
-        $idArea        = self::normalizarId($data['id_area'] ?? null, "área");
-        $idPuesto      = self::normalizarId($data['id_puesto'] ?? null, "puesto");
-        $idUbicacion   = self::normalizarId($data['id_ubicacion'] ?? null, "ubicación");
-        $solicitadaPor = self::normalizarId($data['solicitada_por'] ?? null, "usuario solicitante");
+        $idArea      = self::normalizarId($data['id_area'] ?? null, 'área');
+        $idPuesto    = self::normalizarId($data['id_puesto'] ?? null, 'puesto');
+        $idUbicacion = isset($data['id_ubicacion']) && $data['id_ubicacion'] !== ''
+            ? self::normalizarId($data['id_ubicacion'], 'ubicación')
+            : null;
 
-        $estatus = trim((string)($data['estatus'] ?? ''));
-        if ($estatus === '') {
-            throw new \InvalidArgumentException("El estatus de la vacante es obligatorio.");
-        }
+        $solicitadaPor = isset($data['solicitada_por']) && $data['solicitada_por'] !== ''
+            ? self::normalizarId($data['solicitada_por'], 'usuario solicitante')
+            : null;
 
-        $requisitos        = trim((string)($data['requisitos'] ?? ''));
-        $fechaPublicacion  = self::normalizarFecha($data['fecha_publicacion'] ?? null);
+        $estatusRaw   = (string)($data['estatus'] ?? 'EN_APROBACION');
+        $estatus      = self::normalizarEstatus($estatusRaw);
 
-        $sql = "INSERT INTO vacantes 
-                    (id_area, id_puesto, id_ubicacion, solicitada_por,
-                     estatus, requisitos, fecha_publicacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $requisitos   = trim((string)($data['requisitos'] ?? ''));
+        $fechaPubRaw  = trim((string)($data['fecha_publicacion'] ?? ''));
+        $fechaPub     = $fechaPubRaw !== '' ? self::normalizarFecha($fechaPubRaw, 'fecha de publicación') : null;
+
+        $sql = "
+            INSERT INTO vacantes
+                (id_area, id_puesto, id_ubicacion, solicitada_por, estatus, requisitos, fecha_publicacion, creada_en)
+            VALUES
+                (?, ?, ?, ?, ?, ?, ?, NOW())
+        ";
 
         $st = $pdo->prepare($sql);
         $st->execute([
@@ -121,16 +167,12 @@ class Vacante
             $solicitadaPor,
             $estatus,
             $requisitos !== '' ? $requisitos : null,
-            $fechaPublicacion,
+            $fechaPub,
         ]);
 
         return (int)$pdo->lastInsertId();
     }
 
-    /**
-     * Actualiza campos de una vacante.
-     * Solo actualiza los campos definidos en ALLOWED_FIELDS.
-     */
     public static function update(int $id, array $data): void
     {
         global $pdo;
@@ -151,26 +193,27 @@ class Vacante
 
             switch ($field) {
                 case 'id_area':
-                    $value = self::normalizarId($value, "área");
+                    $value = self::normalizarId($value, 'área');
                     break;
 
                 case 'id_puesto':
-                    $value = self::normalizarId($value, "puesto");
+                    $value = self::normalizarId($value, 'puesto');
                     break;
 
                 case 'id_ubicacion':
-                    $value = self::normalizarId($value, "ubicación");
+                    $value = $value === '' || $value === null
+                        ? null
+                        : self::normalizarId($value, 'ubicación');
                     break;
 
                 case 'solicitada_por':
-                    $value = self::normalizarId($value, "usuario solicitante");
+                    $value = $value === '' || $value === null
+                        ? null
+                        : self::normalizarId($value, 'usuario solicitante');
                     break;
 
                 case 'estatus':
-                    $value = trim((string)$value);
-                    if ($value === '') {
-                        throw new \InvalidArgumentException("El estatus de la vacante es obligatorio.");
-                    }
+                    $value = self::normalizarEstatus((string)$value);
                     break;
 
                 case 'requisitos':
@@ -181,7 +224,10 @@ class Vacante
                     break;
 
                 case 'fecha_publicacion':
-                    $value = self::normalizarFecha($value);
+                    $value = trim((string)$value);
+                    $value = $value === ''
+                        ? null
+                        : self::normalizarFecha($value, 'fecha de publicación');
                     break;
             }
 
@@ -190,40 +236,16 @@ class Vacante
         }
 
         if (empty($fields)) {
-            return; // Nada que actualizar
+            return;
         }
 
         $params[] = $id;
 
-        $sql = "UPDATE vacantes SET " . implode(", ", $fields) . " WHERE id_vacante = ?";
+        $sql = "UPDATE vacantes SET " . implode(', ', $fields) . " WHERE id_vacante = ?";
         $st  = $pdo->prepare($sql);
         $st->execute($params);
     }
 
-    /**
-     * Cambia solo el estatus de la vacante.
-     */
-    public static function updateStatus(int $id, string $estatus): void
-    {
-        global $pdo;
-
-        if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de vacante inválido.");
-        }
-
-        $estatus = trim($estatus);
-        if ($estatus === '') {
-            throw new \InvalidArgumentException("El estatus de la vacante es obligatorio.");
-        }
-
-        $st = $pdo->prepare("UPDATE vacantes SET estatus = ? WHERE id_vacante = ?");
-        $st->execute([$estatus, $id]);
-    }
-
-    /**
-     * Elimina una vacante.
-     * OJO: valida solo por ID, no revisa dependencias (postulaciones, etc.).
-     */
     public static function delete(int $id): void
     {
         global $pdo;
@@ -236,35 +258,45 @@ class Vacante
         $st->execute([$id]);
     }
 
-    /* ====================== Helpers internos ====================== */
+    /* =========================================================
+     *  HELPERS
+     * ======================================================= */
 
     private static function normalizarId($valor, string $labelCampo): int
     {
         $id = (int)$valor;
         if ($id <= 0) {
-            throw new \InvalidArgumentException("{$labelCampo} inválida.");
+            throw new \InvalidArgumentException("{$labelCampo} inválido.");
         }
         return $id;
     }
 
-    /**
-     * Normaliza una fecha (Y-m-d). Acepta null o string.
-     */
-    private static function normalizarFecha($valor): ?string
+    private static function normalizarEstatus(string $estatus): string
     {
-        if ($valor === null || trim((string)$valor) === '') {
-            return null;
+        $e = strtoupper(trim($estatus));
+        if (!in_array($e, self::ESTATUS_VALIDOS, true)) {
+            throw new \InvalidArgumentException("Estatus de vacante inválido: {$estatus}");
+        }
+        return $e;
+    }
+
+    /**
+     * Acepta 'Y-m-d' (lo que usas en el formulario).
+     */
+    private static function normalizarFecha(string $valor, string $labelCampo): string
+    {
+        $valor = trim($valor);
+        if ($valor === '') {
+            throw new \InvalidArgumentException("La {$labelCampo} es obligatoria.");
         }
 
-        $valor = trim((string)$valor);
+        $dt = \DateTime::createFromFormat('Y-m-d', $valor)
+           ?: \DateTime::createFromFormat('Y-m-d H:i:s', $valor);
 
-        $fecha = \DateTime::createFromFormat('Y-m-d', $valor)
-              ?: \DateTime::createFromFormat('d/m/Y', $valor);
-
-        if (!$fecha) {
-            throw new \InvalidArgumentException("Formato de fecha inválido, usa Y-m-d o d/m/Y.");
+        if (!$dt) {
+            throw new \InvalidArgumentException("Formato inválido para {$labelCampo} (usa AAAA-MM-DD).");
         }
 
-        return $fecha->format('Y-m-d');
+        return $dt->format('Y-m-d');
     }
 }

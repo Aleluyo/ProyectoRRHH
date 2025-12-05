@@ -42,9 +42,7 @@ if (!isset($vacantes) || !is_array($vacantes)) {
             sans:['DM Sans','system-ui','sans-serif'],
             vice:['Rage Italic','Yellowtail','cursive']
           },
-          boxShadow: {
-            soft:'0 10px 28px rgba(10,42,94,.08)'
-          },
+          boxShadow: { soft:'0 10px 28px rgba(10,42,94,.08)' },
           backgroundImage: {
             gridglow:'radial-gradient(circle at 1px 1px, rgba(0,0,0,.06) 1px, transparent 1px)',
             ribbon:'linear-gradient(90deg, #ff78b5, #ffc9a9, #36d1cc)'
@@ -68,7 +66,6 @@ if (!isset($vacantes) || !is_array($vacantes)) {
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
 
-  <!-- Línea superior + fondo -->
   <div class="h-[1px] w-full bg-[image:linear-gradient(90deg,#ff78b5,#ffc9a9,#36d1cc)] opacity-70"></div>
   <div class="absolute inset-0 grid-bg opacity-15 pointer-events-none"></div>
 
@@ -116,23 +113,21 @@ if (!isset($vacantes) || !is_array($vacantes)) {
       <div>
         <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Vacantes</h1>
         <p class="mt-1 text-sm sm:text-base text-muted-ink">
-          Gestión de requisiciones de vacantes · Área, puesto, ubicación y estatus.
+          Gestión de requisiciones de vacantes · Empresa, área, puesto, ubicación y estatus.
         </p>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <!-- Barra de búsqueda -->
         <div class="relative">
           <input
             id="searchInput"
             type="text"
-            class="w-full sm:w-72 rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-            placeholder="Buscar por área, puesto, estatus…"
+            class="w-full sm:w-80 rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            placeholder="Buscar por empresa, área, puesto, ubicación, estatus…"
           />
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-ink">Buscar</span>
         </div>
 
-        <!-- Botón de agregar -->
         <a
           href="<?= url('index.php?controller=vacante&action=create') ?>"
           class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition"
@@ -150,26 +145,23 @@ if (!isset($vacantes) || !is_array($vacantes)) {
           <thead class="bg-slate-100/80 text-xs uppercase tracking-wide text-muted-ink">
             <tr>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_vacante">ID</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_area">Área</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_puesto">Puesto</th>
-              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="id_ubicacion">Ubicación</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="empresa_nombre">Empresa / Área</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="puesto_nombre">Puesto</th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="ubicacion_nombre">Ubicación</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="estatus">Estatus</th>
               <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="fecha_publicacion">Fecha publicación</th>
               <th class="px-3 py-2 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody id="tbodyVacantes" class="align-top bg-white">
-            <!-- Filas generadas por JS -->
           </tbody>
         </table>
       </div>
 
-      <!-- Mensaje sin resultados -->
       <p id="emptyMessage" class="mt-3 text-sm text-muted-ink hidden">
         No se encontraron vacantes que coincidan con tu búsqueda.
       </p>
 
-      <!-- Estado + paginación -->
       <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div id="tableStatus" class="text-sm text-muted-ink">
           Total: 0 · Página 0 / 0
@@ -195,7 +187,6 @@ if (!isset($vacantes) || !is_array($vacantes)) {
   </main>
 
   <script>
-    // Datos recibidos desde PHP
     const vacantesData = <?= json_encode($vacantes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || [];
 
     const rowsPerPage = 10;
@@ -204,13 +195,13 @@ if (!isset($vacantes) || !is_array($vacantes)) {
     let sortDir = 'asc';
     let filteredData = [...vacantesData];
 
-    const tbody = document.getElementById('tbodyVacantes');
-    const searchInput = document.getElementById('searchInput');
+    const tbody        = document.getElementById('tbodyVacantes');
+    const searchInput  = document.getElementById('searchInput');
     const emptyMessage = document.getElementById('emptyMessage');
-    const tableStatus = document.getElementById('tableStatus');
-    const btnPrev = document.getElementById('btnPrev');
-    const btnNext = document.getElementById('btnNext');
-    const headerCells = document.querySelectorAll('th[data-sort]');
+    const tableStatus  = document.getElementById('tableStatus');
+    const btnPrev      = document.getElementById('btnPrev');
+    const btnNext      = document.getElementById('btnNext');
+    const headerCells  = document.querySelectorAll('th[data-sort]');
 
     const editBaseUrl   = "<?= url('index.php?controller=vacante&action=edit') ?>";
     const deleteBaseUrl = "<?= url('index.php?controller=vacante&action=delete') ?>";
@@ -267,37 +258,46 @@ if (!isset($vacantes) || !is_array($vacantes)) {
 
       emptyMessage.classList.add('hidden');
 
-      // Ordenar
       filteredData.sort((a, b) => {
         const res = compareByField(a, b, sortField);
         return sortDir === 'asc' ? res : -res;
       });
 
-      const total = filteredData.length;
+      const total      = filteredData.length;
       const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
       if (currentPage > totalPages) currentPage = totalPages;
 
-      const start = (currentPage - 1) * rowsPerPage;
+      const start     = (currentPage - 1) * rowsPerPage;
       const pageItems = filteredData.slice(start, start + rowsPerPage);
 
       tbody.innerHTML = pageItems.map(vac => {
         const idVac      = vac.id_vacante;
-        const idArea     = escapeHtml(vac.id_area ?? '');
-        const idPuesto   = escapeHtml(vac.id_puesto ?? '');
-        const idUbic     = escapeHtml(vac.id_ubicacion ?? '');
+        const empresa    = escapeHtml(vac.empresa_nombre   ?? '');
+        const area       = escapeHtml(vac.area_nombre      ?? '');
+        const puesto     = escapeHtml(vac.puesto_nombre    ?? '');
+        const ubicacion  = escapeHtml(vac.ubicacion_nombre ?? '');
         const estatus    = vac.estatus ?? '';
         const fechaPub   = escapeHtml(vac.fecha_publicacion ?? '');
+
+        const empresaAreaHtml = empresa || area
+          ? `
+            <div class="text-xs">
+              ${empresa ? `<div class="font-medium">${empresa}</div>` : ''}
+              ${area    ? `<div class="text-[11px] text-muted-ink">${area}</div>` : ''}
+            </div>
+          `
+          : '—';
 
         return `
           <tr class="border-t border-slate-200 hover:bg-slate-50">
             <td class="px-3 py-2 whitespace-nowrap text-xs text-muted-ink">${idVac}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${idArea}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${idPuesto}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${idUbic}</td>
+            <td class="px-3 py-2 whitespace-nowrap">${empresaAreaHtml}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">${puesto || '—'}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">${ubicacion || '—'}</td>
             <td class="px-3 py-2 whitespace-nowrap text-xs">
               ${formatEstatusBadge(estatus)}
             </td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs">${fechaPub}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-xs">${fechaPub || '—'}</td>
             <td class="px-3 py-2 whitespace-nowrap">
               <div class="flex gap-2 justify-center">
                 <a
@@ -322,7 +322,6 @@ if (!isset($vacantes) || !is_array($vacantes)) {
       }).join('');
 
       tableStatus.textContent = `Total: ${total} · Página ${currentPage} / ${totalPages}`;
-
       btnPrev.disabled = currentPage === 1;
       btnNext.disabled = currentPage === totalPages;
     }
@@ -413,7 +412,6 @@ if (!isset($vacantes) || !is_array($vacantes)) {
       });
     });
 
-    // Render inicial
     renderTable();
   </script>
 </body>

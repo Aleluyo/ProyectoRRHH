@@ -64,16 +64,16 @@ class Puesto
     ): array {
         global $pdo;
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = [];
+        $where = [];
         $params = [];
 
         if ($search !== null && trim($search) !== '') {
             $q = '%' . trim($search) . '%';
-            $where[]       = '(p.nombre_puesto LIKE :q OR p.descripcion LIKE :q OR a.nombre_area LIKE :q OR e.nombre LIKE :q)';
-            $params[':q']  = $q;
+            $where[] = '(p.nombre_puesto LIKE :q OR p.descripcion LIKE :q OR a.nombre_area LIKE :q OR e.nombre LIKE :q)';
+            $params[':q'] = $q;
         }
 
         if ($idArea !== null && $idArea > 0) {
@@ -135,11 +135,11 @@ class Puesto
     {
         global $pdo;
 
-        $idArea      = (int)($data['id_area'] ?? 0);
-        $nombre      = trim((string)($data['nombre_puesto'] ?? ''));
-        $nivel       = strtoupper(trim((string)($data['nivel'] ?? 'OPERATIVO')));
+        $idArea = (int) ($data['id_area'] ?? 0);
+        $nombre = trim((string) ($data['nombre_puesto'] ?? ''));
+        $nivel = strtoupper(trim((string) ($data['nivel'] ?? 'OPERATIVO')));
         $salarioBase = $data['salario_base'] ?? null;
-        $descripcion = trim((string)($data['descripcion'] ?? ''));
+        $descripcion = trim((string) ($data['descripcion'] ?? ''));
 
         if ($idArea <= 0) {
             throw new \InvalidArgumentException("El área es obligatoria.");
@@ -157,7 +157,7 @@ class Puesto
             if (!is_numeric($salarioBase)) {
                 throw new \InvalidArgumentException("El salario base debe ser numérico.");
             }
-            $salarioBase = number_format((float)$salarioBase, 2, '.', '');
+            $salarioBase = number_format((float) $salarioBase, 2, '.', '');
         } else {
             $salarioBase = null;
         }
@@ -180,7 +180,7 @@ class Puesto
             $descripcion === '' ? null : $descripcion
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     /**
@@ -210,7 +210,7 @@ class Puesto
 
             switch ($field) {
                 case 'id_area':
-                    $value = (int)$value;
+                    $value = (int) $value;
                     if ($value <= 0) {
                         throw new \InvalidArgumentException("El área es obligatoria.");
                     }
@@ -218,7 +218,7 @@ class Puesto
                     break;
 
                 case 'nombre_puesto':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         throw new \InvalidArgumentException("El nombre del puesto es obligatorio.");
                     }
@@ -226,7 +226,7 @@ class Puesto
                     break;
 
                 case 'nivel':
-                    $value = strtoupper(trim((string)$value));
+                    $value = strtoupper(trim((string) $value));
                     if (!in_array($value, self::NIVELES_VALIDOS, true)) {
                         throw new \InvalidArgumentException("Nivel de puesto inválido.");
                     }
@@ -239,12 +239,12 @@ class Puesto
                         if (!is_numeric($value)) {
                             throw new \InvalidArgumentException("El salario base debe ser numérico.");
                         }
-                        $value = number_format((float)$value, 2, '.', '');
+                        $value = number_format((float) $value, 2, '.', '');
                     }
                     break;
 
                 case 'descripcion':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         $value = null;
                     }
@@ -268,11 +268,11 @@ class Puesto
             }
 
             if ($idAreaParaValidar === null) {
-                $idAreaParaValidar = (int)$actual['id_area'];
+                $idAreaParaValidar = (int) $actual['id_area'];
             }
 
             if ($nombreParaValidar === null) {
-                $nombreParaValidar = trim((string)$actual['nombre_puesto']);
+                $nombreParaValidar = trim((string) $actual['nombre_puesto']);
             }
         }
 
@@ -286,7 +286,7 @@ class Puesto
         $params[] = $id;
 
         $sql = "UPDATE puestos SET " . implode(', ', $fields) . " WHERE id_puesto = ?";
-        $st  = $pdo->prepare($sql);
+        $st = $pdo->prepare($sql);
         $st->execute($params);
     }
 
@@ -332,7 +332,7 @@ class Puesto
         $st = $pdo->prepare($sql);
         $st->execute($params);
 
-        return (bool)$st->fetchColumn();
+        return (bool) $st->fetchColumn();
     }
 
     /**

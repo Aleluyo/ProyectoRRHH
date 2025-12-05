@@ -53,7 +53,82 @@ class Postulacion
     }
 
     /**
+     * LISTA GENERAL de postulaciones para la tabla:
+     * - vacante_label  => Área - Puesto
+     * - candidato_nombre
+     * - fecha_aplicacion (DATE)
+     */
+    public static function all(
+        int $limit = 500,
+        int $offset = 0,
+        ?string $search = null,
+        ?string $estado = null
+    ): array {
+        global $pdo;
+
+        $limit  = max(1, min($limit, 1000));
+        $offset = max(0, $offset);
+
+        $where  = [];
+        $params = [];
+
+        // filtro por estado (opcional)
+        if ($estado !== null && trim($estado) !== '') {
+            $estadoNorm = self::normalizarEstado($estado);
+            $where[] = 'po.estado = :estado';
+            $params[':estado'] = $estadoNorm;
+        }
+
+        // búsqueda general
+        if ($search !== null && trim($search) !== '') {
+            $q = '%' . trim($search) . '%';
+            $where[] = '(
+                c.nombre          LIKE :q
+                OR a.nombre_area  LIKE :q
+                OR pt.nombre_puesto LIKE :q
+                OR po.estado      LIKE :q
+            )';
+            $params[':q'] = $q;
+        }
+
+        $sql = "
+            SELECT
+                po.*,
+                c.nombre AS candidato_nombre,
+                CONCAT(a.nombre_area, ' - ', pt.nombre_puesto) AS vacante_label,
+                DATE(po.aplicada_en) AS fecha_aplicacion
+            FROM postulaciones po
+            JOIN vacantes v   ON v.id_vacante    = po.id_vacante
+            JOIN candidatos c ON c.id_candidato  = po.id_candidato
+            LEFT JOIN areas   a ON a.id_area     = v.id_area
+            LEFT JOIN puestos pt ON pt.id_puesto = v.id_puesto
+        ";
+
+        if (!empty($where)) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= "
+            ORDER BY po.aplicada_en DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        $st = $pdo->prepare($sql);
+
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v);
+        }
+
+        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
+
+        $st->execute();
+        return $st->fetchAll();
+    }
+
+    /**
      * Lista de postulaciones de una vacante, con paginado y filtro por estado.
+     * (La dejamos tal cual por si la usas en otra parte)
      */
     public static function byVacante(
         int $idVacante,

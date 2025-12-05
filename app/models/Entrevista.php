@@ -38,7 +38,80 @@ class Entrevista
     }
 
     /**
-     * Lista entrevistas de una postulación.
+     * ============================================================
+     *  NUEVO: listado general para la vista /entrevistas/list.php
+     *        con JOINs a postulaciones, vacantes, candidatos, etc.
+     * ============================================================
+     */
+    public static function all(
+        int $limit = 500,
+        int $offset = 0,
+        ?string $search = null
+    ): array {
+        global $pdo;
+
+        $limit  = max(1, min($limit, 1000));
+        $offset = max(0, $offset);
+
+        $where  = [];
+        $params = [];
+
+        if ($search !== null && trim($search) !== '') {
+            $q = '%' . trim($search) . '%';
+
+            // Búsqueda por candidato, vacante, fecha o resultado
+            $where[] = '(
+                c.nombre LIKE :q
+                OR v.id_vacante LIKE :q
+                OR DATE(e.programada_para) LIKE :q
+                OR e.resultado LIKE :q
+            )';
+            $params[':q'] = $q;
+        }
+
+        $sql = "SELECT
+                    e.*,
+                    p.id_vacante,
+                    p.id_candidato,
+                    v.id_area,
+                    v.id_puesto,
+                    v.id_ubicacion,
+                    c.nombre      AS candidato_nombre,
+                    a.nombre_area AS nombre_area,
+                    pu.nombre_puesto,
+                    u.nombre      AS ubicacion_nombre,
+                    -- Resumen legible que usamos en la columna 'Postulación'
+                    CONCAT('Vacante ', v.id_vacante, ' · ', c.nombre) AS postulacion_resumen
+                FROM entrevistas e
+                INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
+                INNER JOIN vacantes      v ON v.id_vacante     = p.id_vacante
+                INNER JOIN candidatos    c ON c.id_candidato   = p.id_candidato
+                LEFT  JOIN areas         a ON a.id_area        = v.id_area
+                LEFT  JOIN puestos      pu ON pu.id_puesto     = v.id_puesto
+                LEFT  JOIN ubicaciones   u ON u.id_ubicacion   = v.id_ubicacion";
+
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+        }
+
+        $sql .= " ORDER BY e.programada_para DESC
+                  LIMIT :limit OFFSET :offset";
+
+        $st = $pdo->prepare($sql);
+
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v);
+        }
+
+        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
+
+        $st->execute();
+        return $st->fetchAll();
+    }
+
+    /**
+     * Lista entrevistas de UNA postulación específica.
      */
     public static function byPostulacion(
         int $idPostulacion,
@@ -62,7 +135,7 @@ class Entrevista
 
         $st = $pdo->prepare($sql);
         $st->bindValue(':idPostulacion', $idPostulacion, \PDO::PARAM_INT);
-        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();

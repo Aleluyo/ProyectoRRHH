@@ -12,28 +12,14 @@ $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
-// $candidato viene desde CandidatoController::edit()
-if (!isset($candidato) || !is_array($candidato)) {
-    $candidato = [];
-}
-
-$errors = $errors ?? ($_SESSION['errors'] ?? []);
-$old    = $old    ?? ($_SESSION['old_input'] ?? []);
-
-function v_old_cand(string $key, array $old, array $candidato): string {
-    if (array_key_exists($key, $old)) {
-        return (string)$old[$key];
-    }
-    return isset($candidato[$key]) ? (string)$candidato[$key] : '';
-}
-
-$idCandidato = (int)($candidato['id_candidato'] ?? 0);
+$errors    = $errors    ?? [];
+$candidato = $candidato ?? [];
 ?>
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Editar candidato · Reclutamiento</title>
+  <title>Editar candidato · Reclutamiento y Selección</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Tailwind -->
@@ -69,7 +55,7 @@ $idCandidato = (int)($candidato['id_candidato'] ?? 0);
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Yellowtail&display=swap" rel="stylesheet">
 
-  <!-- Estilos -->
+  <!-- Estilos propios -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
@@ -96,17 +82,13 @@ $idCandidato = (int)($candidato['id_candidato'] ?? 0);
     </div>
   </header>
 
-  <!-- Contenido -->
-  <main class="mx-auto max-w-4xl px-4 sm:px-6 py-8 relative">
+  <!-- Contenido principal -->
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
     <!-- Breadcrumb -->
     <div class="mb-5">
       <nav class="flex items-center gap-3 text-sm">
-        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">Inicio</a>
-        <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-        <a href="<?= url('views/reclutamiento/index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
-          Reclutamiento y Selección
+        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+          Inicio
         </a>
         <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -117,96 +99,124 @@ $idCandidato = (int)($candidato['id_candidato'] ?? 0);
         <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <span class="font-medium text-vc-pink">Editar candidato #<?= $idCandidato ?></span>
+        <span class="font-medium text-vc-pink">
+          Editar candidato #<?= htmlspecialchars((string)($candidato['id_candidato'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+        </span>
       </nav>
     </div>
 
     <!-- Título -->
     <section class="mb-6">
-      <h1 class="vice-title text-[32px] leading-tight text-vc-ink">Editar candidato</h1>
+      <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Editar candidato</h1>
       <p class="mt-1 text-sm sm:text-base text-muted-ink">
         Modifica los datos del candidato seleccionado.
       </p>
     </section>
 
+    <!-- Mensajes de error generales -->
+    <?php if (!empty($errors)): ?>
+      <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p class="font-semibold mb-1">Hay errores en el formulario:</p>
+        <ul class="list-disc ml-5 space-y-0.5">
+          <?php foreach ($errors as $msg): ?>
+            <li><?= htmlspecialchars($msg, ENT_QUOTES, 'UTF-8') ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
+
     <!-- Formulario -->
-    <section class="rounded-xl border border-black/10 bg-white/90 p-5 shadow-soft">
-      <form method="post" action="<?= url('index.php?controller=candidato&action=update&id=' . $idCandidato) ?>" class="space-y-4">
-        <!-- nombre -->
+    <section class="relative rounded-xl border border-black/10 bg-white/90 p-5 shadow-soft">
+      <form
+        id="formCandidatoEdit"
+        action="<?= url('index.php?controller=candidato&action=update&id=' . (int)($candidato['id_candidato'] ?? 0)) ?>"
+        method="post"
+        class="space-y-5"
+      >
+        <!-- Nombre completo -->
         <div>
-          <label for="nombre" class="block text-sm font-medium text-vc-ink mb-1">Nombre completo</label>
+          <label for="nombre" class="block text-sm font-medium text-vc-ink mb-1">
+            Nombre completo
+          </label>
           <input
             type="text"
-            name="nombre"
             id="nombre"
-            value="<?= htmlspecialchars(v_old_cand('nombre', $old, $candidato), ENT_QUOTES, 'UTF-8') ?>"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            name="nombre"
+            class="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            value="<?= htmlspecialchars($candidato['nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
             required
-          >
-          <?php if (!empty($errors['nombre'])): ?>
-            <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['nombre'], ENT_QUOTES, 'UTF-8') ?></p>
-          <?php endif; ?>
+          />
+          <p id="error-nombre" class="mt-1 text-xs text-rose-600">
+            <?= isset($errors['nombre']) ? htmlspecialchars($errors['nombre'], ENT_QUOTES, 'UTF-8') : '' ?>
+          </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- correo -->
+        <!-- Correo + Teléfono -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="correo" class="block text-sm font-medium text-vc-ink mb-1">Correo electrónico</label>
+            <label for="correo" class="block text-sm font-medium text-vc-ink mb-1">
+              Correo electrónico
+            </label>
             <input
               type="email"
-              name="correo"
               id="correo"
-              value="<?= htmlspecialchars(v_old_cand('correo', $old, $candidato), ENT_QUOTES, 'UTF-8') ?>"
-              class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-            >
-            <?php if (!empty($errors['correo'])): ?>
-              <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['correo'], ENT_QUOTES, 'UTF-8') ?></p>
-            <?php endif; ?>
+              name="correo"
+              class="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+              value="<?= htmlspecialchars($candidato['correo'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+              required
+            />
+            <p id="error-correo" class="mt-1 text-xs text-rose-600">
+              <?= isset($errors['correo']) ? htmlspecialchars($errors['correo'], ENT_QUOTES, 'UTF-8') : '' ?>
+            </p>
           </div>
 
-          <!-- telefono -->
           <div>
-            <label for="telefono" class="block text-sm font-medium text-vc-ink mb-1">Teléfono</label>
+            <label for="telefono" class="block text-sm font-medium text-vc-ink mb-1">
+              Teléfono
+            </label>
             <input
               type="text"
-              name="telefono"
               id="telefono"
-              value="<?= htmlspecialchars(v_old_cand('telefono', $old, $candidato), ENT_QUOTES, 'UTF-8') ?>"
-              class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-            >
-            <?php if (!empty($errors['telefono'])): ?>
-              <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['telefono'], ENT_QUOTES, 'UTF-8') ?></p>
-            <?php endif; ?>
+              name="telefono"
+              class="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+              value="<?= htmlspecialchars($candidato['telefono'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+              required
+            />
+            <p id="error-telefono" class="mt-1 text-xs text-rose-600">
+              <?= isset($errors['telefono']) ? htmlspecialchars($errors['telefono'], ENT_QUOTES, 'UTF-8') : '' ?>
+            </p>
           </div>
         </div>
 
-        <!-- fuente -->
+        <!-- Fuente -->
         <div>
-          <label for="fuente" class="block text-sm font-medium text-vc-ink mb-1">Fuente</label>
+          <label for="fuente" class="block text-sm font-medium text-vc-ink mb-1">
+            Fuente <span class="text-xs text-muted-ink">(LinkedIn, Referido, Bolsa de trabajo…)</span>
+          </label>
           <input
             type="text"
-            name="fuente"
             id="fuente"
-            value="<?= htmlspecialchars(v_old_cand('fuente', $old, $candidato), ENT_QUOTES, 'UTF-8') ?>"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-          >
+            name="fuente"
+            class="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            value="<?= htmlspecialchars($candidato['fuente'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+          />
         </div>
 
-        <!-- cv -->
+        <!-- CV -->
         <div>
           <label for="cv" class="block text-sm font-medium text-vc-ink mb-1">
             CV <span class="text-xs text-muted-ink">(texto, resumen o link)</span>
           </label>
           <textarea
-            name="cv"
             id="cv"
+            name="cv"
             rows="4"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-          ><?= htmlspecialchars(v_old_cand('cv', $old, $candidato), ENT_QUOTES, 'UTF-8') ?></textarea>
+            class="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60 resize-y"
+          ><?= htmlspecialchars($candidato['cv'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
         </div>
 
         <!-- Botones -->
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-2">
           <a
             href="<?= url('index.php?controller=candidato&action=index') ?>"
             class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50"
@@ -223,5 +233,68 @@ $idCandidato = (int)($candidato['id_candidato'] ?? 0);
       </form>
     </section>
   </main>
+
+  <!-- Validación en el navegador -->
+  <script>
+    (function () {
+      const form      = document.getElementById('formCandidatoEdit');
+      const nombreEl  = document.getElementById('nombre');
+      const correoEl  = document.getElementById('correo');
+      const telEl     = document.getElementById('telefono');
+
+      const errNombre = document.getElementById('error-nombre');
+      const errCorreo = document.getElementById('error-correo');
+      const errTel    = document.getElementById('error-telefono');
+
+      function clearErrors() {
+        errNombre.textContent = '';
+        errCorreo.textContent = '';
+        errTel.textContent    = '';
+      }
+
+      form.addEventListener('submit', function (e) {
+        clearErrors();
+        let hasError = false;
+
+        const nombre  = nombreEl.value.trim();
+        const correo  = correoEl.value.trim();
+        const telefono = telEl.value.trim();
+
+        // Nombre: requerido, solo letras y espacios
+        const nombreRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$/;
+        if (!nombre) {
+          errNombre.textContent = 'El nombre es obligatorio.';
+          hasError = true;
+        } else if (!nombreRegex.test(nombre)) {
+          errNombre.textContent = 'El nombre solo puede contener letras y espacios.';
+          hasError = true;
+        }
+
+        // Correo: requerido, formato sencillo de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!correo) {
+          errCorreo.textContent = 'El correo electrónico es obligatorio.';
+          hasError = true;
+        } else if (!emailRegex.test(correo)) {
+          errCorreo.textContent = 'El correo electrónico no tiene un formato válido.';
+          hasError = true;
+        }
+
+        // Teléfono: requerido, solo números 8–15 dígitos
+        const telRegex = /^[0-9]{8,15}$/;
+        if (!telefono) {
+          errTel.textContent = 'El teléfono es obligatorio.';
+          hasError = true;
+        } else if (!telRegex.test(telefono)) {
+          errTel.textContent = 'El teléfono debe contener solo números (8 a 15 dígitos).';
+          hasError = true;
+        }
+
+        if (hasError) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
