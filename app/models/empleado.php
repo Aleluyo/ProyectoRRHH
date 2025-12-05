@@ -71,7 +71,7 @@ class Empleado
                     a.nombre_area,
                     emp.nombre   AS empresa_nombre,
                     u.nombre     AS ubicacion_nombre,
-                    t.nombre     AS turno_nombre
+                    t.nombre_turno AS turno_nombre
                 FROM empleados e
                 INNER JOIN puestos     p   ON p.id_puesto    = e.id_puesto
                 INNER JOIN areas       a   ON a.id_area      = p.id_area
@@ -117,7 +117,7 @@ class Empleado
                     a.nombre_area,
                     emp.nombre   AS empresa_nombre,
                     u.nombre     AS ubicacion_nombre,
-                    t.nombre     AS turno_nombre
+                    t.nombre_turno AS turno_nombre
                 FROM empleados e
                 INNER JOIN puestos     p   ON p.id_puesto    = e.id_puesto
                 INNER JOIN areas       a   ON a.id_area      = p.id_area
