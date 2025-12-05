@@ -15,11 +15,11 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 /** Submódulos administrativos del área de Empresas */
 $submodules = [
-  ['title' => 'Empresas', 'sub' => 'Razón social, RFC y contacto',  'icon' => 'bi-building',          'href' => url('index.php?controller=empresa&action=index')],
-  ['title' => 'Áreas',                'sub' => 'Organización interna',          'icon' => 'bi-diagram-3',         'href' => url('index.php?controller=area&action=index')],
-  ['title' => 'Puestos',              'sub' => 'Cargos y descripciones',        'icon' => 'bi-person-lines-fill', 'href' => url('index.php?controller=puesto&action=index')],
-  ['title' => 'Ubicaciones',          'sub' => 'Sucursales y sedes',            'icon' => 'bi-geo-alt',           'href' => url('index.php?controller=ubicacion&action=index')],
-  ['title' => 'Turnos',               'sub' => 'Horarios laborales',            'icon' => 'bi-clock',             'href' => url('index.php?controller=turno&action=index')],
+  ['title' => 'Empresas', 'sub' => 'Razón social, RFC y contacto',  'icon' => 'bi-building',          'href' => url('index.php?controller=empresa&action=index'), 'tag' => 'teal'],
+  ['title' => 'Áreas',                'sub' => 'Organización interna',          'icon' => 'bi-diagram-3',         'href' => url('index.php?controller=area&action=index'), 'tag' => 'peach'],
+  ['title' => 'Puestos',              'sub' => 'Cargos y descripciones',        'icon' => 'bi-person-lines-fill', 'href' => url('index.php?controller=puesto&action=index'), 'tag' => 'pink'],
+  ['title' => 'Ubicaciones',          'sub' => 'Sucursales y sedes',            'icon' => 'bi-geo-alt',           'href' => url('index.php?controller=ubicacion&action=index'), 'tag' => 'teal'],
+  ['title' => 'Turnos',               'sub' => 'Horarios laborales',            'icon' => 'bi-clock',             'href' => url('index.php?controller=turno&action=index'), 'tag' => 'sand'],
 ];
 
 ?>

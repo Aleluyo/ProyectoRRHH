@@ -49,7 +49,6 @@ $selectedEmpresaId = (string)($area['id_empresa'] ?? '');
 $selectedPadreId   = (string)($old['id_area_padre'] ?? ($area['id_area_padre'] ?? ''));
 $nombreAreaValue   = htmlspecialchars((string)($old['nombre_area'] ?? $area['nombre_area'] ?? ''), ENT_QUOTES, 'UTF-8');
 $descripcionValue  = htmlspecialchars((string)($old['descripcion'] ?? $area['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8');
-$activaValue       = (int)($old['activa'] ?? ($area['activa'] ?? 1));
 // Bandera desde el controlador: true si la empresa del área está inactiva
 $empresaEsInactiva = $empresaEsInactiva ?? false;
 ?>
@@ -269,43 +268,22 @@ $empresaEsInactiva = $empresaEsInactiva ?? false;
             >
           </div>
 
-          <!-- Área padre + Estado -->
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Área padre (opcional) -->
-            <div>
-              <label for="id_area_padre" class="block text-sm font-semibold text-vc-ink mb-1">
-                Área padre
-              </label>
-              <select
-                id="id_area_padre"
-                name="id_area_padre"
-                class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-              >
-                <option value="">(Sin área padre)</option>
-                <!-- Se llenará vía JS según empresa -->
-              </select>
-              <p class="mt-1 text-xs text-muted-ink">
-                Opcional: selecciona un área superior para formar la jerarquía.
-              </p>
-            </div>
-
-            <!-- Estado -->
-            <div>
-              <label class="block text-sm font-semibold text-vc-ink mb-1">
-                Estado
-              </label>
-              <div class="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="activa_check"
-                  class="h-4 w-4 rounded border-black/20 text-vc-teal focus:ring-vc-teal/60"
-                  <?= $activaValue === 1 ? 'checked' : '' ?>
-                  onclick="document.getElementById('activa_value').value = this.checked ? 1 : 0;"
-                >
-                <span class="text-sm text-muted-ink">Área activa</span>
-              </div>
-              <input type="hidden" id="activa_value" name="activa" value="<?= $activaValue === 1 ? '1' : '0' ?>">
-            </div>
+          <!-- Área padre -->
+          <div>
+            <label for="id_area_padre" class="block text-sm font-semibold text-vc-ink mb-1">
+              Área padre
+            </label>
+            <select
+              id="id_area_padre"
+              name="id_area_padre"
+              class="block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            >
+              <option value="">(Sin área padre)</option>
+              <!-- Se llenará vía JS según empresa -->
+            </select>
+            <p class="mt-1 text-xs text-muted-ink">
+              Opcional: selecciona un área superior para formar la jerarquía.
+            </p>
           </div>
 
           <!-- Descripción -->

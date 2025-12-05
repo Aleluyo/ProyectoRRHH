@@ -40,7 +40,6 @@ $selectedEmpresaId = (string)($old['id_empresa']    ?? '');
 $selectedPadreId   = (string)($old['id_area_padre'] ?? '');
 $nombreAreaValue   = htmlspecialchars((string)($old['nombre_area'] ?? ''), ENT_QUOTES, 'UTF-8');
 $descripcionValue  = htmlspecialchars((string)($old['descripcion'] ?? ''), ENT_QUOTES, 'UTF-8');
-$activaValue       = (int)($old['activa'] ?? 1);
 
 ?>
 <!doctype html>
@@ -237,7 +236,7 @@ $activaValue       = (int)($old['activa'] ?? 1);
             >
           </div>
 
-          <!-- Área padre + Activa -->
+          <!-- Área padre -->
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- Área padre (opcional) -->
             <div>
@@ -255,26 +254,6 @@ $activaValue       = (int)($old['activa'] ?? 1);
               <p class="mt-1 text-xs text-muted-ink">
                 Opcional: selecciona un área superior para formar la jerarquía.
               </p>
-            </div>
-
-            <!-- Área activa (siempre 1 aquí, pero dejando claro el estado) -->
-            <div class="sm:flex sm:items-start">
-              <div>
-                <label class="block text-sm font-semibold text-vc-ink mb-1">
-                  Estado
-                </label>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="activa_check"
-                    class="h-4 w-4 rounded border-black/20 text-vc-teal focus:ring-vc-teal/60"
-                    <?= $activaValue === 1 ? 'checked' : '' ?>
-                    onclick="document.getElementById('activa_value').value = this.checked ? 1 : 0;"
-                  >
-                  <span class="text-sm text-muted-ink">Área activa</span>
-                </div>
-                <input type="hidden" id="activa_value" name="activa" value="<?= $activaValue === 1 ? '1' : '0' ?>">
-              </div>
             </div>
           </div>
 
@@ -332,6 +311,12 @@ $activaValue       = (int)($old['activa'] ?? 1);
         opt.textContent = a.nombre_area;
         areaPadreSelect.appendChild(opt);
       });
+
+      // Si venimos de old_input, seleccionamos el padre previamente elegido
+      const selectedPadreId = "<?= htmlspecialchars($selectedPadreId, ENT_QUOTES, 'UTF-8') ?>";
+      if (selectedPadreId) {
+        areaPadreSelect.value = selectedPadreId;
+      }
     }
 
     document.getElementById('id_empresa').addEventListener('change', updateAreasPadre);

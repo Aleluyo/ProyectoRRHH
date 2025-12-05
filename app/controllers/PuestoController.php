@@ -81,6 +81,7 @@ class PuestoController
                 'nivel'         => $_POST['nivel']         ?? 'OPERATIVO',
                 'salario_base'  => $_POST['salario_base']  ?? null,
                 'descripcion'   => $_POST['descripcion']   ?? '',
+                'activa'        => 1,
             ];
 
             $id = Puesto::create($data);
@@ -192,6 +193,7 @@ class PuestoController
         }
 
         $idAreaActual = (int)($puestoActual['id_area'] ?? 0);
+        $activaActual   = (int)($puestoActual['activa']   ?? 1);
 
         try {
             $idAreaNueva = isset($_POST['id_area']) ? (int)$_POST['id_area'] : 0;
@@ -224,6 +226,7 @@ class PuestoController
                 'nivel'         => $_POST['nivel']         ?? 'OPERATIVO',
                 'salario_base'  => $_POST['salario_base']  ?? null,
                 'descripcion'   => $_POST['descripcion']   ?? '',
+                'activa'        => $activaActual,
             ];
 
             Puesto::update($id, $data);

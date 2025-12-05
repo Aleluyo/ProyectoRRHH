@@ -138,9 +138,6 @@ if (!empty($oldInput)) {
     $pais            = (string)($oldInput['pais']            ?? $pais);
     $direccionRaw    = (string)($oldInput['direccion']       ?? $direccionRaw);
 
-    if (isset($oldInput['activa'])) {
-        $activa = (int)$oldInput['activa'];
-    }
 }
 
 // Escapar para imprimir en HTML
@@ -411,31 +408,6 @@ function e(string $value): string {
               <?php endif; ?>
             </div>
 
-            <div class="flex items-end">
-              <div>
-                <span class="block text-sm font-semibold text-vc-ink mb-1">
-                  Estado de la empresa <span class="text-red-500">*</span>
-                </span>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="hidden"
-                    name="activa"
-                    value="0"
-                  >
-                  <input
-                    type="checkbox"
-                    id="activa"
-                    name="activa"
-                    value="1"
-                    <?= $activa ? 'checked' : '' ?>
-                    class="h-4 w-4 rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-                  >
-                  <label for="activa" class="text-sm text-muted-ink">
-                    Empresa activa
-                  </label>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- Dirección estandarizada -->

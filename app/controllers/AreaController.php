@@ -88,14 +88,17 @@ class AreaController
         // Solo admin (ej. rol 1)
         requireRole(1);
 
-        $activaPost = $_POST['activa'] ?? '1';
+        $idAreaPadre = $_POST['id_area_padre'] ?? null;
+        if ($idAreaPadre === '') {
+            $idAreaPadre = null;
+        }
 
         $data = [
             'id_empresa'    => $_POST['id_empresa']    ?? 0,
             'id_area_padre' => $_POST['id_area_padre'] ?? null,
             'nombre_area'   => $_POST['nombre_area']   ?? '',
             'descripcion'   => $_POST['descripcion']   ?? '',
-            'activa'        => ($activaPost === '1') ? 1 : 0,
+            'activa'        => 1,
         ];
 
         try {
@@ -173,13 +176,23 @@ class AreaController
             exit;
         }
 
-        $activaPost = $_POST['activa'] ?? '0';
+       $areaActual = Area::findById($id);
+        if (!$areaActual) {
+            $_SESSION['flash_error'] = 'El área no existe.';
+            header('Location: index.php?controller=area&action=index');
+            exit;
+        }
+
+        $idAreaPadre = $_POST['id_area_padre'] ?? null;
+        if ($idAreaPadre === '') {
+            $idAreaPadre = null;
+        }
 
         $data = [
             'id_area_padre' => $_POST['id_area_padre'] ?? null,
             'nombre_area'   => $_POST['nombre_area']   ?? '',
             'descripcion'   => $_POST['descripcion']   ?? '',
-            'activa'        => ($activaPost === '1') ? 1 : 0,
+            'activa'        => (int)($areaActual['activa'] ?? 1),
         ];
 
         try {

@@ -73,6 +73,7 @@ class TurnoController
             'hora_salida'        => $_POST['hora_salida']        ?? '',
             'tolerancia_minutos' => $_POST['tolerancia_minutos'] ?? '',
             'dias_laborales'     => $diasLaborales,
+            'activa'             => 1,
         ];
 
          // Validar

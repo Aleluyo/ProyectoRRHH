@@ -127,7 +127,8 @@ class EmpresaController
             }
 
             // 5) Activa
-            $activa = isset($_POST['activa']) ? (int)$_POST['activa'] : 1;
+            //    Ignoramos cualquier campo "activa" que venga del formulario.
+            $activa = 1;
 
             // 6) Datos para el modelo (nombre, rfc, correo se validan en Empresa::create)
             $data = [
@@ -136,7 +137,7 @@ class EmpresaController
                 'correo_contacto' => $_POST['correo_contacto'] ?? '',
                 'telefono'        => $telefono,
                 'direccion'       => $direccion,
-                'activa'          => $activa,
+                'activa'          => $activa, // siempre 1 al crear
             ];
 
             $id = Empresa::create($data);
@@ -196,6 +197,13 @@ class EmpresaController
             exit;
         }
 
+        // Obtener empresa actual para conservar su estado "activa"
+        $empresaActual = Empresa::findById($id);
+        if (!$empresaActual) {
+            header('Location: index.php?controller=empresa&action=index');
+            exit;
+        }
+
         try {
             // 1) Leer y TRIM de la dirección
             $calle        = trim($_POST['calle']            ?? '');
@@ -207,8 +215,8 @@ class EmpresaController
             $estado       = trim($_POST['estado']           ?? '');
             $codigoPostal = trim($_POST['codigo_postal']    ?? '');
             $pais         = trim($_POST['pais']             ?? '');
-            $activaRaw    = $_POST['activa'] ?? '0';
-            $activa       = ($activaRaw === '1') ? 1 : 0;
+            //$activaRaw    = $_POST['activa'] ?? '0';
+           // $activa       = ($activaRaw === '1') ? 1 : 0;
 
             // 2) Validar obligatorios 
             if ($calle === '')        throw new InvalidArgumentException('La calle es obligatoria.');
@@ -256,7 +264,7 @@ class EmpresaController
                 'correo_contacto' => $_POST['correo_contacto'] ?? '',
                 'telefono'        => $telefono,
                 'direccion'       => $direccion,
-                'activa'          => $activa,
+                'activa'          => (int)($empresaActual['activa'] ?? 1),
             ];
 
             Empresa::update($id, $data);

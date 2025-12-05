@@ -468,9 +468,6 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
             <?php endif; ?>
           </fieldset>
 
-          <!-- Empresa activa (por defecto 1) -->
-          <input type="hidden" name="activa" value="1">
-
           <!-- Acciones -->
           <div class="flex justify-end gap-3 pt-2">
             <a

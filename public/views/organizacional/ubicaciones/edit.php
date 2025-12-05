@@ -45,7 +45,6 @@ $direccionRaw = $ubicacion['direccion'] ?? '';
 $ciudadCol   = $ubicacion['ciudad']        ?? '';
 $estadoCol   = $ubicacion['estado_region'] ?? '';
 $paisCol     = $ubicacion['pais']          ?? '';
-$activa      = isset($ubicacion['activa']) ? (int)$ubicacion['activa'] : 1;
 
 // Valores por defecto para los campos de dirección estandarizados
 $calle           = '';
@@ -535,21 +534,6 @@ $direccionForm = $old['direccion'] ?? $direccionRaw;
               value="<?= e((string)$direccionForm) ?>"
             >
           </fieldset>
-
-          <!-- Activa -->
-          <div class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="activa"
-              name="activa"
-              value="1"
-              class="rounded border-black/20 text-vc-teal focus:ring-vc-teal"
-              <?= $activa === 1 ? 'checked' : '' ?>
-            >
-            <label for="activa" class="text-sm text-vc-ink">
-              Ubicación activa
-            </label>
-          </div>
 
           <!-- Acciones -->
           <div class="flex justify-end gap-3 pt-2">

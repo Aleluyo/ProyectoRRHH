@@ -423,9 +423,6 @@ if (!isset($empresas) || !is_array($empresas)) {
             <input type="hidden" id="direccion_full" name="direccion" value="">
           </fieldset>
 
-          <!-- Ubicación activa por defecto -->
-          <input type="hidden" name="activa" value="1">
-
           <!-- Acciones -->
           <div class="flex justify-end gap-3 pt-2">
             <a

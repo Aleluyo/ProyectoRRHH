@@ -85,7 +85,7 @@ class UbicacionController
             $estadoReg    = trim($_POST['estado_region']   ?? '');
             $cp           = trim($_POST['codigo_postal']   ?? '');
             $pais         = trim($_POST['pais']            ?? '');
-            $activa       = isset($_POST['activa']) ? 1 : 0;
+            $activa       = 1;
 
             // 2) Validar obligatorios (después de trim, así espacios cuentan como vacío)
             if ($idEmpresa <= 0) {
@@ -173,7 +173,7 @@ class UbicacionController
                 'ciudad'        => $ciudad,
                 'estado_region' => $estadoReg,
                 'pais'          => $pais,
-                'activa'        => $activa,
+                'activa'        => 1,
             ];
 
             Ubicacion::create($data);
@@ -314,7 +314,6 @@ class UbicacionController
             $estadoReg    = trim($_POST['estado_region']   ?? '');
             $cp           = trim($_POST['codigo_postal']   ?? '');
             $pais         = trim($_POST['pais']            ?? '');
-            $activa       = isset($_POST['activa']) ? 1 : 0;
 
             // 2) Validar obligatorios (después de trim)
             if ($nombre === '') {
@@ -403,7 +402,6 @@ class UbicacionController
                 'ciudad'        => $ciudad,
                 'estado_region' => $estadoReg,
                 'pais'          => $pais,
-                'activa'        => $activa,
             ];
 
             Ubicacion::update($id, $data);
