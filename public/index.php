@@ -14,11 +14,13 @@ require_once __DIR__ . '/../app/controllers/VacanteController.php';
 require_once __DIR__ . '/../app/controllers/CandidatoController.php';
 require_once __DIR__ . '/../app/controllers/PostulacionController.php';
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
-// Controladores de Asistencias
+<<<<<<< Updated upstream
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
-// Controladores de Empleados
+=======
+//Controladores de Empleados
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 
+>>>>>>> Stashed changes
 requireLogin();
 
 
@@ -31,6 +33,55 @@ $actionName = $_GET['action'] ?? null;
 
 // Si ambos parámetros están presentes, procesamos la solicitud
 if ($controllerName !== null && $actionName !== null) {
+<<<<<<< Updated upstream
+    // Enrutamiento según el controlador solicitado
+    switch ($controllerName) {
+        case 'empresa':
+            $controller = new EmpresaController();
+            break;
+        case 'area':
+            $controller = new AreaController();
+            break;
+        case 'puesto':
+            $controller = new PuestoController();
+            break;
+        case 'ubicacion':
+            $controller = new UbicacionController();
+            break;
+        case 'turno':
+            $controller = new TurnoController();
+            break;
+        // Reclutamiento y Selección
+        case 'vacante':
+            $controller = new VacanteController();
+            break;
+        case 'candidato':
+            $controller = new CandidatoController();
+            break;
+        case 'postulacion':
+            $controller = new PostulacionController();
+            break;
+        case 'entrevista':
+            $controller = new EntrevistaController();
+            break;
+        case 'asistencia':                       
+            $controller = new AsistenciasController();
+            break;
+        default:
+            http_response_code(404);
+            echo "Controlador no encontrado";
+            exit;
+    }
+    // Verifica que el método (acción) exista en el controlador
+    if (!method_exists($controller, $actionName)) {
+        http_response_code(404);
+        echo "Acción no encontrada";
+        exit;
+    }
+
+    // Ejecuta la acción solicitada y finaliza el script sin renderizar la página de inicio
+    $controller->{$actionName}();
+=======
   // Enrutamiento según el controlador solicitado
   switch ($controllerName) {
     case 'empresa':
@@ -61,11 +112,7 @@ if ($controllerName !== null && $actionName !== null) {
     case 'entrevista':
       $controller = new EntrevistaController();
       break;
-    // Asistencias
-    case 'asistencia':
-      $controller = new AsistenciasController();
-      break;
-    // Empleados
+    //Empleados
     case 'empleado':
       $controller = new EmpleadoController();
       break;
@@ -78,6 +125,7 @@ if ($controllerName !== null && $actionName !== null) {
   if (!method_exists($controller, $actionName)) {
     http_response_code(404);
     echo "Acción no encontrada";
+>>>>>>> Stashed changes
     exit;
   }
 
@@ -95,14 +143,26 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 $modules = [
   ['title' => 'Empleados', 'sub' => 'Altas, expedientes y consultas', 'icon' => 'i-users', 'href' => url('index.php?controller=empleado&action=index'), 'tag' => 'pink'],
+  // NUEVO módulo principal de Reclutamiento
+<<<<<<< Updated upstream
+  ['title'=>'Reclutamiento y Selección','sub'=>'Vacantes, candidatos y entrevistas','icon'=>'i-users','href'=>url('views/reclutamiento/index.php'),'tag'=>'teal'],
+  ['title'=>'Nómina','sub'=>'Recibos, cálculos y reportes','icon'=>'i-cash','href'=>url('views/nomina/list.php'),'tag'=>'teal'],
+  ['title'=>'Asistencias','sub'=>'Entradas, salidas y faltas','icon'=>'i-cal-check','href'=>url('index.php?controller=asistencia&action=index'),'tag'=>'peach'],
+  ['title'=>'Permisos & Vacaciones','sub'=>'Gestión de ausencias','icon'=>'i-cal-plus','href'=>url('views/permisos/list.php'),'tag'=>'sand'],
+  ['title'=>'Usuarios','sub'=>'Control y roles de acceso','icon'=>'i-badge','href'=>url('views/usuarios/list.php'),'tag'=>'teal'],
+  ['title'=>'Empresas','sub'=>'Catálogo de áreas, puestos, ubicaciones y más','icon'=>'i-building','href'=>url('views/organizacional/index.php'),'tag'=>'pink'],
+  ['title'=>'Reportes','sub'=>'Indicadores y estadísticas','icon'=>'i-chart','href'=>url('views/reportes/list.php'),'tag'=>'peach'],
+  ['title'=>'Configuración','sub'=>'Parámetros del sistema','icon'=>'i-gear','href'=>url('views/configuracion/index.php'),'tag'=>'sand'],
+=======
   ['title' => 'Reclutamiento y Selección', 'sub' => 'Vacantes, candidatos y entrevistas', 'icon' => 'i-users', 'href' => url('views/reclutamiento/index.php'), 'tag' => 'teal'],
   ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('views/nomina/list.php'), 'tag' => 'teal'],
-  ['title' => 'Asistencias', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('index.php?controller=asistencia&action=index'), 'tag' => 'peach'],
+  ['title' => 'Asistencia', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('views/asistencia/list.php'), 'tag' => 'peach'],
   ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
   ['title' => 'Usuarios', 'sub' => 'Control y roles de acceso', 'icon' => 'i-badge', 'href' => url('views/usuarios/list.php'), 'tag' => 'teal'],
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
   ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('views/reportes/list.php'), 'tag' => 'peach'],
   ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('views/configuracion/index.php'), 'tag' => 'sand'],
+>>>>>>> Stashed changes
 ];
 ?>
 <!doctype html>
