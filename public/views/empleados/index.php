@@ -210,7 +210,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
             </a>
 
             <!-- 4. Documentos -->
-            <a href="<?= url('index.php?controller=empleado&action=documentos') ?>"
+            <a href="<?= url('index.php?controller=documento&action=listado') ?>"
                 class="group relative rounded-xl border border-black/10 bg-white p-6 hover:border-vc-sand/30 transition shadow-soft hover:shadow-lg">
                 <span
                     class="absolute left-0 top-0 h-full w-1.5 rounded-l-xl bg-vc-sand/50 group-hover:bg-vc-sand/70"></span>

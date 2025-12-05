@@ -1445,3 +1445,36 @@ CREATE TABLE IF NOT EXISTS movimientos (
 -- Agregar campo fecha_baja a empleados (solo si no existe)
 ALTER TABLE empleados 
 ADD COLUMN fecha_baja DATE NULL AFTER estado;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `empleados_documentos`
+-- Gestión de documentos del expediente de empleados
+--
+
+CREATE TABLE IF NOT EXISTS empleados_documentos (
+    id_documento INT AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    tipo_documento VARCHAR(100) NOT NULL COMMENT 'Tipo de documento (INE, CURP, RFC, etc.)',
+    nombre_archivo VARCHAR(255) NOT NULL COMMENT 'Nombre original del archivo',
+    ruta_archivo VARCHAR(500) NOT NULL COMMENT 'Ruta relativa al archivo',
+    extension VARCHAR(10) NOT NULL COMMENT 'Extensión del archivo',
+    tamano_kb INT NOT NULL COMMENT 'Tamaño en kilobytes',
+    fecha_vigencia DATE NULL COMMENT 'Fecha de vencimiento del documento (si aplica)',
+    estado ENUM('PENDIENTE', 'VERIFICADO', 'RECHAZADO') DEFAULT 'PENDIENTE' COMMENT 'Estado de verificación',
+    observaciones TEXT NULL COMMENT 'Notas sobre el documento',
+    subido_por INT NOT NULL COMMENT 'Usuario que subió el documento',
+    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha y hora de carga',
+    verificado_por INT NULL COMMENT 'Usuario que verificó o rechazó',
+    fecha_verificacion DATETIME NULL COMMENT 'Fecha de verificación/rechazo',
+    
+    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado) ON DELETE CASCADE,
+    FOREIGN KEY (subido_por) REFERENCES usuarios(id_usuario),
+    FOREIGN KEY (verificado_por) REFERENCES usuarios(id_usuario),
+    
+    INDEX idx_empleado (id_empleado),
+    INDEX idx_tipo_documento (tipo_documento),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci 
+COMMENT='Documentos del expediente de empleados';
