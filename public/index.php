@@ -22,6 +22,7 @@ require_once __DIR__ . '/../app/controllers/MovimientoController.php';
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
 require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
 require_once __DIR__ . '/../app/controllers/ReportesController.php';
+require_once __DIR__ . '/../app/controllers/NominaController.php';
 
 requireLogin();
 
@@ -82,6 +83,9 @@ if ($controllerName !== null && $actionName !== null) {
     case 'reportes':
       $controller = new ReportesController();
       break;
+    case 'nomina':
+      $controller = new NominaController();
+      break;
     default:
       http_response_code(404);
       echo "Controlador no encontrado";
@@ -110,7 +114,7 @@ $modules = [
   ['title' => 'Empleados', 'sub' => 'Altas, expedientes y consultas', 'icon' => 'i-users', 'href' => url('index.php?controller=empleado&action=index'), 'tag' => 'pink'],
   // NUEVO módulo principal de Reclutamiento
   ['title' => 'Reclutamiento y Selección', 'sub' => 'Vacantes, candidatos y entrevistas', 'icon' => 'i-users', 'href' => url('views/reclutamiento/index.php'), 'tag' => 'teal'],
-  ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('views/nomina/list.php'), 'tag' => 'teal'],
+  ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('index.php?controller=nomina&action=index'), 'tag' => 'teal'],
   ['title' => 'Asistencias', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('index.php?controller=asistencia&action=index'), 'tag' => 'peach'],
   ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
 

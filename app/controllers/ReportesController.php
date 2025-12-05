@@ -23,9 +23,49 @@ class ReportesController {
         require_once __DIR__ . '/../views/reportes/index.php';
     }
 
-    public function export() {
-        // Lógica para exportar (CSV, Excel, PDF)
-        // Se implementará más adelante según requerimientos específicos
+    public function nomina() {
+        require_once __DIR__ . '/../models/Nomina.php';
+
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (empty($_SESSION['user_id']) || $_SESSION['rol'] != 1) {
+            redirect('index.php');
+        }
+
+        $filename = "nomina_" . date('Y-m-d') . ".csv";
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        fputcsv($output, [
+            'ID Nomina', 'Periodo Inicio', 'Periodo Fin', 'Tipo', 
+            'ID Empleado', 'Nombre', 'RFC', 'Puesto', 'Area',
+            'Percepciones', 'Deducciones', 'Neto'
+        ]);
+
+        $nominas = Nomina::getAllExtended(10000, 0);
+
+        foreach ($nominas as $n) {
+            fputcsv($output, [
+                $n['id_nomina'],
+                $n['fecha_inicio'],
+                $n['fecha_fin'],
+                $n['periodo_tipo'],
+                $n['id_empleado'],
+                $n['empleado_nombre'],
+                $n['rfc'],
+                $n['nombre_puesto'],
+                $n['nombre_area'],
+                number_format((float)$n['total_percepciones'], 2, '.', ''),
+                number_format((float)$n['total_deducciones'], 2, '.', ''),
+                number_format((float)$n['total_neto'], 2, '.', '')
+            ]);
+        }
+        
+        fclose($output);
+        exit;
     }
 
     public function empleados() {

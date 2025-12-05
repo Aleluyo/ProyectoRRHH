@@ -156,7 +156,18 @@ class EmpleadoController
         $idEmpleado = Empleado::create($data);
 
         if ($idEmpleado) {
-            // TODO: Registrar en empleados_historial el alta del empleado
+            // Implementación de Registro en movimientos (Integración BD Changes)
+            require_once __DIR__ . '/../models/Movimiento.php';
+            Movimiento::create([
+                'id_empleado' => $idEmpleado,
+                'tipo_movimiento' => 'ALTA',
+                'fecha_movimiento' => date('Y-m-d'),
+                'motivo' => 'Contratación inicial',
+                'observaciones' => 'Registro desde sistema administrativo',
+                'valor_anterior' => null,
+                'valor_nuevo' => 'ACTIVO',
+                'autorizado_por' => $_SESSION['user_id'] ?? 1 // Fallback a admin si no hay sesión (caso raro)
+            ]);
 
             $_SESSION['toast_message'] = 'Empleado registrado correctamente';
             $_SESSION['toast_type'] = 'success';
@@ -308,9 +319,61 @@ class EmpleadoController
         $success = Empleado::update($id, $data);
 
         if ($success) {
-            // TODO: Registrar cambios en empleados_historial
-            // Comparar $empleadoActual con $data para detectar cambios importantes
-            // (puesto, área, jefe, estado, etc.)
+
+            require_once __DIR__ . '/../models/Movimiento.php';
+            $userId = $_SESSION['user_id'] ?? 1;
+            $today = date('Y-m-d');
+
+            // 1. Detectar Cambio de Área
+            if ($empleadoActual['id_area'] != $data['id_area']) {
+                Movimiento::cambiarArea(
+                    $id, 
+                    $data['id_area'],
+                    $today,
+                    'Reasignación Administrativa',
+                    'Cambio realizado desde edición de perfil',
+                    $userId
+                );
+            }
+
+            // 2. Detectar Cambio de Puesto
+            if ($empleadoActual['id_puesto'] != $data['id_puesto']) {
+                Movimiento::cambiarPuesto(
+                    $id, 
+                    $data['id_puesto'],
+                    $today,
+                    'Promoción o Cambio Lateral',
+                    'Cambio realizado desde edición de perfil',
+                    $userId
+                );
+            }
+            
+            // 3. Detectar Baja
+            // Si el estado cambió a BAJA y antes no lo estaba
+            if ($data['estado'] === 'BAJA' && $empleadoActual['estado'] !== 'BAJA') {
+                $fechaBaja = $data['fecha_baja'] ?? $today;
+                Movimiento::registrarBaja(
+                    $id,
+                    $fechaBaja,
+                    'Baja Administrativa',
+                    $userId,
+                    'Registrado desde edición de perfil'
+                );
+            }
+            
+            // 4. Detectar Reingreso
+             if ($data['estado'] === 'ACTIVO' && $empleadoActual['estado'] === 'BAJA') {
+                 Movimiento::create([
+                    'id_empleado' => $id,
+                    'tipo_movimiento' => 'REINGRESO',
+                    'fecha_movimiento' => $today,
+                    'motivo' => 'Reingreso Laboral',
+                    'observaciones' => 'Reactivación de expediente',
+                    'valor_anterior' => 'BAJA',
+                    'valor_nuevo' => 'ACTIVO',
+                    'autorizado_por' => $userId
+                ]);
+             }
 
             // Guardar mensaje de éxito en sesión
             $_SESSION['toast_message'] = 'Los datos se actualizaron correctamente';

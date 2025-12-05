@@ -471,6 +471,8 @@ class Movimiento
     public static function tiposMovimiento(): array
     {
         return [
+            'ALTA' => 'Alta de empleado',
+            'REINGRESO' => 'Reingreso de empleado',
             'BAJA' => 'Baja de empleado',
             'CAMBIO_AREA' => 'Cambio de área',
             'CAMBIO_PUESTO' => 'Cambio de puesto',

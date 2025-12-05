@@ -151,18 +151,21 @@ require_once __DIR__ . '/../../../config/paths.php';
             </div>
         </div>
 
-        <!-- Reporte Card: Nómina (Pendiente) -->
-        <div class="group bg-gray-50 border border-black/10 rounded-xl p-5 relative overflow-hidden opacity-70 cursor-not-allowed">
-            <div class="absolute top-0 left-0 w-1 h-full bg-gray-300 transition"></div>
+        <!-- Reporte Card: Nómina -->
+        <div class="group bg-white border border-black/10 rounded-xl p-5 hover:border-vc-teal/50 transition shadow-sm hover:shadow-soft relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-vc-teal/30 group-hover:bg-vc-teal transition"></div>
             <div class="flex justify-between items-start mb-3">
-                <div class="p-2 bg-gray-200 rounded-lg text-gray-400">
+                <div class="p-2 bg-vc-teal/10 rounded-lg text-vc-teal">
                     <svg class="w-6 h-6"><use href="#i-chart"/></svg>
                 </div>
+                <a href="<?= url('index.php?controller=reportes&action=nomina') ?>" class="text-gray-400 hover:text-vc-ink transition" title="Exportar CSV">
+                    <svg class="w-5 h-5"><use href="#i-download"/></svg>
+                </a>
             </div>
-            <h3 class="font-display text-lg text-gray-500 mb-1">Reporte de Nómina</h3>
-            <p class="text-sm text-gray-400 mb-4">Resumen de pagos, deducciones y bonificaciones.</p>
-            <div class="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-                <span class="bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Próximamente</span>
+            <h3 class="font-display text-lg text-vc-ink mb-1">Reporte de Nómina</h3>
+            <p class="text-sm text-muted-ink mb-4">Resumen de pagos, deducciones y bonificaciones.</p>
+            <div class="flex gap-2 text-xs font-bold text-vc-ink/50">
+                <span class="bg-gray-100 px-2 py-1 rounded">CSV</span>
             </div>
         </div>
 
