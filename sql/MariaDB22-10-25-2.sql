@@ -1453,7 +1453,12 @@ ADD COLUMN fecha_baja DATE NULL AFTER estado;
 -- Gestión de documentos del expediente de empleados
 --
 
-CREATE TABLE IF NOT EXISTS empleados_documentos (
+
+-- 1. Eliminar la tabla si existe
+DROP TABLE IF EXISTS empleados_documentos;
+
+-- 2. Crear la tabla con la estructura correcta
+CREATE TABLE empleados_documentos (
     id_documento INT AUTO_INCREMENT PRIMARY KEY,
     id_empleado INT NOT NULL,
     tipo_documento VARCHAR(100) NOT NULL COMMENT 'Tipo de documento (INE, CURP, RFC, etc.)',
