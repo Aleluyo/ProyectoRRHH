@@ -67,7 +67,6 @@ class EntrevistaController
         header('Location: index.php?controller=entrevista&action=index');
         exit;
     }
-
     public function edit(): void
     {
         requireLogin();
@@ -75,14 +74,16 @@ class EntrevistaController
 
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
-            echo "Entrevista no encontrada.";
-            return;
+            $_SESSION['errors'] = ['general' => 'ID de entrevista inválido (ID: ' . htmlspecialchars((string) ($_GET['id'] ?? 'NULL')) . ').'];
+            header('Location: index.php?controller=entrevista&action=index');
+            exit;
         }
 
         $entrevista = Entrevista::findById($id);
         if (!$entrevista) {
-            echo "Entrevista no encontrada.";
-            return;
+            $_SESSION['errors'] = ['general' => "Entrevista no encontrada en base de datos (ID: $id)."];
+            header('Location: index.php?controller=entrevista&action=index');
+            exit;
         }
 
         $postulaciones = Postulacion::listaParaEntrevistas();

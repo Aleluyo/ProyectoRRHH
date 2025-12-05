@@ -59,6 +59,61 @@ class Postulacion
     }
 
     /**
+     * Lista de todas las postulaciones (para index general).
+     */
+    public static function all(
+        int $limit = 500,
+        int $offset = 0,
+        ?string $search = null
+    ): array {
+        global $pdo;
+
+        $limit = max(1, min($limit, 1000));
+        $offset = max(0, $offset);
+
+        $where = [];
+        $params = [];
+
+        if ($search !== null && trim($search) !== '') {
+            $search = '%' . trim($search) . '%';
+            $where[] = '(c.nombre LIKE :q OR a.nombre_area LIKE :q OR pu.nombre_puesto LIKE :q)';
+            $params[':q'] = $search;
+        }
+
+        $whereSql = '';
+        if (!empty($where)) {
+            $whereSql = 'WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql = "SELECT p.*,
+                       c.nombre AS candidato_nombre,
+                       c.correo AS candidato_correo,
+                       v.id_vacante,
+                       a.nombre_area,
+                       pu.nombre_puesto
+                FROM postulaciones p
+                LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
+                LEFT JOIN vacantes   v ON v.id_vacante   = p.id_vacante
+                LEFT JOIN areas      a ON a.id_area      = v.id_area
+                LEFT JOIN puestos    pu ON pu.id_puesto  = v.id_puesto
+                {$whereSql}
+                ORDER BY p.aplicada_en DESC
+                LIMIT :limit OFFSET :offset";
+
+        $st = $pdo->prepare($sql);
+
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v);
+        }
+
+        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
+
+        $st->execute();
+        return $st->fetchAll();
+    }
+
+    /**
      * Lista de postulaciones de una vacante, con paginado y filtro por estado.
      */
     public static function byVacante(
@@ -73,15 +128,15 @@ class Postulacion
             throw new \InvalidArgumentException("ID de vacante inválido.");
         }
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = ['p.id_vacante = :idVacante'];
+        $where = ['p.id_vacante = :idVacante'];
         $params = [':idVacante' => $idVacante];
 
         if ($estado !== null && trim($estado) !== '') {
             $estado = self::normalizarEstado($estado);
-            $where[]           = 'p.estado = :estado';
+            $where[] = 'p.estado = :estado';
             $params[':estado'] = $estado;
         }
 
@@ -135,7 +190,7 @@ class Postulacion
             ORDER BY p.id_postulacion ASC
         ";
 
-        $st   = $pdo->query($sql);
+        $st = $pdo->query($sql);
         $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
 
         $result = [];
@@ -165,7 +220,7 @@ class Postulacion
             $label = implode(' · ', $partes);
 
             $result[] = [
-                'id'    => (int)$row['id_postulacion'],
+                'id' => (int) $row['id_postulacion'],
                 'label' => $label,
             ];
         }
@@ -180,13 +235,13 @@ class Postulacion
     {
         global $pdo;
 
-        $idVacante   = self::normalizarId($data['id_vacante'] ?? null, "vacante");
+        $idVacante = self::normalizarId($data['id_vacante'] ?? null, "vacante");
         $idCandidato = self::normalizarId($data['id_candidato'] ?? null, "candidato");
 
-        $estadoRaw = (string)($data['estado'] ?? 'POSTULADO');
-        $estado    = self::normalizarEstado($estadoRaw);
+        $estadoRaw = (string) ($data['estado'] ?? 'POSTULADO');
+        $estado = self::normalizarEstado($estadoRaw);
 
-        $comentarios = trim((string)($data['comentarios'] ?? ''));
+        $comentarios = trim((string) ($data['comentarios'] ?? ''));
 
         $sql = "INSERT INTO postulaciones
                     (id_vacante, id_candidato, estado, comentarios, aplicada_en)
@@ -200,7 +255,7 @@ class Postulacion
             $comentarios !== '' ? $comentarios : null,
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     /**
@@ -234,11 +289,11 @@ class Postulacion
                     break;
 
                 case 'estado':
-                    $value = self::normalizarEstado((string)$value);
+                    $value = self::normalizarEstado((string) $value);
                     break;
 
                 case 'comentarios':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         $value = null;
                     }
@@ -256,7 +311,7 @@ class Postulacion
         $params[] = $id;
 
         $sql = "UPDATE postulaciones SET " . implode(", ", $fields) . " WHERE id_postulacion = ?";
-        $st  = $pdo->prepare($sql);
+        $st = $pdo->prepare($sql);
         $st->execute($params);
     }
 
@@ -271,7 +326,7 @@ class Postulacion
             throw new \InvalidArgumentException("ID de postulación inválido.");
         }
 
-        $estado      = self::normalizarEstado($estado);
+        $estado = self::normalizarEstado($estado);
         $comentarios = $comentarios !== null ? trim($comentarios) : null;
 
         $sql = "UPDATE postulaciones
@@ -305,7 +360,7 @@ class Postulacion
 
     private static function normalizarId($valor, string $labelCampo): int
     {
-        $id = (int)$valor;
+        $id = (int) $valor;
         if ($id <= 0) {
             throw new \InvalidArgumentException("{$labelCampo} inválido.");
         }

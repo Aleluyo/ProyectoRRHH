@@ -26,6 +26,18 @@ class PostulacionController
         'RECHAZADO',
     ];
 
+    public function index(): void
+    {
+        requireLogin();
+        requireRole(1); // Ajusta el rol si es necesario
+
+        $search = $_GET['q'] ?? null;
+
+        $postulaciones = Postulacion::all(500, 0, $search);
+
+        require __DIR__ . '/../../public/views/reclutamiento/postulaciones/list.php';
+    }
+
     /**
      * Devuelve una postulación por ID.
      */
@@ -67,15 +79,15 @@ class PostulacionController
             throw new \InvalidArgumentException("ID de vacante inválido.");
         }
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = ['p.id_vacante = :idVacante'];
+        $where = ['p.id_vacante = :idVacante'];
         $params = [':idVacante' => $idVacante];
 
         if ($estado !== null && trim($estado) !== '') {
             $estado = self::normalizarEstado($estado);
-            $where[]           = 'p.estado = :estado';
+            $where[] = 'p.estado = :estado';
             $params[':estado'] = $estado;
         }
 
@@ -94,7 +106,7 @@ class PostulacionController
             $st->bindValue($k, $v);
         }
 
-        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
@@ -137,88 +149,150 @@ class PostulacionController
     /**
      * Crea una postulación.
      */
-    public static function create(array $data): int
+    /**
+     * Muestra el formulario de creación.
+     */
+    public function create(): void
     {
-        global $pdo;
+        requireLogin();
+        requireRole(1);
 
-        $idVacante   = self::normalizarId($data['id_vacante'] ?? null, "vacante");
-        $idCandidato = self::normalizarId($data['id_candidato'] ?? null, "candidato");
+        require_once __DIR__ . '/../models/Vacante.php';
+        require_once __DIR__ . '/../models/Candidato.php';
 
-        $estadoRaw = (string)($data['estado'] ?? 'POSTULADO');
-        $estado    = self::normalizarEstado($estadoRaw);
+        $vacantes = Vacante::all();
+        $candidatos = Candidato::all();
 
-        $comentarios = trim((string)($data['comentarios'] ?? ''));
+        $errors = $_SESSION['errors'] ?? [];
+        $old = $_SESSION['old_input'] ?? [];
+        unset($_SESSION['errors'], $_SESSION['old_input']);
 
-        $sql = "INSERT INTO postulaciones
-                    (id_vacante, id_candidato, estado, comentarios, aplicada_en)
-                VALUES (?, ?, ?, ?, NOW())";
+        require __DIR__ . '/../../public/views/reclutamiento/postulaciones/create.php';
+    }
 
-        $st = $pdo->prepare($sql);
-        $st->execute([
-            $idVacante,
-            $idCandidato,
-            $estado,
-            $comentarios !== '' ? $comentarios : null,
-        ]);
+    /**
+     * Procesa el formulario de creación.
+     */
+    public function store(): void
+    {
+        requireLogin();
+        requireRole(1);
 
-        return (int)$pdo->lastInsertId();
+        $data = [
+            'id_vacante' => $_POST['id_vacante'] ?? '',
+            'id_candidato' => $_POST['id_candidato'] ?? '',
+            'estado' => $_POST['estado'] ?? 'POSTULADO',
+            'fecha_aplicacion' => $_POST['fecha_aplicacion'] ?? date('Y-m-d'),
+            'comentarios' => $_POST['comentarios'] ?? '',
+        ];
+
+        try {
+            Postulacion::create($data);
+        } catch (\Throwable $e) {
+            $_SESSION['errors'] = ['general' => $e->getMessage()];
+            $_SESSION['old_input'] = $data;
+            header('Location: index.php?controller=postulacion&action=create');
+            exit;
+        }
+
+        header('Location: index.php?controller=postulacion&action=index');
+        exit;
     }
 
     /**
      * Actualiza campos de una postulación (incluyendo estado).
      */
-    public static function update(int $id, array $data): void
+    /**
+     * Muestra el formulario de edición.
+     */
+    public function edit(): void
     {
-        global $pdo;
+        requireLogin();
+        requireRole(1);
 
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de postulación inválido.");
+            $_SESSION['errors'] = ['general' => 'ID de postulación inválido.'];
+            header('Location: index.php?controller=postulacion&action=index');
+            exit;
         }
 
-        $fields = [];
-        $params = [];
-
-        foreach (self::ALLOWED_FIELDS as $field) {
-            if (!array_key_exists($field, $data)) {
-                continue;
-            }
-
-            $value = $data[$field];
-
-            switch ($field) {
-                case 'id_vacante':
-                    $value = self::normalizarId($value, "vacante");
-                    break;
-
-                case 'id_candidato':
-                    $value = self::normalizarId($value, "candidato");
-                    break;
-
-                case 'estado':
-                    $value = self::normalizarEstado((string)$value);
-                    break;
-
-                case 'comentarios':
-                    $value = trim((string)$value);
-                    if ($value === '') {
-                        $value = null;
-                    }
-                    break;
-            }
-
-            $fields[] = "$field = ?";
-            $params[] = $value;
+        $postulacion = Postulacion::findById($id);
+        if (!$postulacion) {
+            $_SESSION['errors'] = ['general' => 'Postulación no encontrada.'];
+            header('Location: index.php?controller=postulacion&action=index');
+            exit;
         }
 
-        if (empty($fields)) {
-            return; // Nada que actualizar
+        require_once __DIR__ . '/../models/Vacante.php';
+        require_once __DIR__ . '/../models/Candidato.php';
+
+        $vacantes = Vacante::all();
+        $candidatos = Candidato::all();
+
+        $errors = $_SESSION['errors'] ?? [];
+        $old = $_SESSION['old_input'] ?? [];
+        unset($_SESSION['errors'], $_SESSION['old_input']);
+
+        // Si no hay input viejo (primera carga), llenamos con datos de la DB
+        if (empty($old)) {
+            $old = [
+                'id_vacante' => $postulacion['id_vacante'],
+                'id_candidato' => $postulacion['id_candidato'],
+                'estado' => $postulacion['estado'],
+                'fecha_aplicacion' => $postulacion['aplicada_en'] ? date('Y-m-d', strtotime($postulacion['aplicada_en'])) : '',
+                'comentarios' => $postulacion['comentarios'],
+            ];
         }
 
-        $params[] = $id;
+        require __DIR__ . '/../../public/views/reclutamiento/postulaciones/edit.php';
+    }
 
-        $sql = "UPDATE postulaciones SET " . implode(", ", $fields) . " WHERE id_postulacion = ?";
-        $st  = $pdo->prepare($sql);
-        $st->execute($params);
+    /**
+     * Procesa el formulario de edición.
+     */
+    public function update(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['errors'] = ['general' => 'ID de postulación inválido.'];
+            header('Location: index.php?controller=postulacion&action=index');
+            exit;
+        }
+
+        $data = [
+            'id_vacante' => $_POST['id_vacante'] ?? '',
+            'id_candidato' => $_POST['id_candidato'] ?? '',
+            'estado' => $_POST['estado'] ?? 'POSTULADO',
+            'fecha_aplicacion' => $_POST['fecha_aplicacion'] ?? date('Y-m-d'),
+            'comentarios' => $_POST['comentarios'] ?? '',
+            // 'aplicada_en' se podría actualizar si el modelo lo permite, 
+            // pero el create usa NOW(). Aquí usaremos fecha_aplicacion si el modelo lo soporta 
+            // o asumimos que se actualiza 'aplicada_en' o similar.
+            // Revisando el modelo update(), usa ALLOWED_FIELDS. 'aplicada_en' no está en ALLOWED_FIELDS por defecto en el código original,
+            // pero el usuario podría querer cambiar la fecha. 
+            // Por seguridad/simplicidad y respetar el código original del modelo, 
+            // pasaremos los datos y el modelo filtrará.
+        ];
+
+        // NOTA: El modelo originalPostulacion::update filtra por ALLOWED_FIELDS.
+        // Si 'fecha_aplicacion' o 'aplicada_en' no están allí, no se actualizará la fecha.
+        // Eso es comportamiento del modelo existente.
+
+        try {
+            Postulacion::update($id, $data);
+        } catch (\Throwable $e) {
+            $_SESSION['errors'] = ['general' => $e->getMessage()];
+            $_SESSION['old_input'] = $data + ['id' => $id];
+            header('Location: index.php?controller=postulacion&action=edit&id=' . $id);
+            exit;
+        }
+
+        header('Location: index.php?controller=postulacion&action=index');
+        exit;
     }
 
     /**
@@ -232,7 +306,7 @@ class PostulacionController
             throw new \InvalidArgumentException("ID de postulación inválido.");
         }
 
-        $estado      = self::normalizarEstado($estado);
+        $estado = self::normalizarEstado($estado);
         $comentarios = $comentarios !== null ? trim($comentarios) : null;
 
         $sql = "UPDATE postulaciones
@@ -266,7 +340,7 @@ class PostulacionController
 
     private static function normalizarId($valor, string $labelCampo): int
     {
-        $id = (int)$valor;
+        $id = (int) $valor;
         if ($id <= 0) {
             throw new \InvalidArgumentException("{$labelCampo} inválido.");
         }

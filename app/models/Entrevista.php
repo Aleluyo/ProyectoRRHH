@@ -16,7 +16,7 @@ class Entrevista
         'notas',
     ];
 
-    private const RESULTADOS_VALIDOS = ['PENDIENTE', 'APROBADO', 'RECHAZADO'];
+    private const RESULTADOS_VALIDOS = ['PENDIENTE', 'APROBADO', 'RECHAZADO', 'CANCELADA'];
 
     /**
      * Devuelve una entrevista por ID (con info básica de la postulación).
@@ -44,8 +44,8 @@ class Entrevista
                     COALESCE(c.nombre, 'Sin candidato')
                 ) AS postulacion_resumen
             FROM entrevistas e
-            INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
-            INNER JOIN vacantes v      ON v.id_vacante    = p.id_vacante
+            LEFT JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
+            LEFT JOIN vacantes v      ON v.id_vacante    = p.id_vacante
             LEFT  JOIN areas   a       ON a.id_area       = v.id_area
             LEFT  JOIN puestos pu      ON pu.id_puesto    = v.id_puesto
             LEFT  JOIN candidatos c    ON c.id_candidato  = p.id_candidato
@@ -71,11 +71,12 @@ class Entrevista
     ): array {
         global $pdo;
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = [];
-        $params = [];
+        // Borrado lógico: filtrar 'CANCELADA'
+        $where = ['e.resultado != :resCancelada'];
+        $params = [':resCancelada' => 'CANCELADA'];
 
         if ($search !== null && trim($search) !== '') {
             $search = '%' . trim($search) . '%';
@@ -83,10 +84,7 @@ class Entrevista
             $params[':q'] = $search;
         }
 
-        $whereSql = '';
-        if (!empty($where)) {
-            $whereSql = 'WHERE ' . implode(' AND ', $where);
-        }
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
 
         $sql = "
             SELECT
@@ -103,8 +101,8 @@ class Entrevista
                     COALESCE(c.nombre, 'Sin candidato')
                 ) AS postulacion_resumen
             FROM entrevistas e
-            INNER JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
-            INNER JOIN vacantes v      ON v.id_vacante    = p.id_vacante
+            LEFT JOIN postulaciones p ON p.id_postulacion = e.id_postulacion
+            LEFT JOIN vacantes v      ON v.id_vacante    = p.id_vacante
             LEFT  JOIN areas   a       ON a.id_area       = v.id_area
             LEFT  JOIN puestos pu      ON pu.id_puesto    = v.id_puesto
             LEFT  JOIN candidatos c    ON c.id_candidato  = p.id_candidato
@@ -119,41 +117,7 @@ class Entrevista
             $st->bindValue($k, $v);
         }
 
-        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
-        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
-
-        $st->execute();
-        return $st->fetchAll(\PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Lista entrevistas de una postulación (si lo necesitas en otra vista).
-     */
-    public static function byPostulacion(
-        int $idPostulacion,
-        int $limit = 500,
-        int $offset = 0
-    ): array {
-        global $pdo;
-
-        if ($idPostulacion <= 0) {
-            throw new \InvalidArgumentException("ID de postulación inválido.");
-        }
-
-        $limit  = max(1, min($limit, 1000));
-        $offset = max(0, $offset);
-
-        $sql = "
-            SELECT *
-            FROM entrevistas
-            WHERE id_postulacion = :idPostulacion
-            ORDER BY programada_para DESC
-            LIMIT :limit OFFSET :offset
-        ";
-
-        $st = $pdo->prepare($sql);
-        $st->bindValue(':idPostulacion', $idPostulacion, \PDO::PARAM_INT);
-        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
@@ -169,17 +133,17 @@ class Entrevista
         global $pdo;
 
         $idPostulacion = self::normalizarId($data['id_postulacion'] ?? null, "postulación");
-        $programadaRaw = (string)($data['programada_para'] ?? '');
-        $programada    = self::normalizarFechaHora($programadaRaw, "fecha/hora programada");
+        $programadaRaw = (string) ($data['programada_para'] ?? '');
+        $programada = self::normalizarFechaHora($programadaRaw, "fecha/hora programada");
 
-        $resultadoRaw  = (string)($data['resultado'] ?? 'PENDIENTE');
-        $resultado     = self::normalizarResultado($resultadoRaw);
+        $resultadoRaw = (string) ($data['resultado'] ?? 'PENDIENTE');
+        $resultado = self::normalizarResultado($resultadoRaw);
 
-        $notas         = trim((string)($data['notas'] ?? ''));
+        $notas = trim((string) ($data['notas'] ?? ''));
 
         // Entrevistador: usuario actual o 1 por defecto
         $entrevistador = isset($_SESSION['id_usuario'])
-            ? (int)$_SESSION['id_usuario']
+            ? (int) $_SESSION['id_usuario']
             : 1;
 
         if ($entrevistador <= 0) {
@@ -201,7 +165,7 @@ class Entrevista
             $notas !== '' ? $notas : null,
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     /**
@@ -231,15 +195,15 @@ class Entrevista
                     break;
 
                 case 'programada_para':
-                    $value = self::normalizarFechaHora((string)$value, "fecha/hora programada");
+                    $value = self::normalizarFechaHora((string) $value, "fecha/hora programada");
                     break;
 
                 case 'resultado':
-                    $value = self::normalizarResultado((string)$value);
+                    $value = self::normalizarResultado((string) $value);
                     break;
 
                 case 'notas':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         $value = null;
                     }
@@ -257,12 +221,12 @@ class Entrevista
         $params[] = $id;
 
         $sql = "UPDATE entrevistas SET " . implode(", ", $fields) . " WHERE id_entrevista = ?";
-        $st  = $pdo->prepare($sql);
+        $st = $pdo->prepare($sql);
         $st->execute($params);
     }
 
     /**
-     * Elimina una entrevista.
+     * Elimina una entrevista (lógico).
      */
     public static function delete(int $id): void
     {
@@ -272,7 +236,8 @@ class Entrevista
             throw new \InvalidArgumentException("ID de entrevista inválido.");
         }
 
-        $st = $pdo->prepare("DELETE FROM entrevistas WHERE id_entrevista = ?");
+        // Borrado lógico setear resultado CANCELADA
+        $st = $pdo->prepare("UPDATE entrevistas SET resultado = 'CANCELADA' WHERE id_entrevista = ?");
         $st->execute([$id]);
     }
 
@@ -280,7 +245,7 @@ class Entrevista
 
     private static function normalizarId($valor, string $labelCampo): int
     {
-        $id = (int)$valor;
+        $id = (int) $valor;
         if ($id <= 0) {
             throw new \InvalidArgumentException("{$labelCampo} inválido.");
         }
@@ -301,8 +266,8 @@ class Entrevista
         }
 
         $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $valor)
-           ?: \DateTime::createFromFormat('Y-m-d H:i', $valor)
-           ?: \DateTime::createFromFormat('Y-m-d\TH:i', $valor);
+            ?: \DateTime::createFromFormat('Y-m-d H:i', $valor)
+            ?: \DateTime::createFromFormat('Y-m-d\TH:i', $valor);
 
         if (!$dt) {
             throw new \InvalidArgumentException("Formato inválido para {$labelCampo}.");

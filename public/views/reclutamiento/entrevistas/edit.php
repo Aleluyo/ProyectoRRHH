@@ -1,12 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../../../config/config.php';
-require_once __DIR__ . '/../../../../config/paths.php';
-require_once __DIR__ . '/../../../../app/middleware/Auth.php';
-
-requireLogin();
-requireRole(1);
+// Se asume que el controlador ya cargó la configuración, sesión y Auth.
+// require_once ... (redundante)
 
 $area = htmlspecialchars($_SESSION['area'] ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -70,8 +66,8 @@ $idEntrevista = (int) ($entrevista['id_entrevista'] ?? 0);
     href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Yellowtail&display=swap"
     rel="stylesheet">
 
-    <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
-    <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
+  <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
 </head>
 
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">

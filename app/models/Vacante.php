@@ -69,15 +69,15 @@ class Vacante
     ): array {
         global $pdo;
 
-        $limit  = max(1, min($limit, 1000));
+        $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = [];
+        $where = [];
         $params = [];
 
         if ($search !== null && trim($search) !== '') {
             $q = '%' . trim($search) . '%';
-            $where[]        = "(
+            $where[] = "(
                   e.nombre        LIKE :q
                OR a.nombre_area   LIKE :q
                OR p.nombre_puesto LIKE :q
@@ -119,7 +119,7 @@ class Vacante
         foreach ($params as $k => $v) {
             $st->bindValue($k, $v);
         }
-        $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
+        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
 
         $st->execute();
@@ -135,8 +135,8 @@ class Vacante
     {
         global $pdo;
 
-        $idArea      = self::normalizarId($data['id_area'] ?? null, 'área');
-        $idPuesto    = self::normalizarId($data['id_puesto'] ?? null, 'puesto');
+        $idArea = self::normalizarId($data['id_area'] ?? null, 'área');
+        $idPuesto = self::normalizarId($data['id_puesto'] ?? null, 'puesto');
         $idUbicacion = isset($data['id_ubicacion']) && $data['id_ubicacion'] !== ''
             ? self::normalizarId($data['id_ubicacion'], 'ubicación')
             : null;
@@ -145,12 +145,12 @@ class Vacante
             ? self::normalizarId($data['solicitada_por'], 'usuario solicitante')
             : null;
 
-        $estatusRaw   = (string)($data['estatus'] ?? 'EN_APROBACION');
-        $estatus      = self::normalizarEstatus($estatusRaw);
+        $estatusRaw = (string) ($data['estatus'] ?? 'EN_APROBACION');
+        $estatus = self::normalizarEstatus($estatusRaw);
 
-        $requisitos   = trim((string)($data['requisitos'] ?? ''));
-        $fechaPubRaw  = trim((string)($data['fecha_publicacion'] ?? ''));
-        $fechaPub     = $fechaPubRaw !== '' ? self::normalizarFecha($fechaPubRaw, 'fecha de publicación') : null;
+        $requisitos = trim((string) ($data['requisitos'] ?? ''));
+        $fechaPubRaw = trim((string) ($data['fecha_publicacion'] ?? ''));
+        $fechaPub = $fechaPubRaw !== '' ? self::normalizarFecha($fechaPubRaw, 'fecha de publicación') : null;
 
         $sql = "
             INSERT INTO vacantes
@@ -170,7 +170,7 @@ class Vacante
             $fechaPub,
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     public static function update(int $id, array $data): void
@@ -213,18 +213,18 @@ class Vacante
                     break;
 
                 case 'estatus':
-                    $value = self::normalizarEstatus((string)$value);
+                    $value = self::normalizarEstatus((string) $value);
                     break;
 
                 case 'requisitos':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     if ($value === '') {
                         $value = null;
                     }
                     break;
 
                 case 'fecha_publicacion':
-                    $value = trim((string)$value);
+                    $value = trim((string) $value);
                     $value = $value === ''
                         ? null
                         : self::normalizarFecha($value, 'fecha de publicación');
@@ -242,7 +242,7 @@ class Vacante
         $params[] = $id;
 
         $sql = "UPDATE vacantes SET " . implode(', ', $fields) . " WHERE id_vacante = ?";
-        $st  = $pdo->prepare($sql);
+        $st = $pdo->prepare($sql);
         $st->execute($params);
     }
 
@@ -264,7 +264,7 @@ class Vacante
 
     private static function normalizarId($valor, string $labelCampo): int
     {
-        $id = (int)$valor;
+        $id = (int) $valor;
         if ($id <= 0) {
             throw new \InvalidArgumentException("{$labelCampo} inválido.");
         }
@@ -291,7 +291,7 @@ class Vacante
         }
 
         $dt = \DateTime::createFromFormat('Y-m-d', $valor)
-           ?: \DateTime::createFromFormat('Y-m-d H:i:s', $valor);
+            ?: \DateTime::createFromFormat('Y-m-d H:i:s', $valor);
 
         if (!$dt) {
             throw new \InvalidArgumentException("Formato inválido para {$labelCampo} (usa AAAA-MM-DD).");
