@@ -383,8 +383,21 @@ class Asistencia
 
     private static function validarHora(string $hora): void
     {
+        $hora = trim($hora);
+
+        // Acepta HH:MM o HH:MM:SS y normaliza a H:i:s
         $dt = \DateTime::createFromFormat('H:i:s', $hora);
-        if (!$dt || $dt->format('H:i:s') !== $hora) {
+        if (!$dt) {
+            $dt = \DateTime::createFromFormat('H:i', $hora);
+        }
+
+        if (!$dt) {
+            throw new \InvalidArgumentException("Hora inválida (usa formato HH:MM o HH:MM:SS).");
+        }
+
+        // Normalizar a H:i:s
+        $normalized = $dt->format('H:i:s');
+        if ($normalized !== $hora && !preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $hora)) {
             throw new \InvalidArgumentException("Hora inválida (usa formato HH:MM o HH:MM:SS).");
         }
     }

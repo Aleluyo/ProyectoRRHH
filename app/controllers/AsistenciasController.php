@@ -40,7 +40,14 @@ class AsistenciasController
     public function create(): void
     {
         requireRole(1);
-        // usamos la vista de edición/creación existente
+
+        // Lista de empleados activos para el combo
+        global $pdo;
+        $st = $pdo->prepare("SELECT id_empleado, nombre FROM empleados WHERE estado = 'ACTIVO' ORDER BY nombre ASC");
+        $st->execute();
+        $empleados = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        // usamos la vista de edición/creación existente, que ahora recibirá $empleados
         require __DIR__ . '/../../public/views/Asistencias/edit.php';
     }
 
