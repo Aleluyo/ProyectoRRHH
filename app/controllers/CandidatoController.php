@@ -18,7 +18,7 @@ class CandidatoController
         $candidatos  = Candidato::all(500, 0, $search);
 
         // Vista de lista
-        require __DIR__ . '/../../public/views/reclutamiento/candidatos/list.php';
+        require __DIR__ . '/../../app/views/reclutamiento/candidatos/index.php';
     }
 
     /* =========================================================

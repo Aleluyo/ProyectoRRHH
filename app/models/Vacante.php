@@ -73,7 +73,6 @@ class Vacante
 
         $limit = max(1, min($limit, 1000));
         $offset = max(0, $offset);
-
         $where = [];
         $params = [];
 
@@ -88,6 +87,9 @@ class Vacante
             )";
             $params[':q'] = $q;
         }
+
+        // Logical Delete Filter
+        $where[] = "v.activo = 1";
 
         if ($fechaInicio) {
             $where[] = 'v.fecha_publicacion >= :fecha_inicio';
@@ -257,17 +259,7 @@ class Vacante
         $st->execute($params);
     }
 
-    public static function delete(int $id): void
-    {
-        global $pdo;
 
-        if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de vacante inválido.");
-        }
-
-        $st = $pdo->prepare("DELETE FROM vacantes WHERE id_vacante = ?");
-        $st->execute([$id]);
-    }
 
     /* =========================================================
      *  HELPERS
@@ -309,5 +301,15 @@ class Vacante
         }
 
         return $dt->format('Y-m-d');
+    }
+
+    /**
+     * Eliminado lógico (activo = 0).
+     */
+    public static function delete(int $id): bool
+    {
+        global $pdo;
+        $stmt = $pdo->prepare("UPDATE vacantes SET activo = 0 WHERE id_vacante = ?");
+        return $stmt->execute([$id]);
     }
 }

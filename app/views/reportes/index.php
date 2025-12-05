@@ -92,7 +92,9 @@ require_once __DIR__ . '/../../../config/paths.php';
             <p class="text-muted-ink mt-1">Generación y descarga de información del sistema.</p>
         </div>
         <div class="flex gap-2">
-            <!-- Placeholder for global actions -->
+            <a href="<?= url('index.php') ?>" class="inline-flex items-center gap-2 bg-white border border-black/10 text-vc-ink px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">
+                &larr; Volver
+            </a>
         </div>
     </div>
 

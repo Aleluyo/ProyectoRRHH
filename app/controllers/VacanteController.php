@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Empresa.php';
 require_once __DIR__ . '/../models/Area.php';
 require_once __DIR__ . '/../models/Puesto.php';
 require_once __DIR__ . '/../models/Ubicacion.php';
+require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../middleware/Auth.php';
 
 class VacanteController
@@ -28,7 +29,7 @@ class VacanteController
             $vacantes = [];
         }
 
-        require __DIR__ . '/../../public/views/reclutamiento/vacantes/list.php';
+        require __DIR__ . '/../../app/views/reclutamiento/vacantes/index.php';
     }
 
     /**
@@ -55,9 +56,10 @@ class VacanteController
         $areas       = Area::all(1000, 0, null);
         $puestos     = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
+        $usuarios    = Usuario::all(1000, 0, null);
 
         // En la vista estarán disponibles:
-        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones
+        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones, $usuarios
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/create.php';
     }
 
@@ -98,7 +100,14 @@ class VacanteController
             // Vacante::create solo utiliza los campos que le corresponden
             Vacante::create($data);
 
-            $_SESSION['flash_success'] = 'Vacante creada correctamente.';
+            // $_SESSION['flash_success'] = 'Vacante creada correctamente.';
+            
+            $_SESSION['swal'] = [
+                'title' => '¡Vacante Creada!',
+                'text'  => 'La vacante se ha registrado correctamente en el sistema.',
+                'icon'  => 'success'
+            ];
+
             header('Location: index.php?controller=vacante&action=index');
             exit;
         } catch (\Throwable $e) {
@@ -143,6 +152,7 @@ class VacanteController
         $areas       = Area::all(1000, 0, null);
         $puestos     = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
+        $usuarios    = Usuario::all(1000, 0, null);
 
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/edit.php';
     }
@@ -188,7 +198,13 @@ class VacanteController
         try {
             Vacante::update($id, $data);
 
-            $_SESSION['flash_success'] = 'Vacante actualizada correctamente.';
+           // $_SESSION['flash_success'] = 'Vacante actualizada correctamente.';
+            $_SESSION['swal'] = [
+                'title' => '¡Vacante Actualizada!',
+                'text'  => 'La vacante se ha modificado correctamente.',
+                'icon'  => 'success'
+            ];
+
             header('Location: index.php?controller=vacante&action=index');
             exit;
         } catch (\Throwable $e) {

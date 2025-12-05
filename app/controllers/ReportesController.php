@@ -203,7 +203,7 @@ class ReportesController {
         $output = fopen('php://output', 'w');
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        fputcsv($output, ['ID', 'Area', 'Puesto', 'Ubicacion', 'Solicitante', 'Estatus', 'Fecha Publicacion', 'Requisitos']);
+        fputcsv($output, ['Area', 'Puesto', 'Ubicacion', 'Solicitante', 'Estatus', 'Fecha Publicacion', 'Requisitos']);
 
         $fechaInicio = $_GET['fecha_inicio'] ?? null;
         $fechaFin = $_GET['fecha_fin'] ?? null;
@@ -212,10 +212,9 @@ class ReportesController {
 
         foreach ($vacantes as $v) {
             fputcsv($output, [
-                $v['id_vacante'],
-                $v['id_area'], 
-                $v['id_puesto'],
-                $v['id_ubicacion'],
+                $v['area_nombre'] ?? $v['id_area'], 
+                $v['puesto_nombre'] ?? $v['id_puesto'],
+                $v['ubicacion_nombre'] ?? $v['id_ubicacion'],
                 $v['solicitada_por'],
                 $v['estatus'],
                 $v['fecha_publicacion'],

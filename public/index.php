@@ -13,6 +13,7 @@ require_once __DIR__ . '/../app/controllers/TurnoController.php';
 require_once __DIR__ . '/../app/controllers/VacanteController.php';
 require_once __DIR__ . '/../app/controllers/CandidatoController.php';
 require_once __DIR__ . '/../app/controllers/PostulacionController.php';
+require_once __DIR__ . '/../app/controllers/TableroController.php'; // Kanban
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
 //Controladores de Empleados
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
@@ -62,6 +63,9 @@ if ($controllerName !== null && $actionName !== null) {
       break;
     case 'postulacion':
       $controller = new PostulacionController();
+      break;
+    case 'tablero':
+      $controller = new TableroController();
       break;
     case 'entrevista':
       $controller = new EntrevistaController();

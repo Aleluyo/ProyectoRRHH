@@ -192,4 +192,123 @@ class NominaController
         
         require __DIR__ . '/../views/nominas/recibo.php';
     }
+    /**
+     * Mostrar formulario de edición de nómina
+     */
+    public function edit(): void
+    {
+        requireLogin();
+        requireRole(1); // Solo admin
+
+        $idNomina = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $nomina = Nomina::findById($idNomina);
+
+        if (!$nomina) {
+            $_SESSION['flash_error'] = 'Nómina no encontrada.';
+            header('Location: index.php?controller=nomina&action=index');
+            exit;
+        }
+
+        // Obtener detalles actuales
+        $detalles = NominaDetalle::getByNomina($idNomina);
+        
+        // Obtener catálogo de conceptos para el select
+        $conceptos = ConceptoNomina::all();
+        
+        // Separar conceptos para facilitar la vista
+        $percepcionesDisp = ConceptoNomina::getByTipo('PERCEPCION');
+        $deduccionesDisp = ConceptoNomina::getByTipo('DEDUCCION');
+        
+        // Obtener salario base para cálculos de referencia
+        // El salario base no viene directo en Nomina::findById con el query actual, 
+        // pero podemos sacarlo del puesto si se hizo el join, o una consulta extra.
+        // En findById ya tenemos p.nombre_puesto, pero no salario.
+        // Haremos consulta rápida del salario del empleado.
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT salario_base FROM puestos p INNER JOIN empleados e ON e.id_puesto = p.id_puesto WHERE e.id_empleado = ?");
+        $stmt->execute([$nomina['id_empleado']]);
+        $salarioBase = (float)$stmt->fetchColumn(); 
+
+        require __DIR__ . '/../views/nominas/edit.php';
+    }
+
+    /**
+     * Procesar actualización de nómina
+     */
+    public function update(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $idNomina = $_POST['id_nomina'] ?? 0;
+        $idNomina = (int)$idNomina;
+
+        if ($idNomina <= 0) {
+            $_SESSION['flash_error'] = 'ID de nómina inválido.';
+            header('Location: index.php?controller=nomina&action=index');
+            exit;
+        }
+
+        // Datos del formulario
+        // Esperamos arrays: conceptos_ids[], montos[], observaciones[] ??
+        // O mejor: items[ index ][ id_concepto ], items[ index ][ monto ]
+        
+        // Estructura sugerida del form:
+        // name="detalles[index][id_concepto]"
+        // name="detalles[index][monto]"
+        
+        $detalles = $_POST['detalles'] ?? [];
+
+        global $pdo;
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Limpiar detalles anteriores
+            NominaDetalle::deleteByNomina($idNomina);
+
+            $totalPercepciones = 0.0;
+            $totalDeducciones = 0.0;
+            
+            // Catálogo para saber tipo sin queries excesivos
+            $conceptosAll = ConceptoNomina::all();
+            $tipoConcepto = []; // id => 'PERCEPCION'|'DEDUCCION'
+            foreach($conceptosAll as $c) {
+                $tipoConcepto[$c['id_concepto']] = $c['tipo'];
+            }
+
+            // 2. Insertar nuevos detalles
+            if (is_array($detalles)) {
+                foreach ($detalles as $item) {
+                    $idConcepto = (int)($item['id_concepto'] ?? 0);
+                    $monto = (float)($item['monto'] ?? 0);
+                    
+                    if ($idConcepto > 0 && $monto >= 0) {
+                        NominaDetalle::create($idNomina, $idConcepto, $monto);
+                        
+                        $tipo = $tipoConcepto[$idConcepto] ?? '';
+                        if ($tipo === 'PERCEPCION') {
+                            $totalPercepciones += $monto;
+                        } elseif ($tipo === 'DEDUCCION') {
+                            $totalDeducciones += $monto;
+                        }
+                    }
+                }
+            }
+
+            // 3. Actualizar totales
+            Nomina::updateTotals($idNomina, $totalPercepciones, $totalDeducciones);
+
+            $pdo->commit();
+            
+            $_SESSION['flash_success'] = 'Nómina actualizada correctamente.';
+            header('Location: index.php?controller=nomina&action=show&id=' . $_POST['id_periodo']); // Necesitamos id_periodo para volver
+            exit;
+
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['flash_error'] = 'Error al actualizar: ' . $e->getMessage();
+            header("Location: index.php?controller=nomina&action=edit&id=$idNomina");
+            exit;
+        }
+    }
 }

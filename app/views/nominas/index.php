@@ -75,7 +75,10 @@ require_once __DIR__ . '/../../../config/paths.php';
             <h1 class="vice-title text-4xl text-vc-ink">Nóminas</h1>
             <p class="text-muted-ink mt-1">Gestión de periodos de pago y generación de recibos.</p>
         </div>
-        <div>
+        <div class="flex gap-2">
+             <a href="<?= url('index.php') ?>" class="inline-flex items-center gap-2 bg-white border border-black/10 text-vc-ink px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">
+                &larr; Volver
+             </a>
              <a href="<?= url('index.php?controller=nomina&action=create') ?>" class="inline-flex items-center gap-2 bg-vc-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-teal-500 transition shadow-lg shadow-vc-teal/30">
                 <svg class="w-5 h-5"><use href="#i-plus"/></svg>
                 Generar Nueva Nómina
