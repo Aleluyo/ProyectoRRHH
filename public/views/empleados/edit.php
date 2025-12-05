@@ -126,35 +126,35 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">CURP</label>
-                        <input type="text" name="curp"
+                        <input type="text" name="curp" required
                             value="<?= htmlspecialchars($empleado['curp'] ?? '', ENT_QUOTES, 'UTF-8') ?>" maxlength="18"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">RFC</label>
-                        <input type="text" name="rfc"
+                        <input type="text" name="rfc" required
                             value="<?= htmlspecialchars($empleado['rfc'] ?? '', ENT_QUOTES, 'UTF-8') ?>" maxlength="13"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">NSS</label>
-                        <input type="text" name="nss"
+                        <input type="text" name="nss" required
                             value="<?= htmlspecialchars($empleado['nss'] ?? '', ENT_QUOTES, 'UTF-8') ?>" maxlength="15"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">Fecha de nacimiento</label>
-                        <input type="date" name="fecha_nacimiento"
+                        <input type="date" name="fecha_nacimiento" required
                             value="<?= htmlspecialchars($empleado['fecha_nacimiento'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">Género</label>
-                        <select name="genero"
+                        <select name="genero" required
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                             <option value="M" <?= ($empleado['genero'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino
                             </option>
@@ -167,28 +167,28 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">Estado civil</label>
-                        <input type="text" name="estado_civil"
+                        <input type="text" name="estado_civil" required
                             value="<?= htmlspecialchars($empleado['estado_civil'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-vc-ink mb-1">Teléfono</label>
-                        <input type="tel" name="telefono"
+                        <input type="tel" name="telefono" required
                             value="<?= htmlspecialchars($empleado['telefono'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-vc-ink mb-1">Correo personal</label>
-                        <input type="email" name="correo"
+                        <input type="email" name="correo" required
                             value="<?= htmlspecialchars($empleado['correo'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60">
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-vc-ink mb-1">Dirección</label>
-                        <textarea name="direccion" rows="2"
+                        <textarea name="direccion" rows="2" required
                             class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"><?= htmlspecialchars($empleado['direccion'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
                 </div>

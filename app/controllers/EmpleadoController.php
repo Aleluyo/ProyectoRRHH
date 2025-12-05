@@ -70,12 +70,34 @@ class EmpleadoController
         require __DIR__ . '/../../public/views/empleados/list.php';
     }
 
+    /**
+     * Vista de Altas & Reingresos
+     * GET: ?controller=empleado&action=altas
+     */
+    public function altas(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        // TODO: Obtener últimos 10 empleados con fecha_ingreso reciente
+        // $ultimosIngresos = Empleado::getRecentHires(10);
+
+        require __DIR__ . '/../../public/views/empleados/altas.php';
+    }
+
+
     public function create(): void
     {
         requireLogin();
         requireRole(1);
 
-        // Más adelante: aquí cargaremos combos de empresa/área/puesto/turno/ubicación
+        // Cargar combos para el formulario
+        $empresas = Empresa::all();
+        $areas = Area::all();
+        $puestos = Puesto::all();
+        $ubicaciones = Ubicacion::all();
+        $turnos = Turno::all();
+
         require __DIR__ . '/../../public/views/empleados/create.php';
     }
 

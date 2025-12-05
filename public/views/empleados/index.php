@@ -143,7 +143,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
             </a>
 
             <!-- 2. Altas & Reingresos -->
-            <a href="<?= url('index.php?controller=empleado&action=create') ?>"
+            <a href="<?= url('index.php?controller=empleado&action=altas') ?>"
                 class="group relative rounded-xl border border-black/10 bg-white p-6 hover:border-vc-teal/30 transition shadow-soft hover:shadow-lg">
                 <span
                     class="absolute left-0 top-0 h-full w-1.5 rounded-l-xl bg-vc-teal/30 group-hover:bg-vc-teal/50"></span>
