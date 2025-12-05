@@ -252,4 +252,37 @@ class Empleado
 
         return false;
     }
+
+    /**
+     * Obtener los últimos empleados contratados
+     * @param int $limit Número de empleados a obtener
+     * @return array Lista de empleados recientes
+     */
+    public static function getRecentHires(int $limit = 10): array
+    {
+        global $pdo;
+
+        $sql = "SELECT 
+                    e.id_empleado,
+                    e.nombre,
+                    e.fecha_ingreso,
+                    e.estado,
+                    e.genero,
+                    p.nombre_puesto,
+                    a.nombre_area,
+                    emp.nombre as nombre_empresa
+                FROM empleados e
+                LEFT JOIN puestos p ON e.id_puesto = p.id_puesto
+                LEFT JOIN areas a ON p.id_area = a.id_area
+                LEFT JOIN empresas emp ON a.id_empresa = emp.id_empresa
+                WHERE e.estado = 'ACTIVO'
+                ORDER BY e.fecha_ingreso DESC, e.id_empleado DESC
+                LIMIT :limit";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

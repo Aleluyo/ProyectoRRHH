@@ -138,88 +138,96 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
                     <h2 class="text-2xl font-bold text-vc-ink">Últimos ingresos</h2>
                     <p class="text-sm text-muted-ink mt-1">Registro de los 10 empleados más recientes</p>
                 </div>
-                <div class="flex gap-2">
-                    <button
-                        class="px-4 py-2 rounded-lg border border-black/10 bg-white text-sm text-vc-ink hover:bg-slate-50 transition">
-                        Filtrar
-                    </button>
-                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Tarjeta de empleado reciente - Ejemplo -->
-                <div
-                    class="rounded-xl border border-black/10 bg-white p-5 shadow-soft hover:shadow-lg transition-shadow">
-                    <div class="flex items-start gap-4">
+                <?php if (!empty($ultimosIngresos)): ?>
+                    <?php foreach ($ultimosIngresos as $empleado):
+                        // Obtener iniciales del nombre
+                        $nombres = explode(' ', $empleado['nombre']);
+                        $iniciales = '';
+                        if (count($nombres) >= 2) {
+                            $iniciales = strtoupper(substr($nombres[0], 0, 1) . substr($nombres[1], 0, 1));
+                        } else {
+                            $iniciales = strtoupper(substr($nombres[0], 0, 2));
+                        }
+
+                        // Calcular días desde el ingreso
+                        $fechaIngreso = new DateTime($empleado['fecha_ingreso']);
+                        $hoy = new DateTime();
+                        $diferencia = $hoy->diff($fechaIngreso);
+
+                        if ($diferencia->days == 0) {
+                            $tiempoTexto = 'Hoy';
+                        } elseif ($diferencia->days == 1) {
+                            $tiempoTexto = 'Hace 1 día';
+                        } elseif ($diferencia->days < 30) {
+                            $tiempoTexto = 'Hace ' . $diferencia->days . ' días';
+                        } elseif ($diferencia->days < 60) {
+                            $tiempoTexto = 'Hace 1 mes';
+                        } else {
+                            $meses = floor($diferencia->days / 30);
+                            $tiempoTexto = 'Hace ' . $meses . ' meses';
+                        }
+
+                        // Determinar color del avatar según género
+                        $genero = $empleado['genero'] ?? '';
+                        if ($genero === 'F') {
+                            $colorAvatar = 'bg-vc-pink/20 text-vc-pink';
+                        } else {
+                            $colorAvatar = 'bg-vc-teal/20 text-vc-teal';
+                        }
+                        ?>
                         <div
-                            class="shrink-0 w-14 h-14 rounded-full bg-vc-pink/20 flex items-center justify-center text-xl font-bold text-vc-pink">
-                            JD
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-vc-ink truncate">Juan Pérez Domínguez</h3>
-                            <p class="text-sm text-muted-ink">Analista de Sistemas</p>
-                            <p class="text-xs text-muted-ink mt-1">Tecnología · Desarrollo</p>
-                            <div class="mt-3 flex items-center gap-2">
-                                <span
-                                    class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    ● Alta
-                                </span>
-                                <span class="text-xs text-muted-ink">Hace 2 días</span>
+                            class="rounded-xl border border-black/10 bg-white p-5 shadow-soft hover:shadow-lg transition-shadow">
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="shrink-0 w-14 h-14 rounded-full <?= $colorAvatar ?> flex items-center justify-center text-xl font-bold">
+                                    <?= $iniciales ?>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-semibold text-vc-ink truncate">
+                                        <?= htmlspecialchars($empleado['nombre'], ENT_QUOTES, 'UTF-8') ?></h3>
+                                    <p class="text-sm text-muted-ink">
+                                        <?= htmlspecialchars($empleado['nombre_puesto'] ?? 'Sin puesto', ENT_QUOTES, 'UTF-8') ?>
+                                    </p>
+                                    <p class="text-xs text-muted-ink mt-1">
+                                        <?= htmlspecialchars($empleado['nombre_empresa'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                        <?= !empty($empleado['nombre_area']) ? ' · ' . htmlspecialchars($empleado['nombre_area'], ENT_QUOTES, 'UTF-8') : '' ?>
+                                    </p>
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <span
+                                            class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            ● Alta
+                                        </span>
+                                        <span class="text-xs text-muted-ink"><?= $tiempoTexto ?></span>
+                                    </div>
+                                </div>
+                                <a href="<?= url('index.php?controller=empleado&action=show&id=' . $empleado['id_empleado']) ?>"
+                                    class="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition">
+                                    <svg class="w-5 h-5 text-muted-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
                             </div>
                         </div>
-                        <a href="#" class="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition">
-                            <svg class="w-5 h-5 text-muted-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </a>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <!-- Mensaje cuando no hay datos -->
+                    <div
+                        class="md:col-span-2 rounded-xl border-2 border-dashed border-black/10 bg-slate-50/50 p-12 text-center">
+                        <svg class="w-16 h-16 mx-auto text-muted-ink/40 mb-4" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p class="text-muted-ink font-medium">No hay registros recientes de altas o reingresos</p>
+                        <p class="text-sm text-muted-ink mt-2">Los nuevos ingresos aparecerán aquí automáticamente</p>
                     </div>
-                </div>
-
-                <!-- Tarjeta de reingreso - Ejemplo -->
-                <div
-                    class="rounded-xl border border-black/10 bg-white p-5 shadow-soft hover:shadow-lg transition-shadow">
-                    <div class="flex items-start gap-4">
-                        <div
-                            class="shrink-0 w-14 h-14 rounded-full bg-vc-teal/20 flex items-center justify-center text-xl font-bold text-vc-teal">
-                            MG
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-vc-ink truncate">María García López</h3>
-                            <p class="text-sm text-muted-ink">Coordinadora de Ventas</p>
-                            <p class="text-xs text-muted-ink mt-1">Comercial · Ventas</p>
-                            <div class="mt-3 flex items-center gap-2">
-                                <span
-                                    class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    ↻ Reingreso
-                                </span>
-                                <span class="text-xs text-muted-ink">Hace 5 días</span>
-                            </div>
-                        </div>
-                        <a href="#" class="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition">
-                            <svg class="w-5 h-5 text-muted-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Mensaje cuando no hay datos -->
-                <div
-                    class="md:col-span-2 rounded-xl border-2 border-dashed border-black/10 bg-slate-50/50 p-12 text-center">
-                    <svg class="w-16 h-16 mx-auto text-muted-ink/40 mb-4" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <p class="text-muted-ink font-medium">No hay registros recientes de altas o reingresos</p>
-                    <p class="text-sm text-muted-ink mt-2">Los nuevos ingresos aparecerán aquí automáticamente</p>
-                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Botón ver todos -->

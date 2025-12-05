@@ -79,8 +79,8 @@ class EmpleadoController
         requireLogin();
         requireRole(1);
 
-        // TODO: Obtener últimos 10 empleados con fecha_ingreso reciente
-        // $ultimosIngresos = Empleado::getRecentHires(10);
+        // Obtener últimos 10 empleados con fecha_ingreso reciente
+        $ultimosIngresos = Empleado::getRecentHires(10);
 
         require __DIR__ . '/../../public/views/empleados/altas.php';
     }

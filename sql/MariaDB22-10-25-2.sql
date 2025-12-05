@@ -1414,8 +1414,34 @@ COMMIT;
 /********************************************************************************************************************************/
 
 /*   CAMBIOS  */
+/*Pegar en el apartado de SQL dentro de PHP*/
 ALTER TABLE puestos
   ADD COLUMN activa TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Puesto activo';
 
 ALTER TABLE turnos
   ADD COLUMN activo TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Turno activo';
+
+-- Tabla de movimientos de empleados
+CREATE TABLE IF NOT EXISTS movimientos (
+    id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    tipo_movimiento ENUM('BAJA', 'CAMBIO_AREA', 'CAMBIO_PUESTO', 'CAMBIO_JEFE', 'CAMBIO_POSICION') NOT NULL,
+    fecha_movimiento DATE NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    observaciones TEXT NULL,
+    valor_anterior VARCHAR(255) NULL,
+    valor_nuevo VARCHAR(255) NULL,
+    autorizado_por INT NOT NULL,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado) ON DELETE CASCADE,
+    FOREIGN KEY (autorizado_por) REFERENCES usuarios(id_usuario),
+    
+    INDEX idx_empleado (id_empleado),
+    INDEX idx_tipo (tipo_movimiento),
+    INDEX idx_fecha (fecha_movimiento)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Agregar campo fecha_baja a empleados (solo si no existe)
+ALTER TABLE empleados 
+ADD COLUMN fecha_baja DATE NULL AFTER estado;

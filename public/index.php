@@ -16,6 +16,7 @@ require_once __DIR__ . '/../app/controllers/PostulacionController.php';
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
 //Controladores de Empleados
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
+require_once __DIR__ . '/../app/controllers/MovimientoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
@@ -71,6 +72,9 @@ if ($controllerName !== null && $actionName !== null) {
     // Empleados
     case 'empleado':
       $controller = new EmpleadoController();
+      break;
+    case 'movimiento':
+      $controller = new MovimientoController();
       break;
     case 'configuracion':
       $controller = new ConfiguracionController();
