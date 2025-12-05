@@ -186,6 +186,19 @@ class PostulacionController
             'comentarios' => $_POST['comentarios'] ?? '',
         ];
 
+        // Validar duplicados
+        $idVacante = (int) ($data['id_vacante']);
+        $idCandidato = (int) ($data['id_candidato']);
+
+        if ($idVacante > 0 && $idCandidato > 0) {
+            if (Postulacion::exists($idVacante, $idCandidato)) {
+                $_SESSION['errors'] = ['general' => 'El candidato seleccionado ya está postulado a esta vacante.'];
+                $_SESSION['old_input'] = $data;
+                header('Location: index.php?controller=postulacion&action=create');
+                exit;
+            }
+        }
+
         try {
             Postulacion::create($data);
         } catch (\Throwable $e) {
