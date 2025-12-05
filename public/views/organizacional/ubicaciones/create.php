@@ -83,6 +83,7 @@ if (!isset($empresas) || !is_array($empresas)) {
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
 
   <!-- Estilos SweetAlert con paleta VC -->
   <style>

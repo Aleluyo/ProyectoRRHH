@@ -44,7 +44,7 @@ require_once __DIR__ . '/../../../config/paths.php';
     rel="stylesheet">
 
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
-  <link rel="icon" href="<?= asset('img/galgovc.ico') ?>" type="image/x-icon">
+  <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
 </head>
 
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">

@@ -53,6 +53,7 @@ $tipo       = $_GET['tipo'] ?? '';
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+    <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">

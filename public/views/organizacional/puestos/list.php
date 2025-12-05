@@ -66,6 +66,7 @@ $showInactive = isset($showInactive) ? (bool)$showInactive : false;
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
   <link rel="stylesheet" href="<?= asset('css/eliminatemsg.css') ?>">
 
   <!-- SweetAlert2 -->

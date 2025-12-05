@@ -65,6 +65,7 @@ $submodules = [
 
   <!-- Estilos Vice -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="icon" type="image/x-icon" href="<?= asset('img/galgovc.ico') ?>">
 
   <!-- Bootstrap Icons para los bi-* -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
