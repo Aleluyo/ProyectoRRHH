@@ -19,6 +19,8 @@ require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 
 // Controladores de Asistencias
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
+require_once __DIR__ . '/../app/controllers/ConfiguracionController.php';
+
 requireLogin();
 
 
@@ -71,6 +73,9 @@ if ($controllerName !== null && $actionName !== null) {
     case 'empleado':
       $controller = new EmpleadoController();
       break;
+    case 'configuracion':
+      $controller = new ConfiguracionController();
+      break;
     default:
       http_response_code(404);
       echo "Controlador no encontrado";
@@ -105,7 +110,7 @@ $modules = [
   ['title' => 'Usuarios', 'sub' => 'Control y roles de acceso', 'icon' => 'i-badge', 'href' => url('views/usuarios/list.php'), 'tag' => 'teal'],
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
   ['title' => 'Reportes', 'sub' => 'Indicadores y estadísticas', 'icon' => 'i-chart', 'href' => url('views/reportes/list.php'), 'tag' => 'peach'],
-  ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('views/configuracion/index.php'), 'tag' => 'sand'],
+  ['title' => 'Configuración', 'sub' => 'Parámetros del sistema', 'icon' => 'i-gear', 'href' => url('index.php?controller=configuracion&action=index'), 'tag' => 'sand'],
 ];
 ?>
 <!doctype html>
