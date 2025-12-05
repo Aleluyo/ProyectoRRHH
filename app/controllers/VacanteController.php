@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Empresa.php';
 require_once __DIR__ . '/../models/Area.php';
 require_once __DIR__ . '/../models/Puesto.php';
 require_once __DIR__ . '/../models/Ubicacion.php';
+require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../middleware/Auth.php';
 
 class VacanteController
@@ -44,20 +45,22 @@ class VacanteController
         requireRole(1);
 
         // Errores y valores anteriores (si venimos de un POST fallido)
-        $errors = $_SESSION['errors']    ?? [];
-        $old    = $_SESSION['old_input'] ?? [];
+        $errors = $_SESSION['errors'] ?? [];
+        $old = $_SESSION['old_input'] ?? [];
 
         unset($_SESSION['errors'], $_SESSION['old_input']);
 
         // ---------- Catálogos para los selects dependientes ----------
         // Se usa un límite grande porque son catálogos pequeños
-        $empresas    = Empresa::all(1000, 0, null);
-        $areas       = Area::all(1000, 0, null);
-        $puestos     = Puesto::all(1000, 0, null);
+        $empresas = Empresa::all(1000, 0, null);
+        $areas = Area::all(1000, 0, null);
+        $puestos = Puesto::all(1000, 0, null);
+        $puestos = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
+        $usuarios = Usuario::all(1000, 0, null);
 
         // En la vista estarán disponibles:
-        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones
+        // $errors, $old, $empresas, $areas, $puestos, $ubicaciones, $usuarios
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/create.php';
     }
 
@@ -74,20 +77,20 @@ class VacanteController
         // Datos crudos del formulario
         $data = [
             // id_empresa lo usamos solo para lógica / validación, NO se guarda en la tabla
-            'id_empresa'        => $_POST['id_empresa']   ?? '',
-            'id_area'           => $_POST['id_area']      ?? '',
-            'id_puesto'         => $_POST['id_puesto']    ?? '',
-            'id_ubicacion'      => $_POST['id_ubicacion'] ?? '',
-            'solicitada_por'    => $_POST['solicitada_por'] ?? '',
-            'estatus'           => $_POST['estatus']      ?? 'EN_APROBACION',
-            'requisitos'        => $_POST['requisitos']   ?? '',
+            'id_empresa' => $_POST['id_empresa'] ?? '',
+            'id_area' => $_POST['id_area'] ?? '',
+            'id_puesto' => $_POST['id_puesto'] ?? '',
+            'id_ubicacion' => $_POST['id_ubicacion'] ?? '',
+            'solicitada_por' => $_POST['solicitada_por'] ?? '',
+            'estatus' => $_POST['estatus'] ?? 'EN_APROBACION',
+            'requisitos' => $_POST['requisitos'] ?? '',
             'fecha_publicacion' => $_POST['fecha_publicacion'] ?? '',
         ];
 
         $errors = $this->validarVacante($data, null);
 
         if (!empty($errors)) {
-            $_SESSION['errors']    = $errors;
+            $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = $data;
 
             header('Location: index.php?controller=vacante&action=create');
@@ -103,7 +106,7 @@ class VacanteController
             exit;
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = 'Error al crear la vacante: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
+            $_SESSION['old_input'] = $data;
 
             header('Location: index.php?controller=vacante&action=create');
             exit;
@@ -119,7 +122,7 @@ class VacanteController
         requireLogin();
         requireRole(1);
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
         if ($id <= 0) {
             header('Location: index.php?controller=vacante&action=index');
@@ -133,16 +136,18 @@ class VacanteController
             exit;
         }
 
-        $errors = $_SESSION['errors']    ?? [];
-        $old    = $_SESSION['old_input'] ?? [];
+        $errors = $_SESSION['errors'] ?? [];
+        $old = $_SESSION['old_input'] ?? [];
 
         unset($_SESSION['errors'], $_SESSION['old_input']);
 
         // Catálogos para selects dependientes también en edición
-        $empresas    = Empresa::all(1000, 0, null);
-        $areas       = Area::all(1000, 0, null);
-        $puestos     = Puesto::all(1000, 0, null);
+        $empresas = Empresa::all(1000, 0, null);
+        $areas = Area::all(1000, 0, null);
+        $puestos = Puesto::all(1000, 0, null);
+        $puestos = Puesto::all(1000, 0, null);
         $ubicaciones = Ubicacion::all(1000, 0, null);
+        $usuarios = Usuario::all(1000, 0, null);
 
         require __DIR__ . '/../../public/views/reclutamiento/vacantes/edit.php';
     }
@@ -157,7 +162,7 @@ class VacanteController
         requireRole(1);
         session_start();
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
         if ($id <= 0) {
             header('Location: index.php?controller=vacante&action=index');
@@ -165,20 +170,20 @@ class VacanteController
         }
 
         $data = [
-            'id_empresa'        => $_POST['id_empresa']   ?? '',
-            'id_area'           => $_POST['id_area']      ?? '',
-            'id_puesto'         => $_POST['id_puesto']    ?? '',
-            'id_ubicacion'      => $_POST['id_ubicacion'] ?? '',
-            'solicitada_por'    => $_POST['solicitada_por'] ?? '',
-            'estatus'           => $_POST['estatus']      ?? 'EN_APROBACION',
-            'requisitos'        => $_POST['requisitos']   ?? '',
+            'id_empresa' => $_POST['id_empresa'] ?? '',
+            'id_area' => $_POST['id_area'] ?? '',
+            'id_puesto' => $_POST['id_puesto'] ?? '',
+            'id_ubicacion' => $_POST['id_ubicacion'] ?? '',
+            'solicitada_por' => $_POST['solicitada_por'] ?? '',
+            'estatus' => $_POST['estatus'] ?? 'EN_APROBACION',
+            'requisitos' => $_POST['requisitos'] ?? '',
             'fecha_publicacion' => $_POST['fecha_publicacion'] ?? '',
         ];
 
         $errors = $this->validarVacante($data, $id);
 
         if (!empty($errors)) {
-            $_SESSION['errors']    = $errors;
+            $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = $data;
 
             header('Location: index.php?controller=vacante&action=edit&id=' . $id);
@@ -193,7 +198,7 @@ class VacanteController
             exit;
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = 'Error al actualizar la vacante: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
+            $_SESSION['old_input'] = $data;
 
             header('Location: index.php?controller=vacante&action=edit&id=' . $id);
             exit;
@@ -210,7 +215,7 @@ class VacanteController
         requireRole(1);
         session_start();
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
         if ($id > 0) {
             try {
@@ -235,44 +240,44 @@ class VacanteController
         $errors = [];
 
         // id_empresa (solo para consistencia de combos)
-        $idEmpresa = (int)($data['id_empresa'] ?? 0);
+        $idEmpresa = (int) ($data['id_empresa'] ?? 0);
         if ($idEmpresa <= 0) {
             $errors['id_empresa'] = 'Selecciona una empresa.';
         }
 
         // id_area
-        $idArea = (int)($data['id_area'] ?? 0);
+        $idArea = (int) ($data['id_area'] ?? 0);
         if ($idArea <= 0) {
             $errors['id_area'] = 'Selecciona un área.';
         }
 
         // id_puesto
-        $idPuesto = (int)($data['id_puesto'] ?? 0);
+        $idPuesto = (int) ($data['id_puesto'] ?? 0);
         if ($idPuesto <= 0) {
             $errors['id_puesto'] = 'Selecciona un puesto.';
         }
 
         // id_ubicacion (puede ser null en tu tabla, pero aquí pedimos uno)
-        $idUbicacion = (int)($data['id_ubicacion'] ?? 0);
+        $idUbicacion = (int) ($data['id_ubicacion'] ?? 0);
         if ($idUbicacion <= 0) {
             $errors['id_ubicacion'] = 'Selecciona una ubicación.';
         }
 
         // solicitada_por
-        $sol = (int)($data['solicitada_por'] ?? 0);
+        $sol = (int) ($data['solicitada_por'] ?? 0);
         if ($sol <= 0) {
             $errors['solicitada_por'] = 'Indica el ID del usuario solicitante.';
         }
 
         // estatus
-        $estatusPermitidos = ['EN_APROBACION','APROBADA','ABIERTA','EN_PROCESO','CERRADA'];
-        $estatus = strtoupper(trim((string)($data['estatus'] ?? '')));
+        $estatusPermitidos = ['EN_APROBACION', 'APROBADA', 'ABIERTA', 'EN_PROCESO', 'CERRADA'];
+        $estatus = strtoupper(trim((string) ($data['estatus'] ?? '')));
         if (!in_array($estatus, $estatusPermitidos, true)) {
             $errors['estatus'] = 'Estatus inválido.';
         }
 
         // fecha_publicacion (opcional)
-        $fecha = trim((string)($data['fecha_publicacion'] ?? ''));
+        $fecha = trim((string) ($data['fecha_publicacion'] ?? ''));
         if ($fecha !== '') {
             $dt = \DateTime::createFromFormat('Y-m-d', $fecha);
             if (!$dt) {
@@ -281,7 +286,7 @@ class VacanteController
         }
 
         // requisitos (opcional, solo límite de tamaño)
-        $req = trim((string)($data['requisitos'] ?? ''));
+        $req = trim((string) ($data['requisitos'] ?? ''));
         if (strlen($req) > 1000) {
             $errors['requisitos'] = 'Los requisitos/comentarios son demasiado largos.';
         }
