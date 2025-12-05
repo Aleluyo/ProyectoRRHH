@@ -14,6 +14,7 @@ require_once __DIR__ . '/../app/controllers/VacanteController.php';
 require_once __DIR__ . '/../app/controllers/CandidatoController.php';
 require_once __DIR__ . '/../app/controllers/PostulacionController.php';
 require_once __DIR__ . '/../app/controllers/EntrevistaController.php';
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
 =======
@@ -21,6 +22,13 @@ require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
 require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
 
 >>>>>>> Stashed changes
+=======
+// Controladores de Asistencias
+require_once __DIR__ . '/../app/controllers/AsistenciasController.php';
+// Controladores de Empleados
+require_once __DIR__ . '/../app/controllers/EmpleadoController.php';
+
+>>>>>>> parent of 6c9e549 (solucion index)
 requireLogin();
 
 
@@ -112,7 +120,15 @@ if ($controllerName !== null && $actionName !== null) {
     case 'entrevista':
       $controller = new EntrevistaController();
       break;
+<<<<<<< HEAD
     //Empleados
+=======
+    // Asistencias
+    case 'asistencia':
+      $controller = new AsistenciasController();
+      break;
+    // Empleados
+>>>>>>> parent of 6c9e549 (solucion index)
     case 'empleado':
       $controller = new EmpleadoController();
       break;
@@ -143,6 +159,7 @@ $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
 $modules = [
   ['title' => 'Empleados', 'sub' => 'Altas, expedientes y consultas', 'icon' => 'i-users', 'href' => url('index.php?controller=empleado&action=index'), 'tag' => 'pink'],
+<<<<<<< HEAD
   // NUEVO módulo principal de Reclutamiento
 <<<<<<< Updated upstream
   ['title'=>'Reclutamiento y Selección','sub'=>'Vacantes, candidatos y entrevistas','icon'=>'i-users','href'=>url('views/reclutamiento/index.php'),'tag'=>'teal'],
@@ -154,9 +171,11 @@ $modules = [
   ['title'=>'Reportes','sub'=>'Indicadores y estadísticas','icon'=>'i-chart','href'=>url('views/reportes/list.php'),'tag'=>'peach'],
   ['title'=>'Configuración','sub'=>'Parámetros del sistema','icon'=>'i-gear','href'=>url('views/configuracion/index.php'),'tag'=>'sand'],
 =======
+=======
+>>>>>>> parent of 6c9e549 (solucion index)
   ['title' => 'Reclutamiento y Selección', 'sub' => 'Vacantes, candidatos y entrevistas', 'icon' => 'i-users', 'href' => url('views/reclutamiento/index.php'), 'tag' => 'teal'],
   ['title' => 'Nómina', 'sub' => 'Recibos, cálculos y reportes', 'icon' => 'i-cash', 'href' => url('views/nomina/list.php'), 'tag' => 'teal'],
-  ['title' => 'Asistencia', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('views/asistencia/list.php'), 'tag' => 'peach'],
+  ['title' => 'Asistencias', 'sub' => 'Entradas, salidas y faltas', 'icon' => 'i-cal-check', 'href' => url('index.php?controller=asistencia&action=index'), 'tag' => 'peach'],
   ['title' => 'Permisos & Vacaciones', 'sub' => 'Gestión de ausencias', 'icon' => 'i-cal-plus', 'href' => url('views/permisos/list.php'), 'tag' => 'sand'],
   ['title' => 'Usuarios', 'sub' => 'Control y roles de acceso', 'icon' => 'i-badge', 'href' => url('views/usuarios/list.php'), 'tag' => 'teal'],
   ['title' => 'Empresas', 'sub' => 'Catálogo de áreas, puestos, ubicaciones y más', 'icon' => 'i-building', 'href' => url('views/organizacional/index.php'), 'tag' => 'pink'],
