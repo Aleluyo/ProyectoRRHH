@@ -310,6 +310,4 @@ class Vacante
 
         return $dt->format('Y-m-d');
     }
-}       return $stmt->execute([$id]);
-    }
 }

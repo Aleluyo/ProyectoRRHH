@@ -86,6 +86,18 @@ require_once __DIR__ . '/../../../config/paths.php';
         </div>
     </div>
 
+    <!-- Tabs Activas / Archivadas -->
+    <div class="mb-6 border-b border-black/10">
+        <nav class="-mb-px flex gap-8">
+            <a href="<?= url('index.php?controller=nomina&action=index&view=active') ?>" class="<?= !($showArchived ?? false) ? 'border-vc-pink text-vc-ink' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition">
+                Activas
+            </a>
+            <a href="<?= url('index.php?controller=nomina&action=index&view=archived') ?>" class="<?= ($showArchived ?? false) ? 'border-vc-pink text-vc-ink' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' ?> whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition">
+                Archivadas
+            </a>
+        </nav>
+    </div>
+
     <!-- Feedback Flash -->
     <?php if (isset($_SESSION['flash_error'])): ?>
         <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm font-medium">
@@ -115,7 +127,7 @@ require_once __DIR__ . '/../../../config/paths.php';
                     <?php if (empty($periodos)): ?>
                         <tr>
                             <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                No hay periodos de nómina registrados.
+                                No hay periodos de nómina en esta vista.
                             </td>
                         </tr>
                     <?php else: ?>
@@ -140,17 +152,35 @@ require_once __DIR__ . '/../../../config/paths.php';
                                             <span class="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                             ABIERTO
                                         </span>
-                                    <?php else: ?>
+                                    <?php elseif ($p['estado'] === 'CERRADO'): ?>
                                         <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-500 text-xs font-bold">
                                             CERRADO
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-amber-50 text-amber-600 text-xs font-bold">
+                                            ARCHIVADO
                                         </span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <a href="<?= url('index.php?controller=nomina&action=show&id=' . $p['id_periodo']) ?>" class="text-vc-teal hover:text-teal-600 font-bold text-xs inline-flex items-center gap-1">
-                                        VER DETALLE
-                                        <svg class="w-4 h-4"><use href="#i-eye"/></svg>
-                                    </a>
+                                    <div class="flex justify-end items-center gap-2">
+                                        <a href="<?= url('index.php?controller=nomina&action=show&id=' . $p['id_periodo']) ?>" class="text-vc-teal hover:text-teal-600 font-bold text-xs inline-flex items-center gap-1" title="Ver Detalle">
+                                            VER DETALLE
+                                            <svg class="w-4 h-4"><use href="#i-eye"/></svg>
+                                        </a>
+
+                                        <?php if (!($showArchived ?? false) && $p['estado'] === 'CERRADO'): ?>
+                                            <a href="<?= url('index.php?controller=nomina&action=archive&id=' . $p['id_periodo']) ?>" class="text-gray-400 hover:text-amber-500 transition" title="Archivar" onclick="return confirm('¿Estás seguro de archivar esta nómina? Desaparecerá de la lista principal.');">
+                                                <i class="fas fa-archive"></i>
+                                            </a>
+                                        <?php endif; ?>
+
+                                        <?php if ($showArchived ?? false): ?>
+                                            <a href="<?= url('index.php?controller=nomina&action=restore&id=' . $p['id_periodo']) ?>" class="text-gray-400 hover:text-emerald-500 transition" title="Restaurar" onclick="return confirm('¿Restaurar nómina a la lista principal?');">
+                                                <i class="fas fa-undo"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

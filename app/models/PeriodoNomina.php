@@ -10,15 +10,27 @@ require_once __DIR__ . '/../../config/db.php';
 class PeriodoNomina
 {
     /**
-     * Obtener todos los periodos ordenados por fecha inicio descendente/
+     * Obtener periodos filtrando por si están archivados o no.
+     * $showArchived = false -> Muestra ABIERTO y CERRADO
+     * $showArchived = true  -> Muestra ARCHIVADO
      */
-    public static function all(): array
+    public static function all(bool $showArchived = false): array
     {
         global $pdo;
         $sql = "SELECT pn.*, e.nombre as empresa_nombre 
                 FROM periodos_nomina pn
-                INNER JOIN empresas e ON e.id_empresa = pn.id_empresa
-                ORDER BY pn.fecha_inicio DESC";
+                INNER JOIN empresas e ON e.id_empresa = pn.id_empresa ";
+        
+        if ($showArchived) {
+            // "Archivadas" incluye todo lo que no está activo (CERRADO o ARCHIVADO)
+            $sql .= "WHERE pn.estado IN ('ARCHIVADO', 'CERRADO') ";
+        } else {
+            // "Activas" solo muestra ABIERTO
+            $sql .= "WHERE pn.estado = 'ABIERTO' ";
+        }
+
+        $sql .= "ORDER BY pn.fecha_inicio DESC";
+        
         $stmt = $pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -67,6 +79,30 @@ class PeriodoNomina
      * Cerrar un periodo
      */
     public static function close(int $id): bool
+    {
+        global $pdo;
+        $sql = "UPDATE periodos_nomina SET estado = 'CERRADO' WHERE id_periodo = :id";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * Archivar un periodo (Soft Delete visual)
+     */
+    public static function archive(int $id): bool
+    {
+        global $pdo;
+        $sql = "UPDATE periodos_nomina SET estado = 'ARCHIVADO' WHERE id_periodo = :id";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * Restaurar un periodo archivado a CERRADO (asumimos cerrado si se archivó)
+     * O restaurar al estado anterior? 
+     * Para simplificar, lo restauramos a CERRADO.
+     */
+    public static function restore(int $id): bool
     {
         global $pdo;
         $sql = "UPDATE periodos_nomina SET estado = 'CERRADO' WHERE id_periodo = :id";

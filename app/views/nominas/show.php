@@ -29,6 +29,7 @@ require_once __DIR__ . '/../../../config/paths.php';
     }
   </script>
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
 
@@ -61,10 +62,29 @@ require_once __DIR__ . '/../../../config/paths.php';
         </div>
     </div>
 
+    <?php if ($periodo['estado'] === 'ABIERTO'): ?>
+    <div class="flex gap-4 mb-6">
+         <a href="<?= url('index.php?controller=nomina&action=createEntry&id_periodo=' . $periodo['id_periodo']) ?>" class="inline-flex items-center gap-2 bg-vc-pink text-white px-4 py-2 rounded-lg font-bold hover:bg-pink-500 transition shadow-lg shadow-vc-pink/30">
+            <i class="fas fa-user-plus"></i>
+            Agregar Empleado
+         </a>
+         <a href="<?= url('index.php?controller=nomina&action=close&id=' . $periodo['id_periodo']) ?>" class="inline-flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-500/30" onclick="return confirm('¿Seguro que deseas Cerrar este periodo? Pasará a histórico y no se podrá editar.');">
+            <i class="fas fa-check-circle"></i>
+            Cerrar Periodo
+         </a>
+    </div>
+    <?php endif; ?>
+
     <!-- Feedback Flash -->
     <?php if (isset($_SESSION['flash_success'])): ?>
         <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm font-medium">
             <?= $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="bg-white border border-black/10 rounded-xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-black/5 bg-gray-50/50 text-xs uppercase tracking-wider text-vc-ink/50">
                         <th class="px-6 py-4">Empleado</th>
@@ -102,24 +122,13 @@ require_once __DIR__ . '/../../../config/paths.php';
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex justify-center gap-2">
                                         <a href="<?= url('index.php?controller=nomina&action=edit&id=' . $row['id_nomina']) ?>" class="p-2 text-vc-teal hover:bg-vc-teal/10 rounded transition" title="Editar Nómina">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                                <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4"></path>
-                                                <path d="M13.5 6.5l4 4"></path>
-                                            </svg>
+                                            <i class="fas fa-edit"></i>
                                         </a>
                                         <a href="<?= url('index.php?controller=nomina&action=recibo&id=' . $row['id_nomina']) ?>" target="_blank" class="p-2 text-gray-400 hover:text-vc-ink hover:bg-gray-100 rounded transition" title="Ver Recibo">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                               <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-                                               <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"></path>
-                                               <path d="M9 15h6"></path>
-                                               <path d="M9 19h6"></path>
-                                            </svg>
+                                            <i class="fas fa-file-invoice-dollar"></i>
                                         </a>
                                     </div>
                                 </td>
-
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

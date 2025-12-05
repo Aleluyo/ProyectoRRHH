@@ -13,12 +13,58 @@ class NominaController
     public function index(): void
     {
         requireLogin();
-        // requireRole(1); // Descomentar si solo admin puede ver
-
-        $periodos = PeriodoNomina::all();
         
-        // Vista en app/views/nominas/index.php
+        $view = $_GET['view'] ?? 'active'; // active | archived
+        $showArchived = ($view === 'archived');
+
+        $periodos = PeriodoNomina::all($showArchived);
+        
         require __DIR__ . '/../views/nominas/index.php';
+    }
+
+    public function archive(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id > 0) {
+            PeriodoNomina::archive($id);
+            $_SESSION['flash_success'] = 'Nómina archivada correctamente.';
+        }
+        header('Location: index.php?controller=nomina&action=index');
+        exit;
+    }
+
+    public function restore(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id > 0) {
+            PeriodoNomina::restore($id);
+            $_SESSION['flash_success'] = 'Nómina restaurada correctamente.';
+        }
+        header('Location: index.php?controller=nomina&action=index&view=archived');
+        exit;
+    }
+
+    public function close(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id > 0) {
+            // Al cerrar, el estado pasa a CERRADO.
+            // Según la lógica de PeriodoNomina::all, las CERRADO se muestran en "Archivadas".
+            // Por lo tanto, cerrar = archivar visualmente.
+            PeriodoNomina::close($id);
+            $_SESSION['flash_success'] = 'Nómina cerrada correctamente (movida a histórico).';
+        }
+        header('Location: index.php?controller=nomina&action=index');
+        exit;
     }
 
     public function create(): void
@@ -269,11 +315,12 @@ class NominaController
             $totalPercepciones = 0.0;
             $totalDeducciones = 0.0;
             
-            // Catálogo para saber tipo sin queries excesivos
             $conceptosAll = ConceptoNomina::all();
-            $tipoConcepto = []; // id => 'PERCEPCION'|'DEDUCCION'
+            $tipoConcepto = []; 
+            $nombresConcepto = [];
             foreach($conceptosAll as $c) {
                 $tipoConcepto[$c['id_concepto']] = $c['tipo'];
+                $nombresConcepto[$c['id_concepto']] = $c['nombre'];
             }
 
             // 2. Insertar nuevos detalles
@@ -283,7 +330,8 @@ class NominaController
                     $monto = (float)($item['monto'] ?? 0);
                     
                     if ($idConcepto > 0 && $monto >= 0) {
-                        NominaDetalle::create($idNomina, $idConcepto, $monto);
+                        $nombre = $nombresConcepto[$idConcepto] ?? '';
+                        NominaDetalle::create($idNomina, $idConcepto, $monto, $nombre);
                         
                         $tipo = $tipoConcepto[$idConcepto] ?? '';
                         if ($tipo === 'PERCEPCION') {
@@ -389,8 +437,10 @@ class NominaController
             // Catálogo tipos
             $conceptosAll = ConceptoNomina::all();
             $tipoConcepto = []; 
+            $nombresConcepto = [];
             foreach($conceptosAll as $c) {
                 $tipoConcepto[$c['id_concepto']] = $c['tipo'];
+                $nombresConcepto[$c['id_concepto']] = $c['nombre'];
             }
 
             // 2. Insertar detalles
@@ -400,7 +450,8 @@ class NominaController
                     $monto = (float)($item['monto'] ?? 0);
                     
                     if ($idConcepto > 0 && $monto >= 0) {
-                        NominaDetalle::create($idNomina, $idConcepto, $monto);
+                        $nombre = $nombresConcepto[$idConcepto] ?? '';
+                        NominaDetalle::create($idNomina, $idConcepto, $monto, $nombre);
                         
                         $tipo = $tipoConcepto[$idConcepto] ?? '';
                         if ($tipo === 'PERCEPCION') {
