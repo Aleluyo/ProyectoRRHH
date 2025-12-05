@@ -4,18 +4,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../config/db.php';
 
 /**
- * Modelo Postulacion para RRHH_TEC
+ * Modelo Postulacion
  * Une candidatos con vacantes y maneja el estado del proceso.
  */
 class Postulacion
 {
-    private const ALLOWED_FIELDS = [
-        'id_vacante',
-        'id_candidato',
-        'estado',
-        'comentarios',
-    ];
-
     private const ESTADOS_VALIDOS = [
         'POSTULADO',
         'SCREENING',
@@ -27,96 +20,64 @@ class Postulacion
     ];
 
     /**
-     * Devuelve una postulación por ID.
-     */
-    public static function findById(int $id): ?array
-    {
-        global $pdo;
-
-        if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de postulación inválido.");
-        }
-
-        $sql = "SELECT p.*, 
-                       c.nombre AS candidato_nombre,
-                       c.correo AS candidato_correo
-                FROM postulaciones p
-                LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
-                WHERE p.id_postulacion = ?
-                LIMIT 1";
-
-        $st = $pdo->prepare($sql);
-        $st->execute([$id]);
-        $row = $st->fetch();
-
-        return $row ?: null;
-    }
-
-    /**
-     * LISTA GENERAL de postulaciones para la tabla:
-     * - vacante_label  => Área - Puesto
-     * - candidato_nombre
-     * - fecha_aplicacion (DATE)
+     * Lista de postulaciones con joins para mostrar información legible
+     * (empresa, área, puesto, candidato).
      */
     public static function all(
         int $limit = 500,
         int $offset = 0,
-        ?string $search = null,
-        ?string $estado = null
+        ?string $search = null
     ): array {
         global $pdo;
 
         $limit  = max(1, min($limit, 1000));
         $offset = max(0, $offset);
 
-        $where  = [];
+        $where  = ['1 = 1'];
         $params = [];
 
-        // filtro por estado (opcional)
-        if ($estado !== null && trim($estado) !== '') {
-            $estadoNorm = self::normalizarEstado($estado);
-            $where[] = 'po.estado = :estado';
-            $params[':estado'] = $estadoNorm;
-        }
-
-        // búsqueda general
         if ($search !== null && trim($search) !== '') {
-            $q = '%' . trim($search) . '%';
-            $where[] = '(
-                c.nombre          LIKE :q
-                OR a.nombre_area  LIKE :q
-                OR pt.nombre_puesto LIKE :q
-                OR po.estado      LIKE :q
-            )';
-            $params[':q'] = $q;
+            $search = '%' . trim($search) . '%';
+            $where[] = '(c.nombre LIKE :q
+                      OR a.nombre_area LIKE :q
+                      OR pu.nombre_puesto LIKE :q
+                      OR e.nombre LIKE :q
+                      OR p.estado LIKE :q)';
+            $params[':q'] = $search;
         }
 
         $sql = "
             SELECT
-                po.*,
-                c.nombre AS candidato_nombre,
-                CONCAT(a.nombre_area, ' - ', pt.nombre_puesto) AS vacante_label,
-                DATE(po.aplicada_en) AS fecha_aplicacion
-            FROM postulaciones po
-            JOIN vacantes v   ON v.id_vacante    = po.id_vacante
-            JOIN candidatos c ON c.id_candidato  = po.id_candidato
-            LEFT JOIN areas   a ON a.id_area     = v.id_area
-            LEFT JOIN puestos pt ON pt.id_puesto = v.id_puesto
-        ";
+                p.id_postulacion,
+                p.id_vacante,
+                p.id_candidato,
+                p.estado,
+                p.comentarios,
+                p.aplicada_en,
 
-        if (!empty($where)) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
+                v.id_area,
+                v.id_puesto,
 
-        $sql .= "
-            ORDER BY po.aplicada_en DESC
+                a.nombre_area,
+                e.nombre       AS empresa_nombre,
+                pu.nombre_puesto,
+
+                c.nombre       AS candidato_nombre
+            FROM postulaciones p
+            INNER JOIN vacantes   v  ON v.id_vacante  = p.id_vacante
+            INNER JOIN areas      a  ON a.id_area     = v.id_area
+            INNER JOIN empresas   e  ON e.id_empresa  = a.id_empresa
+            INNER JOIN puestos    pu ON pu.id_puesto  = v.id_puesto
+            INNER JOIN candidatos c  ON c.id_candidato = p.id_candidato
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY p.aplicada_en DESC, p.id_postulacion DESC
             LIMIT :limit OFFSET :offset
         ";
 
         $st = $pdo->prepare($sql);
 
         foreach ($params as $k => $v) {
-            $st->bindValue($k, $v);
+            $st->bindValue($k, $v, \PDO::PARAM_STR);
         }
 
         $st->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
@@ -127,63 +88,51 @@ class Postulacion
     }
 
     /**
-     * Lista de postulaciones de una vacante, con paginado y filtro por estado.
-     * (La dejamos tal cual por si la usas en otra parte)
+     * Devuelve una postulación (con joins) por ID.
      */
-    public static function byVacante(
-        int $idVacante,
-        int $limit = 500,
-        int $offset = 0,
-        ?string $estado = null
-    ): array {
+    public static function findById(int $id): ?array
+    {
         global $pdo;
 
-        if ($idVacante <= 0) {
-            throw new \InvalidArgumentException("ID de vacante inválido.");
+        if ($id <= 0) {
+            throw new \InvalidArgumentException("ID de postulación inválido.");
         }
 
-        $limit  = max(1, min($limit, 1000));
-        $offset = max(0, $offset);
-
-        $where  = ['p.id_vacante = :idVacante'];
-        $params = [':idVacante' => $idVacante];
-
-        if ($estado !== null && trim($estado) !== '') {
-            $estado = self::normalizarEstado($estado);
-            $where[]         = 'p.estado = :estado';
-            $params[':estado'] = $estado;
-        }
-
-        $sql = "SELECT p.*,
-                       c.nombre AS candidato_nombre,
-                       c.correo AS candidato_correo
-                FROM postulaciones p
-                LEFT JOIN candidatos c ON c.id_candidato = p.id_candidato
-                WHERE " . implode(' AND ', $where) . "
-                ORDER BY p.aplicada_en DESC
-                LIMIT :limit OFFSET :offset";
+        $sql = "
+            SELECT
+                p.*,
+                v.id_area,
+                v.id_puesto,
+                a.nombre_area,
+                e.nombre       AS empresa_nombre,
+                pu.nombre_puesto,
+                c.nombre       AS candidato_nombre
+            FROM postulaciones p
+            INNER JOIN vacantes   v  ON v.id_vacante   = p.id_vacante
+            INNER JOIN areas      a  ON a.id_area      = v.id_area
+            INNER JOIN empresas   e  ON e.id_empresa   = a.id_empresa
+            INNER JOIN puestos    pu ON pu.id_puesto   = v.id_puesto
+            INNER JOIN candidatos c  ON c.id_candidato = p.id_candidato
+            WHERE p.id_postulacion = ?
+            LIMIT 1
+        ";
 
         $st = $pdo->prepare($sql);
+        $st->execute([$id]);
+        $row = $st->fetch();
 
-        foreach ($params as $k => $v) {
-            $st->bindValue($k, $v);
-        }
-
-        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
-        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
-
-        $st->execute();
-        return $st->fetchAll();
+        return $row ?: null;
     }
 
     /**
      * Crea una postulación.
+     * $data debe traer: id_vacante, id_candidato, estado, comentarios, fecha_aplicacion (Y-m-d).
      */
     public static function create(array $data): int
     {
         global $pdo;
 
-        $idVacante   = self::normalizarId($data['id_vacante'] ?? null, "vacante");
+        $idVacante   = self::normalizarId($data['id_vacante']   ?? null, "vacante");
         $idCandidato = self::normalizarId($data['id_candidato'] ?? null, "candidato");
 
         $estadoRaw = (string)($data['estado'] ?? 'POSTULADO');
@@ -191,9 +140,14 @@ class Postulacion
 
         $comentarios = trim((string)($data['comentarios'] ?? ''));
 
-        $sql = "INSERT INTO postulaciones
-                    (id_vacante, id_candidato, estado, comentarios, aplicada_en)
-                VALUES (?, ?, ?, ?, NOW())";
+        $fechaRaw   = trim((string)($data['fecha_aplicacion'] ?? ''));
+        $aplicadaEn = self::normalizarFecha($fechaRaw);
+
+        $sql = "
+            INSERT INTO postulaciones
+                (id_vacante, id_candidato, estado, comentarios, aplicada_en)
+            VALUES (?, ?, ?, ?, ?)
+        ";
 
         $st = $pdo->prepare($sql);
         $st->execute([
@@ -201,13 +155,14 @@ class Postulacion
             $idCandidato,
             $estado,
             $comentarios !== '' ? $comentarios : null,
+            $aplicadaEn,
         ]);
 
         return (int)$pdo->lastInsertId();
     }
 
     /**
-     * Actualiza campos de una postulación (incluyendo estado).
+     * Actualiza campos de una postulación.
      */
     public static function update(int $id, array $data): void
     {
@@ -220,36 +175,30 @@ class Postulacion
         $fields = [];
         $params = [];
 
-        foreach (self::ALLOWED_FIELDS as $field) {
-            if (!array_key_exists($field, $data)) {
-                continue;
-            }
+        if (array_key_exists('id_vacante', $data)) {
+            $fields[] = 'id_vacante = ?';
+            $params[] = self::normalizarId($data['id_vacante'], "vacante");
+        }
 
-            $value = $data[$field];
+        if (array_key_exists('id_candidato', $data)) {
+            $fields[] = 'id_candidato = ?';
+            $params[] = self::normalizarId($data['id_candidato'], "candidato");
+        }
 
-            switch ($field) {
-                case 'id_vacante':
-                    $value = self::normalizarId($value, "vacante");
-                    break;
+        if (array_key_exists('estado', $data)) {
+            $fields[] = 'estado = ?';
+            $params[] = self::normalizarEstado((string)$data['estado']);
+        }
 
-                case 'id_candidato':
-                    $value = self::normalizarId($value, "candidato");
-                    break;
+        if (array_key_exists('comentarios', $data)) {
+            $comentarios = trim((string)$data['comentarios']);
+            $fields[]    = 'comentarios = ?';
+            $params[]    = $comentarios !== '' ? $comentarios : null;
+        }
 
-                case 'estado':
-                    $value = self::normalizarEstado((string)$value);
-                    break;
-
-                case 'comentarios':
-                    $value = trim((string)$value);
-                    if ($value === '') {
-                        $value = null;
-                    }
-                    break;
-            }
-
-            $fields[] = "$field = ?";
-            $params[] = $value;
+        if (array_key_exists('fecha_aplicacion', $data)) {
+            $fields[] = 'aplicada_en = ?';
+            $params[] = self::normalizarFecha((string)$data['fecha_aplicacion']);
         }
 
         if (empty($fields)) {
@@ -258,35 +207,9 @@ class Postulacion
 
         $params[] = $id;
 
-        $sql = "UPDATE postulaciones SET " . implode(", ", $fields) . " WHERE id_postulacion = ?";
+        $sql = "UPDATE postulaciones SET " . implode(', ', $fields) . " WHERE id_postulacion = ?";
         $st  = $pdo->prepare($sql);
         $st->execute($params);
-    }
-
-    /**
-     * Cambia el estado de una postulación (atajo).
-     */
-    public static function cambiarEstado(int $id, string $estado, ?string $comentarios = null): void
-    {
-        global $pdo;
-
-        if ($id <= 0) {
-            throw new \InvalidArgumentException("ID de postulación inválido.");
-        }
-
-        $estado      = self::normalizarEstado($estado);
-        $comentarios = $comentarios !== null ? trim($comentarios) : null;
-
-        $sql = "UPDATE postulaciones
-                SET estado = ?, comentarios = ?
-                WHERE id_postulacion = ?";
-
-        $st = $pdo->prepare($sql);
-        $st->execute([
-            $estado,
-            $comentarios !== '' ? $comentarios : null,
-            $id
-        ]);
     }
 
     /**
@@ -322,5 +245,27 @@ class Postulacion
             throw new \InvalidArgumentException("Estado de postulación inválido: {$estado}");
         }
         return $e;
+    }
+
+    /**
+     * Recibe una fecha (Y-m-d o Y-m-d H:i:s) o cadena vacía.
+     * Si viene vacía, usa la fecha/hora actual.
+     */
+    private static function normalizarFecha(string $valor): string
+    {
+        $valor = trim($valor);
+
+        if ($valor === '') {
+            return date('Y-m-d H:i:s');
+        }
+
+        $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $valor)
+           ?: \DateTime::createFromFormat('Y-m-d', $valor);
+
+        if (!$dt) {
+            throw new \InvalidArgumentException("Fecha de postulación inválida.");
+        }
+
+        return $dt->format('Y-m-d H:i:s');
     }
 }

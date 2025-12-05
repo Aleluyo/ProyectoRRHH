@@ -2,241 +2,164 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../models/Postulacion.php';
-require_once __DIR__ . '/../middleware/Auth.php';
 require_once __DIR__ . '/../models/Vacante.php';
+require_once __DIR__ . '/../models/Candidato.php';
+require_once __DIR__ . '/../middleware/Auth.php';
+require_once __DIR__ . '/../../config/db.php';
 
 class PostulacionController
 {
     /**
-     * Lista de postulaciones.
-     * - Si viene id_vacante => filtra por esa vacante.
-     * - Si no viene => muestra todas las postulaciones.
-     * GET: ?controller=postulacion&action=index[&id_vacante=1][&q=texto]
+     * Lista de postulaciones
      */
     public function index(): void
     {
         requireLogin();
         requireRole(1);
 
-        $search    = $_GET['q'] ?? null;
-        $idVacante = isset($_GET['id_vacante']) ? (int)$_GET['id_vacante'] : 0;
-        if ($idVacante <= 0) {
-            $idVacante = null;
+        global $pdo;
+
+        $search = trim((string)($_GET['q'] ?? ''));
+
+        $sql = "
+            SELECT 
+                p.id_postulacion,
+                p.id_vacante,
+                p.id_candidato,
+                p.estado,
+                DATE(p.aplicada_en) AS fecha_postulacion,
+                c.nombre AS candidato,
+                CONCAT(e.nombre, ' – ', a.nombre_area, ' – ', pu.nombre_puesto) AS vacante
+            FROM postulaciones p
+            INNER JOIN candidatos c ON c.id_candidato = p.id_candidato
+            INNER JOIN vacantes v   ON v.id_vacante = p.id_vacante
+            INNER JOIN areas a      ON a.id_area = v.id_area
+            INNER JOIN puestos pu   ON pu.id_puesto = v.id_puesto
+            INNER JOIN empresas e   ON e.id_empresa = a.id_empresa
+        ";
+
+        $params = [];
+        if ($search !== '') {
+            $sql .= "
+                WHERE 
+                    c.nombre          LIKE :q
+                    OR e.nombre       LIKE :q
+                    OR a.nombre_area  LIKE :q
+                    OR pu.nombre_puesto LIKE :q
+                    OR p.estado       LIKE :q
+            ";
+            $params[':q'] = '%' . $search . '%';
         }
 
-        // Usa Postulacion::all con filtro opcional por vacante
-        $postulaciones = Postulacion::all(500, 0, $search, $idVacante);
+        $sql .= " ORDER BY p.aplicada_en DESC, p.id_postulacion DESC LIMIT 500";
 
-        // Solo cargamos la vacante si hay filtro
-        $vacante = null;
-        if ($idVacante !== null) {
-            $vacante = Vacante::findById($idVacante);
+        $st = $pdo->prepare($sql);
+        foreach ($params as $k => $v) {
+            $st->bindValue($k, $v, \PDO::PARAM_STR);
         }
+        $st->execute();
+        $postulaciones = $st->fetchAll();
 
-        // $postulaciones y $vacante disponibles en la vista
         require __DIR__ . '/../../public/views/reclutamiento/postulaciones/list.php';
     }
 
     /**
-     * Mostrar formulario de nueva postulación
-     * GET: ?controller=postulacion&action=create[&id_vacante=1]
+     * Formulario de nueva postulación
      */
     public function create(): void
     {
+        requireLogin();
         requireRole(1);
 
-        $idVacante = isset($_GET['id_vacante']) ? (int)$_GET['id_vacante'] : 0;
+        global $pdo;
 
-        $errors = $_SESSION['errors']    ?? [];
+        // Catálogo de vacantes (Empresa – Área – Puesto)
+        $sqlVac = "
+            SELECT
+                v.id_vacante,
+                CONCAT(e.nombre, ' – ', a.nombre_area, ' – ', pu.nombre_puesto) AS etiqueta
+            FROM vacantes v
+            INNER JOIN areas a     ON a.id_area = v.id_area
+            INNER JOIN empresas e  ON e.id_empresa = a.id_empresa
+            INNER JOIN puestos pu  ON pu.id_puesto = v.id_puesto
+            ORDER BY e.nombre, a.nombre_area, pu.nombre_puesto
+        ";
+        $vacantes = $pdo->query($sqlVac)->fetchAll();
+
+        // Catálogo de candidatos
+        $sqlCand = "SELECT id_candidato, nombre FROM candidatos ORDER BY nombre";
+        $candidatos = $pdo->query($sqlCand)->fetchAll();
+
+        $errors = $_SESSION['errors'] ?? [];
         $old    = $_SESSION['old_input'] ?? [];
-
         unset($_SESSION['errors'], $_SESSION['old_input']);
 
-        $vacante = $idVacante > 0 ? Vacante::findById($idVacante) : null;
-
-        // $vacante, $idVacante, $errors, $old disponibles en la vista
         require __DIR__ . '/../../public/views/reclutamiento/postulaciones/create.php';
     }
 
     /**
-     * Guardar nueva postulación
-     * POST: ?controller=postulacion&action=store
+     * Guarda una nueva postulación
      */
     public function store(): void
     {
+        requireLogin();
         requireRole(1);
-        session_start();
 
         $data = [
-            'id_vacante'   => $_POST['id_vacante']   ?? '',
-            'id_candidato' => $_POST['id_candidato'] ?? '',
-            'estado'       => $_POST['estado']       ?? 'POSTULADO',
-            'comentarios'  => $_POST['comentarios']  ?? '',
+            'id_vacante'        => $_POST['id_vacante']        ?? null,
+            'id_candidato'      => $_POST['id_candidato']      ?? null,
+            'estado'            => $_POST['estado']            ?? 'POSTULADO',
+            'comentarios'       => $_POST['comentarios']       ?? null,
+            'fecha_postulacion' => $_POST['fecha_postulacion'] ?? null,
         ];
 
-        $errors = $this->validarPostulacion($data);
-        $idVacante = (int)($data['id_vacante'] ?? 0);
+        $errors  = [];
+        $idVac   = (int)$data['id_vacante'];
+        $idCand  = (int)$data['id_candidato'];
+        $estado  = strtoupper(trim((string)$data['estado']));
+        $fecha   = trim((string)$data['fecha_postulacion']);
+
+        if ($idVac <= 0) {
+            $errors['id_vacante'] = 'Debes seleccionar una vacante.';
+        }
+        if ($idCand <= 0) {
+            $errors['id_candidato'] = 'Debes seleccionar un candidato.';
+        }
+
+        $estadosValidos = ['POSTULADO', 'SCREENING', 'ENTREVISTA', 'PRUEBA', 'OFERTA', 'RECHAZADO', 'CONTRATADO'];
+        if (!in_array($estado, $estadosValidos, true)) {
+            $errors['estado'] = 'La etapa seleccionada no es válida.';
+        }
+
+        if ($fecha === '') {
+            $errors['fecha_postulacion'] = 'Debes indicar la fecha de postulación.';
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            $errors['fecha_postulacion'] = 'La fecha debe tener el formato AAAA-MM-DD.';
+        }
 
         if (!empty($errors)) {
             $_SESSION['errors']    = $errors;
             $_SESSION['old_input'] = $data;
-
-            $redir = 'index.php?controller=postulacion&action=create';
-            if ($idVacante > 0) {
-                $redir .= '&id_vacante=' . $idVacante;
-            }
-
-            header('Location: ' . $redir);
+            header('Location: index.php?controller=postulacion&action=create');
             exit;
         }
 
-        try {
-            Postulacion::create($data);
+        // Crear usando el modelo (usa NOW() por defecto en aplicada_en)
+        $newId = Postulacion::create([
+            'id_vacante'   => $idVac,
+            'id_candidato' => $idCand,
+            'estado'       => $estado,
+            'comentarios'  => $data['comentarios'],
+        ]);
 
-            $_SESSION['flash_success'] = 'Postulación creada correctamente.';
-
-            $redir = 'index.php?controller=postulacion&action=index';
-            if ($idVacante > 0) {
-                $redir .= '&id_vacante=' . $idVacante;
-            }
-
-            header('Location: ' . $redir);
-            exit;
-
-        } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Error al crear la postulación: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
-
-            $redir = 'index.php?controller=postulacion&action=create';
-            if ($idVacante > 0) {
-                $redir .= '&id_vacante=' . $idVacante;
-            }
-
-            header('Location: ' . $redir);
-            exit;
-        }
-    }
-
-    /**
-     * Mostrar formulario de edición
-     * GET: ?controller=postulacion&action=edit&id=1
-     */
-    public function edit(): void
-    {
-        requireRole(1);
-
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        if ($id <= 0) {
-            header('Location: index.php?controller=postulacion&action=index');
-            exit;
-        }
-
-        $postulacion = Postulacion::findById($id);
-        if (!$postulacion) {
-            header('Location: index.php?controller=postulacion&action=index');
-            exit;
-        }
-
-        $errors = $_SESSION['errors']    ?? [];
-        $old    = $_SESSION['old_input'] ?? [];
-
-        unset($_SESSION['errors'], $_SESSION['old_input']);
-
-        $vacante = isset($postulacion['id_vacante'])
-            ? Vacante::findById((int)$postulacion['id_vacante'])
-            : null;
-
-        // $postulacion, $vacante, $errors, $old disponibles en la vista
-        require __DIR__ . '/../../public/views/reclutamiento/postulaciones/edit.php';
-    }
-
-    /**
-     * Actualizar postulación
-     * POST: ?controller=postulacion&action=update&id=1
-     */
-    public function update(): void
-    {
-        requireRole(1);
-        session_start();
-
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        if ($id <= 0) {
-            header('Location: index.php?controller=postulacion&action=index');
-            exit;
-        }
-
-        $data = [
-            'id_vacante'   => $_POST['id_vacante']   ?? '',
-            'id_candidato' => $_POST['id_candidato'] ?? '',
-            'estado'       => $_POST['estado']       ?? '',
-            'comentarios'  => $_POST['comentarios']  ?? '',
-        ];
-
-        $errors    = $this->validarPostulacion($data);
-        $idVacante = (int)($data['id_vacante'] ?? 0);
-
-        if (!empty($errors)) {
-            $_SESSION['errors']    = $errors;
-            $_SESSION['old_input'] = $data;
-
-            header('Location: index.php?controller=postulacion&action=edit&id=' . $id);
-            exit;
-        }
-
-        try {
-            Postulacion::update($id, $data);
-
-            $_SESSION['flash_success'] = 'Postulación actualizada correctamente.';
-
-            $redir = 'index.php?controller=postulacion&action=index';
-            if ($idVacante > 0) {
-                $redir .= '&id_vacante=' . $idVacante;
-            }
-
-            header('Location: ' . $redir);
-            exit;
-
-        } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Error al actualizar la postulación: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
-
-            header('Location: index.php?controller=postulacion&action=edit&id=' . $id);
-            exit;
-        }
-    }
-
-    /**
-     * Eliminar postulación
-     * GET/POST: ?controller=postulacion&action=delete&id=1
-     */
-    public function delete(): void
-    {
-        requireRole(1);
-        session_start();
-
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-        if ($id > 0) {
-            try {
-                $postulacion = Postulacion::findById($id);
-                $idVacante   = isset($postulacion['id_vacante']) ? (int)$postulacion['id_vacante'] : 0;
-
-                Postulacion::delete($id);
-                $_SESSION['flash_success'] = 'Postulación eliminada correctamente.';
-
-                $redir = 'index.php?controller=postulacion&action=index';
-                if ($idVacante > 0) {
-                    $redir .= '&id_vacante=' . $idVacante;
-                }
-
-                header('Location: ' . $redir);
-                exit;
-
-            } catch (\Throwable $e) {
-                $_SESSION['flash_error'] = 'No se pudo eliminar la postulación: ' . $e->getMessage();
-            }
-        } else {
-            $_SESSION['flash_error'] = 'ID de postulación inválido.';
+        // Ajustar aplicada_en a la fecha elegida
+        if ($newId > 0 && $fecha !== '') {
+            global $pdo;
+            $st = $pdo->prepare("UPDATE postulaciones SET aplicada_en = :fecha WHERE id_postulacion = :id");
+            $st->execute([
+                ':fecha' => $fecha . ' 00:00:00',
+                ':id'    => $newId,
+            ]);
         }
 
         header('Location: index.php?controller=postulacion&action=index');
@@ -244,40 +167,147 @@ class PostulacionController
     }
 
     /**
-     * Validación básica alineada con el modelo Postulacion
+     * Formulario de edición de postulación
      */
-    private function validarPostulacion(array $data): array
+    public function edit(): void
     {
-        $errors = [];
+        requireLogin();
+        requireRole(1);
 
-        // id_vacante
-        $idVacStr = (string)($data['id_vacante'] ?? '');
-        if ($idVacStr === '' || !ctype_digit($idVacStr) || (int)$idVacStr <= 0) {
-            $errors['id_vacante'] = 'La vacante es obligatoria y debe ser un ID válido.';
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            http_response_code(400);
+            echo 'ID de postulación inválido';
+            return;
         }
 
-        // id_candidato
-        $idCandStr = (string)($data['id_candidato'] ?? '');
-        if ($idCandStr === '' || !ctype_digit($idCandStr) || (int)$idCandStr <= 0) {
-            $errors['id_candidato'] = 'El candidato es obligatorio y debe ser un ID válido.';
+        $postulacion = Postulacion::findById($id);
+        if (!$postulacion) {
+            http_response_code(404);
+            echo 'Postulación no encontrada';
+            return;
         }
 
-        // estado
-        $estado = strtoupper(trim((string)($data['estado'] ?? '')));
-        $validos = ['POSTULADO','SCREENING','ENTREVISTA','PRUEBA','OFERTA','CONTRATADO','RECHAZADO'];
+        global $pdo;
 
-        if ($estado === '') {
-            $errors['estado'] = 'El estado es obligatorio.';
-        } elseif (!in_array($estado, $validos, true)) {
-            $errors['estado'] = 'El estado indicado no es válido.';
+        // Catálogo de vacantes
+        $sqlVac = "
+            SELECT
+                v.id_vacante,
+                CONCAT(e.nombre, ' – ', a.nombre_area, ' – ', pu.nombre_puesto) AS etiqueta
+            FROM vacantes v
+            INNER JOIN areas a     ON a.id_area = v.id_area
+            INNER JOIN empresas e  ON e.id_empresa = a.id_empresa
+            INNER JOIN puestos pu  ON pu.id_puesto = v.id_puesto
+            ORDER BY e.nombre, a.nombre_area, pu.nombre_puesto
+        ";
+        $vacantes = $pdo->query($sqlVac)->fetchAll();
+
+        // Catálogo de candidatos
+        $sqlCand = "SELECT id_candidato, nombre FROM candidatos ORDER BY nombre";
+        $candidatos = $pdo->query($sqlCand)->fetchAll();
+
+        $errors = $_SESSION['errors'] ?? [];
+        $old    = $_SESSION['old_input'] ?? [];
+        unset($_SESSION['errors'], $_SESSION['old_input']);
+
+        require __DIR__ . '/../../public/views/reclutamiento/postulaciones/edit.php';
+    }
+
+    /**
+     * Actualiza una postulación existente
+     */
+    public function update(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            http_response_code(400);
+            echo 'ID de postulación inválido';
+            return;
         }
 
-        // comentarios (opcional)
-        $coment = trim((string)($data['comentarios'] ?? ''));
-        if (mb_strlen($coment) > 1000) {
-            $errors['comentarios'] = 'Los comentarios no deben exceder 1000 caracteres.';
+        $data = [
+            'id_vacante'        => $_POST['id_vacante']        ?? null,
+            'id_candidato'      => $_POST['id_candidato']      ?? null,
+            'estado'            => $_POST['estado']            ?? null,
+            'comentarios'       => $_POST['comentarios']       ?? null,
+            'fecha_postulacion' => $_POST['fecha_postulacion'] ?? null,
+        ];
+
+        $errors  = [];
+        $idVac   = (int)$data['id_vacante'];
+        $idCand  = (int)$data['id_candidato'];
+        $estado  = strtoupper(trim((string)$data['estado']));
+        $fecha   = trim((string)$data['fecha_postulacion']);
+
+        if ($idVac <= 0) {
+            $errors['id_vacante'] = 'Debes seleccionar una vacante.';
+        }
+        if ($idCand <= 0) {
+            $errors['id_candidato'] = 'Debes seleccionar un candidato.';
         }
 
-        return $errors;
+        $estadosValidos = ['POSTULADO', 'SCREENING', 'ENTREVISTA', 'PRUEBA', 'OFERTA', 'RECHAZADO', 'CONTRATADO'];
+        if (!in_array($estado, $estadosValidos, true)) {
+            $errors['estado'] = 'La etapa seleccionada no es válida.';
+        }
+
+        if ($fecha === '') {
+            $errors['fecha_postulacion'] = 'Debes indicar la fecha de postulación.';
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            $errors['fecha_postulacion'] = 'La fecha debe tener el formato AAAA-MM-DD.';
+        }
+
+        if (!empty($errors)) {
+            $_SESSION['errors']    = $errors;
+            $_SESSION['old_input'] = $data;
+
+            header('Location: index.php?controller=postulacion&action=edit&id=' . $id);
+            exit;
+        }
+
+        // Actualizar campos permitidos por el modelo
+        $updateData = [
+            'id_vacante'   => $idVac,
+            'id_candidato' => $idCand,
+            'estado'       => $estado,
+            'comentarios'  => $data['comentarios'],
+        ];
+
+        Postulacion::update($id, $updateData);
+
+        // Actualizar también la fecha aplicada_en
+        global $pdo;
+        $st = $pdo->prepare("UPDATE postulaciones SET aplicada_en = :fecha WHERE id_postulacion = :id");
+        $st->execute([
+            ':fecha' => $fecha . ' 00:00:00',
+            ':id'    => $id,
+        ]);
+
+        header('Location: index.php?controller=postulacion&action=index');
+        exit;
+    }
+
+    /**
+     * Elimina una postulación
+     */
+    public function delete(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            header('Location: index.php?controller=postulacion&action=index');
+            exit;
+        }
+
+        Postulacion::delete($id);
+
+        header('Location: index.php?controller=postulacion&action=index');
+        exit;
     }
 }
