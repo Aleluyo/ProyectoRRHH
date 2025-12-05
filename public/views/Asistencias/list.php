@@ -1,417 +1,268 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../config/db.php';
-
-/**
- * Modelo Asistencia
- * Control de entradas, salidas y faltas en la tabla asistencia_registros
- */
-class Asistencia
-{
-    private const ORIGENES = ['MANUAL', 'RELOJ', 'IMPORTACION'];
-    private const TIPOS    = ['NORMAL', 'RETARDO', 'FALTA', 'JUSTIFICADO'];
-
-    public static function findById(int $id): ?array
-    {
-        global $pdo;
-
-        $st = $pdo->prepare("SELECT * FROM asistencia_registros WHERE id_asistencia = ? LIMIT 1");
-        $st->execute([$id]);
-
-        $row = $st->fetch();
-        return $row ?: null;
-    }
-
-    public static function findByEmpleadoFecha(int $idEmpleado, string $fecha): ?array
-    {
-        self::validarFecha($fecha);
-        self::assertEmpleadoExiste($idEmpleado);
-
-        global $pdo;
-
-        $st = $pdo->prepare("
-            SELECT *
-            FROM asistencia_registros
-            WHERE id_empleado = ?
-              AND fecha = ?
-            LIMIT 1
-        ");
-        $st->execute([$idEmpleado, $fecha]);
-        $row = $st->fetch();
-
-        return $row ?: null;
-    }
-
-    /**
-     * Listado con filtros básicos
-     */
-    public static function all(
-        int $limit = 500,
-        int $offset = 0,
-        ?int $idEmpleado = null,
-        ?string $fechaDesde = null,
-        ?string $fechaHasta = null,
-        ?string $tipo = null
-    ): array {
-        global $pdo;
-
-        $limit  = max(1, min($limit, 1000));
-        $offset = max(0, $offset);
-
-        $where  = [];
-        $params = [];
-
-        if ($idEmpleado !== null && $idEmpleado > 0) {
-            $where[] = 'ar.id_empleado = :id_empleado';
-            $params[':id_empleado'] = $idEmpleado;
-        }
-
-        if ($fechaDesde !== null && trim($fechaDesde) !== '') {
-            self::validarFecha($fechaDesde);
-            $where[] = 'ar.fecha >= :desde';
-            $params[':desde'] = $fechaDesde;
-        }
-
-        if ($fechaHasta !== null && trim($fechaHasta) !== '') {
-            self::validarFecha($fechaHasta);
-            $where[] = 'ar.fecha <= :hasta';
-            $params[':hasta'] = $fechaHasta;
-        }
-
-        if ($tipo !== null && trim($tipo) !== '') {
-            $tipo = strtoupper(trim($tipo));
-            if (!in_array($tipo, self::TIPOS, true)) {
-                throw new \InvalidArgumentException("Tipo de asistencia inválido.");
-            }
-            $where[] = 'ar.tipo = :tipo';
-            $params[':tipo'] = $tipo;
-        }
-
-        $sql = "
-            SELECT ar.*, e.nombre AS nombre_empleado
-            FROM asistencia_registros ar
-            INNER JOIN empleados e ON e.id_empleado = ar.id_empleado
-        ";
-
-        if (!empty($where)) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= "
-            ORDER BY ar.fecha DESC, e.nombre ASC
-            LIMIT :limit OFFSET :offset
-        ";
-
-        $st = $pdo->prepare($sql);
-
-        foreach ($params as $k => $v) {
-            $st->bindValue($k, $v);
-        }
-
-        $st->bindValue(':limit', $limit, \PDO::PARAM_INT);
-        $st->bindValue(':offset', $offset, \PDO::PARAM_INT);
-
-        $st->execute();
-        return $st->fetchAll(\PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Registrar entrada
-     */
-    public static function registrarEntrada(
-        int $idEmpleado,
-        string $fecha,
-        string $horaEntrada,
-        string $origen = 'RELOJ',
-        ?string $observaciones = null
-    ): int {
-        self::validarFecha($fecha);
-        self::validarHora($horaEntrada);
-        self::validarOrigen($origen);
-        self::assertEmpleadoExiste($idEmpleado);
-
-        global $pdo;
-
-        $pdo->beginTransaction();
-        try {
-            $registro = self::findByEmpleadoFecha($idEmpleado, $fecha);
-            $tipo = self::calcularTipoEntrada($idEmpleado, $horaEntrada);
-
-            if ($registro) {
-                if ($registro['hora_entrada'] !== null) {
-                    throw new \RuntimeException("Ya existe una hora de entrada para este día.");
-                }
-
-                $st = $pdo->prepare("
-                    UPDATE asistencia_registros
-                    SET hora_entrada = ?, tipo = ?, origen = ?, observaciones = ?
-                    WHERE id_asistencia = ?
-                ");
-                $st->execute([
-                    $horaEntrada,
-                    $tipo,
-                    $origen,
-                    $observaciones ?? $registro['observaciones'],
-                    (int)$registro['id_asistencia']
-                ]);
-
-                $id = (int)$registro['id_asistencia'];
-            } else {
-                $st = $pdo->prepare("
-                    INSERT INTO asistencia_registros
-                        (id_empleado, fecha, hora_entrada, tipo, origen, observaciones)
-                    VALUES
-                        (?, ?, ?, ?, ?, ?)
-                ");
-                $st->execute([
-                    $idEmpleado,
-                    $fecha,
-                    $horaEntrada,
-                    $tipo,
-                    $origen,
-                    $observaciones
-                ]);
-
-                $id = (int)$pdo->lastInsertId();
-            }
-
-            $pdo->commit();
-            return $id;
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
-    }
-
-    /**
-     * Registrar salida
-     */
-    public static function registrarSalida(
-        int $idEmpleado,
-        string $fecha,
-        string $horaSalida,
-        string $origen = 'RELOJ',
-        ?string $observaciones = null
-    ): void {
-        self::validarFecha($fecha);
-        self::validarHora($horaSalida);
-        self::validarOrigen($origen);
-        self::assertEmpleadoExiste($idEmpleado);
-
-        global $pdo;
-
-        $registro = self::findByEmpleadoFecha($idEmpleado, $fecha);
-        if (!$registro) {
-            throw new \RuntimeException("No existe registro de asistencia para ese día.");
-        }
-
-        if ($registro['hora_salida'] !== null) {
-            throw new \RuntimeException("Ya existe una hora de salida para este día.");
-        }
-
-        $st = $pdo->prepare("
-            UPDATE asistencia_registros
-            SET hora_salida = ?, origen = ?, observaciones = ?
-            WHERE id_asistencia = ?
-        ");
-        $st->execute([
-            $horaSalida,
-            $origen,
-            $observaciones ?? $registro['observaciones'],
-            (int)$registro['id_asistencia']
-        ]);
-    }
-
-    /**
-     * Marcar falta
-     */
-    public static function marcarFalta(
-        int $idEmpleado,
-        string $fecha,
-        string $origen = 'MANUAL',
-        ?string $observaciones = null
-    ): int {
-        self::validarFecha($fecha);
-        self::validarOrigen($origen);
-        self::assertEmpleadoExiste($idEmpleado);
-
-        global $pdo;
-
-        $pdo->beginTransaction();
-        try {
-            $registro = self::findByEmpleadoFecha($idEmpleado, $fecha);
-
-            if ($registro) {
-                $st = $pdo->prepare("
-                    UPDATE asistencia_registros
-                    SET tipo = 'FALTA', origen = ?, observaciones = ?
-                    WHERE id_asistencia = ?
-                ");
-                $st->execute([
-                    $origen,
-                    $observaciones ?? $registro['observaciones'],
-                    (int)$registro['id_asistencia']
-                ]);
-
-                $id = (int)$registro['id_asistencia'];
-            } else {
-                $st = $pdo->prepare("
-                    INSERT INTO asistencia_registros
-                        (id_empleado, fecha, tipo, origen, observaciones)
-                    VALUES
-                        (?, ?, 'FALTA', ?, ?)
-                ");
-                $st->execute([
-                    $idEmpleado,
-                    $fecha,
-                    $origen,
-                    $observaciones
-                ]);
-
-                $id = (int)$pdo->lastInsertId();
-            }
-
-            $pdo->commit();
-            return $id;
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
-    }
-
-    /**
-     * Actualización manual (horas, tipo calculado, observaciones)
-     */
-    public static function actualizarManual(int $idAsistencia, array $data): void
-    {
-        global $pdo;
-
-        $registro = self::findById($idAsistencia);
-        if (!$registro) {
-            throw new \RuntimeException("Registro de asistencia no encontrado.");
-        }
-
-        $horaEntrada = $data['hora_entrada'] ?? null;
-        $horaSalida  = $data['hora_salida'] ?? null;
-        $observ      = trim((string)($data['observaciones'] ?? $registro['observaciones'] ?? ''));
-        $origen      = strtoupper(trim((string)($data['origen'] ?? $registro['origen'] ?? 'MANUAL')));
-
-        if ($horaEntrada !== null && $horaEntrada !== '') {
-            self::validarHora($horaEntrada);
-        } else {
-            $horaEntrada = null;
-        }
-
-        if ($horaSalida !== null && $horaSalida !== '') {
-            self::validarHora($horaSalida);
-        } else {
-            $horaSalida = null;
-        }
-
-        self::validarOrigen($origen);
-
-        // Recalcular tipo por hora de entrada
-        $tipo = $registro['tipo'];
-        if ($horaEntrada !== null) {
-            $tipo = self::calcularTipoEntrada((int)$registro['id_empleado'], $horaEntrada);
-        }
-
-        $st = $pdo->prepare("
-            UPDATE asistencia_registros
-            SET hora_entrada = :he,
-                hora_salida  = :hs,
-                tipo         = :tipo,
-                origen       = :origen,
-                observaciones = :obs
-            WHERE id_asistencia = :id
-        ");
-        $st->execute([
-            ':he'    => $horaEntrada,
-            ':hs'    => $horaSalida,
-            ':tipo'  => $tipo,
-            ':origen'=> $origen,
-            ':obs'   => $observ,
-            ':id'    => $idAsistencia,
-        ]);
-    }
-
-    /* ======= helpers privados ======= */
-
-    private static function calcularTipoEntrada(int $idEmpleado, string $horaEntrada): string
-    {
-        global $pdo;
-
-        $st = $pdo->prepare("
-            SELECT t.hora_entrada, t.tolerancia_minutos
-            FROM empleados e
-            INNER JOIN turnos t ON t.id_turno = e.id_turno
-            WHERE e.id_empleado = ?
-            LIMIT 1
-        ");
-        $st->execute([$idEmpleado]);
-        $turno = $st->fetch(\PDO::FETCH_ASSOC);
-
-        if (!$turno) {
-            return 'NORMAL';
-        }
-
-        $horaPlan = \DateTime::createFromFormat('H:i:s', $turno['hora_entrada']);
-        $horaReal = \DateTime::createFromFormat('H:i:s', $horaEntrada);
-
-        if (!$horaPlan || !$horaReal) {
-            return 'NORMAL';
-        }
-
-        if ($horaReal <= $horaPlan) {
-            return 'NORMAL';
-        }
-
-        $diffMin = (int) floor(($horaReal->getTimestamp() - $horaPlan->getTimestamp()) / 60);
-        $tol     = (int) $turno['tolerancia_minutos'];
-
-        return $diffMin > $tol ? 'RETARDO' : 'NORMAL';
-    }
-
-    private static function validarFecha(string $fecha): void
-    {
-        $dt = \DateTime::createFromFormat('Y-m-d', $fecha);
-        if (!$dt || $dt->format('Y-m-d') !== $fecha) {
-            throw new \InvalidArgumentException("Fecha inválida (usa formato YYYY-MM-DD).");
-        }
-    }
-
-    private static function validarHora(string $hora): void
-    {
-        $dt = \DateTime::createFromFormat('H:i:s', $hora);
-        if (!$dt || $dt->format('H:i:s') !== $hora) {
-            throw new \InvalidArgumentException("Hora inválida (usa formato HH:MM o HH:MM:SS).");
-        }
-    }
-
-    private static function validarOrigen(string $origen): void
-    {
-        $origen = strtoupper(trim($origen));
-        if (!in_array($origen, self::ORIGENES, true)) {
-            throw new \InvalidArgumentException("Origen inválido de asistencia.");
-        }
-    }
-
-    private static function assertEmpleadoExiste(int $idEmpleado): void
-    {
-        global $pdo;
-
-        $st = $pdo->prepare("
-            SELECT 1
-            FROM empleados
-            WHERE id_empleado = ?
-              AND estado = 'ACTIVO'
-            LIMIT 1
-        ");
-        $st->execute([$idEmpleado]);
-
-        if (!$st->fetchColumn()) {
-            throw new \InvalidArgumentException("Empleado no encontrado o inactivo.");
-        }
-    }
+if (session_status() === PHP_SESSION_NONE) {
+        session_start();
 }
+
+$area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
+$puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
+$ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
+
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error']   ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+// $registros y $empleados vienen del controlador
+$idEmpleado = isset($_GET['id_empleado']) ? (int)$_GET['id_empleado'] : 0;
+$desde      = $_GET['desde'] ?? '';
+$hasta      = $_GET['hasta'] ?? '';
+$tipo       = $_GET['tipo'] ?? '';
+?>
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Asistencia · Entradas, salidas y faltas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        vc: {
+                            pink:'#ff78b5', peach:'#ffc9a9', teal:'#36d1cc',
+                            sand:'#ffe9c7', ink:'#0a2a5e', neon:'#a7fffd'
+                        }
+                    },
+                    fontFamily: {
+                        display:['Josefin Sans','system-ui','sans-serif'],
+                        sans:['DM Sans','system-ui','sans-serif'],
+                    },
+                    boxShadow: { soft:'0 10px 28px rgba(10,42,94,.08)' }
+                }
+            }
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="min-h-screen bg-white text-vc-ink font-sans relative">
+    <div class="h-[1px] w-full bg-[image:linear-gradient(90deg,#ff78b5,#ffc9a9,#36d1cc)] opacity-70"></div>
+    <div class="absolute inset-0 grid-bg opacity-15 pointer-events-none"></div>
+
+    <header class="sticky top-0 z-30 border-b border-black/10 bg-white/80 backdrop-blur">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center">
+            <a href="<?= url('index.php') ?>" class="flex items-center gap-3">
+                <img src="<?= asset('img/galgovc.png') ?>" alt="RRHH" class="h-9 w-auto">
+                <div class="font-display text-lg tracking-widest uppercase text-vc-ink">RRHH</div>
+            </a>
+            <div class="ml-auto flex items-center gap-3 text-sm text-muted-ink">
+                <span class="hidden sm:inline-block truncate max-w-[220px]">
+                    <?= $puesto ?><?= $area ? ' &mdash; ' . $area : '' ?><?= $ciudad ? ' &mdash; ' . $ciudad : '' ?>
+                </span>
+                <a href="<?= url('logout.php') ?>" class="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm hover:bg-vc-pink/10 text-vc-ink">
+                    Cerrar sesión
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 py-8 relative">
+        <?php if ($flashSuccess): ?>
+            <script>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Listo',
+                    text: <?= json_encode($flashSuccess, JSON_UNESCAPED_UNICODE) ?>,
+                    iconColor: '#36d1cc'
+                });
+            </script>
+        <?php endif; ?>
+
+        <?php if ($flashError): ?>
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ocurrió un problema',
+                    text: <?= json_encode($flashError, JSON_UNESCAPED_UNICODE) ?>,
+                    iconColor: '#ff78b5'
+                });
+            </script>
+        <?php endif; ?>
+
+        <!-- Breadcrumb -->
+        <div class="mb-5">
+            <nav class="flex items-center gap-3 text-sm">
+                <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+                    Inicio
+                </a>
+                <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="font-medium text-vc-pink">Asistencia</span>
+            </nav>
+        </div>
+
+        <!-- Título + botón -->
+        <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Asistencia</h1>
+                <p class="mt-1 text-sm sm:text-base text-muted-ink">
+                    Control de entradas, salidas y faltas.
+                </p>
+            </div>
+
+            <a
+                href="<?= url('index.php?controller=asistencia&action=create') ?>"
+                class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition"
+            >
+                Registrar asistencia manual
+            </a>
+        </section>
+
+        <!-- Filtros -->
+        <section class="mt-6 mb-4">
+            <form method="GET" action="<?= url('index.php') ?>" class="grid gap-4 sm:grid-cols-5 bg-white/90 rounded-xl border border-black/10 p-4 shadow-soft">
+                <input type="hidden" name="controller" value="asistencia">
+                <input type="hidden" name="action" value="index">
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-vc-ink mb-1">Empleado</label>
+                    <select
+                        name="id_empleado"
+                        class="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+                    >
+                        <option value="0">Todos</option>
+                        <?php foreach ($empleados as $emp): ?>
+                            <option value="<?= (int)$emp['id_empleado'] ?>"
+                                <?= $idEmpleado === (int)$emp['id_empleado'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($emp['nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-vc-ink mb-1">Desde</label>
+                    <input
+                        type="date"
+                        name="desde"
+                        value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>"
+                        class="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-vc-ink mb-1">Hasta</label>
+                    <input
+                        type="date"
+                        name="hasta"
+                        value="<?= htmlspecialchars($hasta, ENT_QUOTES, 'UTF-8') ?>"
+                        class="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-vc-ink mb-1">Tipo</label>
+                    <select
+                        name="tipo"
+                        class="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+                    >
+                        <option value="">Todos</option>
+                        <?php foreach (['NORMAL','RETARDO','FALTA','JUSTIFICADO'] as $t): ?>
+                            <option value="<?= $t ?>" <?= $tipo === $t ? 'selected' : '' ?>><?= $t ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-5 flex justify-end gap-3">
+                    <a
+                        href="<?= url('index.php?controller=asistencia&action=index') ?>"
+                        class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-xs font-medium text-muted-ink hover:bg-slate-50"
+                    >
+                        Limpiar
+                    </a>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-xs font-semibold text-vc-ink shadow-soft hover:bg-vc-neon/80"
+                    >
+                        Aplicar filtros
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Tabla -->
+        <section>
+            <div class="overflow-x-auto rounded-xl border border-black/10 bg-white/90 shadow-soft">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100/80 text-xs uppercase tracking-wide text-muted-ink">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Empleado</th>
+                            <th class="px-3 py-2 text-left">Entrada</th>
+                            <th class="px-3 py-2 text-left">Salida</th>
+                            <th class="px-3 py-2 text-left">Tipo</th>
+                            <th class="px-3 py-2 text-left">Origen</th>
+                            <th class="px-3 py-2 text-left">Observaciones</th>
+                            <th class="px-3 py-2 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                    <?php if (empty($registros)): ?>
+                        <tr>
+                            <td colspan="8" class="px-3 py-4 text-center text-sm text-muted-ink">
+                                No hay registros de asistencia para los filtros seleccionados.
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($registros as $reg): ?>
+                            <tr class="border-t border-slate-200 hover:bg-slate-50">
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    <?= htmlspecialchars($reg['fecha'], ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <?= htmlspecialchars($reg['nombre_empleado'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    <?= htmlspecialchars($reg['hora_entrada'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    <?= htmlspecialchars($reg['hora_salida'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    <?= htmlspecialchars($reg['tipo'], ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    <?= htmlspecialchars($reg['origen'], ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 text-xs max-w-xs truncate" title="<?= htmlspecialchars($reg['observaciones'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars($reg['observaciones'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                                <td class="px-3 py-2 text-center whitespace-nowrap">
+                                    <a
+                                        href="<?= url('index.php?controller=asistencia&action=edit&id=' . (int)$reg['id_asistencia']) ?>"
+                                        class="inline-flex items-center justify-center rounded-md border border-black/10 bg-white px-2 py-1 text-xs hover:bg-vc-sand/60"
+                                    >
+                                        Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
