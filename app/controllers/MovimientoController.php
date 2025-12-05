@@ -93,7 +93,7 @@ class MovimientoController
             $fechaMovimiento = $_POST['fecha_movimiento'] ?? '';
             $motivo = trim($_POST['motivo'] ?? '');
             $observaciones = trim($_POST['observaciones'] ?? '') ?: null;
-            $autorizadoPor = $_SESSION['user']['id_usuario'] ?? 0;
+            $autorizadoPor = $_SESSION['user_id'] ?? 0;
 
             // Validaciones básicas
             if ($idEmpleado <= 0) {
@@ -121,8 +121,8 @@ class MovimientoController
                         $idEmpleado,
                         $fechaMovimiento,
                         $motivo,
-                        $observaciones,
-                        $autorizadoPor
+                        $autorizadoPor,
+                        $observaciones
                     );
                     break;
 
@@ -231,7 +231,7 @@ class MovimientoController
             exit;
         }
 
-        $empleado = Empleado::find($idEmpleado);
+        $empleado = Empleado::findById($idEmpleado);
 
         if (!$empleado) {
             $_SESSION['mensaje'] = "Empleado no encontrado";
@@ -263,7 +263,7 @@ class MovimientoController
             exit;
         }
 
-        $empleado = Empleado::find($id);
+        $empleado = Empleado::findById($id);
 
         if (!$empleado) {
             echo json_encode(['error' => 'Empleado no encontrado']);

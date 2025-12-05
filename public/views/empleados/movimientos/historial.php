@@ -119,9 +119,9 @@ if (!isset($movimientos) || !is_array($movimientos)) {
                                     default => 'bg-gray-500'
                                 };
                                 ?>
-                                <div class="absolute left-6 top-2 w-5 h-5 rounded-full border-4 border-white <?= $dotColor ?> z-10"></div>
+                                <div class="absolute left-6 top-3 w-5 h-5 rounded-full border-4 border-white <?= $dotColor ?> z-10"></div>
 
-                                <div class="absolute left-0 top-0 text-right" style="width: 60px;">
+                                <div class="absolute left-0 top-1 text-right" style="width: 60px;">
                                     <div class="text-xs font-medium text-vc-ink">
                                         <?= date('d/m/Y', strtotime($mov['fecha_movimiento'])) ?>
                                     </div>
@@ -189,12 +189,12 @@ if (!isset($movimientos) || !is_array($movimientos)) {
         </div>
 
         <div class="mt-6 flex justify-between">
-            <a href="?controller=empleado&action=ver&id=<?= $empleado['id_empleado'] ?>"
+            <a href="<?= url('index.php?controller=empleado&action=show&id=' . $empleado['id_empleado']) ?>"
                 class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">
                 Volver al Expediente
             </a>
             <div class="flex space-x-3">
-                <a href="?controller=movimiento&action=listado"
+                <a href="<?= url('index.php?controller=movimiento&action=listado') ?>"
                     class="px-4 py-2 bg-vc-teal text-white rounded-lg hover:bg-opacity-90 transition text-sm">
                     Todos los Movimientos
                 </a>

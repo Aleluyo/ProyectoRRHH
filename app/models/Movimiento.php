@@ -249,8 +249,8 @@ class Movimiento
         int $idEmpleado,
         string $fechaBaja,
         string $motivo,
-        ?string $observaciones,
-        int $autorizadoPor
+        int $autorizadoPor,
+        ?string $observaciones = null
     ): int {
         global $pdo;
 
