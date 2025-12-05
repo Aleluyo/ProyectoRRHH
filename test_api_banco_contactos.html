@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de APIs - Banco y Contactos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Prueba de APIs - Información Bancaria y Contactos</h1>
+        
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Pruebas de Banco -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">API de Banco</h2>
+                
+                <div class="space-y-3">
+                    <button onclick="probarCrearBanco()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Crear Cuenta Bancaria
+                    </button>
+                    
+                    <button onclick="probarObtenerBanco()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Obtener Cuenta (ID: 1)
+                    </button>
+                    
+                    <button onclick="probarEditarBanco()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                        Editar Cuenta (ID: 1)
+                    </button>
+                    
+                    <button onclick="probarDesactivarBanco()" class="w-full px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
+                        Desactivar Cuenta (ID: 2)
+                    </button>
+                </div>
+                
+                <div id="resultado-banco" class="mt-4 p-3 bg-gray-100 rounded text-sm font-mono overflow-auto max-h-60"></div>
+            </div>
+            
+            <!-- Pruebas de Contactos -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">API de Contactos</h2>
+                
+                <div class="space-y-3">
+                    <button onclick="probarCrearContacto()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Crear Contacto
+                    </button>
+                    
+                    <button onclick="probarObtenerContacto()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Obtener Contacto (ID: 1)
+                    </button>
+                    
+                    <button onclick="probarEditarContacto()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                        Editar Contacto (ID: 1)
+                    </button>
+                    
+                    <button onclick="probarDesactivarContacto()" class="w-full px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
+                        Desactivar Contacto (ID: 2)
+                    </button>
+                </div>
+                
+                <div id="resultado-contacto" class="mt-4 p-3 bg-gray-100 rounded text-sm font-mono overflow-auto max-h-60"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funciones de prueba para API de Banco
+        async function probarCrearBanco() {
+            const formData = new FormData();
+            formData.append('id_empleado', '1');
+            formData.append('banco', 'HSBC');
+            formData.append('clabe', '123456789012345678');
+            formData.append('titular', 'Empleado de Prueba');
+
+            try {
+                const response = await fetch('api/banco.php?action=crear', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-banco').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-banco').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarObtenerBanco() {
+            try {
+                const response = await fetch('api/banco.php?action=obtener&id=1');
+                const result = await response.json();
+                document.getElementById('resultado-banco').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-banco').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarEditarBanco() {
+            const formData = new FormData();
+            formData.append('id_banco', '1');
+            formData.append('banco', 'BBVA Bancomer');
+            formData.append('clabe', '012345678901234567');
+            formData.append('titular', 'Juan Pérez López - Actualizado');
+            formData.append('activa', '1');
+
+            try {
+                const response = await fetch('api/banco.php?action=editar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-banco').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-banco').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarDesactivarBanco() {
+            const formData = new FormData();
+            formData.append('id_banco', '2');
+
+            try {
+                const response = await fetch('api/banco.php?action=desactivar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-banco').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-banco').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Funciones de prueba para API de Contactos
+        async function probarCrearContacto() {
+            const formData = new FormData();
+            formData.append('id_empleado', '1');
+            formData.append('tipo', 'EMERGENCIA');
+            formData.append('nombre', 'María García');
+            formData.append('telefono', '555-999888');
+            formData.append('correo', 'maria@example.com');
+            formData.append('parentesco', 'Madre');
+
+            try {
+                const response = await fetch('api/contacto.php?action=crear', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-contacto').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-contacto').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarObtenerContacto() {
+            try {
+                const response = await fetch('api/contacto.php?action=obtener&id=1');
+                const result = await response.json();
+                document.getElementById('resultado-contacto').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-contacto').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarEditarContacto() {
+            const formData = new FormData();
+            formData.append('id_contacto', '1');
+            formData.append('tipo', 'PERSONAL');
+            formData.append('nombre', 'Laura Pérez - Actualizada');
+            formData.append('telefono', '555-112233');
+            formData.append('correo', 'laura.perez.actualizado@gmail.com');
+            formData.append('parentesco', 'Hermana Mayor');
+            formData.append('activo', '1');
+
+            try {
+                const response = await fetch('api/contacto.php?action=editar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-contacto').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-contacto').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function probarDesactivarContacto() {
+            const formData = new FormData();
+            formData.append('id_contacto', '2');
+
+            try {
+                const response = await fetch('api/contacto.php?action=desactivar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                document.getElementById('resultado-contacto').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('resultado-contacto').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

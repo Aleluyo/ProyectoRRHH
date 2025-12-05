@@ -380,16 +380,189 @@ if (!empty($empleado['fecha_nacimiento'])) {
 
             <!-- Tab: Información bancaria -->
             <div class="tab-content hidden" id="tab-bancaria">
-                <div class="rounded-lg border border-black/10 bg-white p-4">
-                    <p class="text-sm text-muted-ink">Información bancaria disponible próximamente.</p>
-                </div>
+                <?php if (!empty($cuentasBancarias)): ?>
+                    <div class="space-y-3">
+                        <?php foreach ($cuentasBancarias as $cuenta): ?>
+                            <div class="rounded-lg border border-black/10 bg-white p-4 hover:shadow-md transition-shadow <?= $cuenta['activa'] ? '' : 'opacity-60' ?>">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <h4 class="font-semibold text-vc-ink text-lg">
+                                                <?= htmlspecialchars($cuenta['banco'], ENT_QUOTES, 'UTF-8') ?>
+                                            </h4>
+                                            <?php if ($cuenta['activa']): ?>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full border bg-green-100 text-green-800 border-green-200">
+                                                    Activa
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full border bg-gray-100 text-gray-800 border-gray-200">
+                                                    Inactiva
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        
+                                        <div class="text-sm text-muted-ink space-y-1">
+                                            <p>
+                                                <span class="font-medium">CLABE:</span>
+                                                <span class="font-mono"><?= htmlspecialchars($cuenta['clabe'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            </p>
+                                            <p>
+                                                <span class="font-medium">Titular:</span>
+                                                <?= htmlspecialchars($cuenta['titular'], ENT_QUOTES, 'UTF-8') ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex flex-col gap-2 ml-4">
+                                        <button onclick="editarCuentaBancaria(<?= $cuenta['id_banco'] ?>)" 
+                                                class="px-3 py-1 text-xs font-medium text-white bg-vc-teal rounded hover:bg-vc-teal/90 transition-colors text-center">
+                                            Editar
+                                        </button>
+                                        
+                                        <?php if ($cuenta['activa']): ?>
+                                            <button onclick="desactivarCuentaBancaria(<?= $cuenta['id_banco'] ?>)" 
+                                                    class="px-3 py-1 text-xs font-medium text-vc-ink bg-vc-peach rounded hover:bg-vc-peach/90 transition-colors text-center">
+                                                Desactivar
+                                            </button>
+                                        <?php endif; ?>
+                                        
+                                        <button onclick="eliminarCuentaBancaria(<?= $cuenta['id_banco'] ?>)" 
+                                                class="px-3 py-1 text-xs font-medium text-white bg-vc-pink rounded hover:bg-vc-pink/90 transition-colors text-center">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="agregarCuentaBancaria()" 
+                                class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar cuenta bancaria
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-lg border border-black/10 bg-white p-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-muted-ink mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <p class="text-sm text-muted-ink mb-4">No hay cuentas bancarias registradas para este empleado.</p>
+                        <button onclick="agregarCuentaBancaria()" 
+                                class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar primera cuenta
+                        </button>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Tab: Contactos -->
             <div class="tab-content hidden" id="tab-contactos">
-                <div class="rounded-lg border border-black/10 bg-white p-4">
-                    <p class="text-sm text-muted-ink">Contactos de emergencia disponibles próximamente.</p>
-                </div>
+                <?php if (!empty($contactos)): ?>
+                    <div class="space-y-3">
+                        <?php foreach ($contactos as $contacto): ?>
+                            <div class="rounded-lg border border-black/10 bg-white p-4 hover:shadow-md transition-shadow <?= $contacto['activo'] ? '' : 'opacity-60' ?>">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <h4 class="font-semibold text-vc-ink text-lg">
+                                                <?= htmlspecialchars($contacto['nombre'], ENT_QUOTES, 'UTF-8') ?>
+                                            </h4>
+                                            <?php
+                                            $tipoClasses = [
+                                                'EMERGENCIA' => 'bg-red-100 text-red-800 border-red-200',
+                                                'PERSONAL' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                                'OTRO' => 'bg-gray-100 text-gray-800 border-gray-200'
+                                            ];
+                                            $tipoClass = $tipoClasses[$contacto['tipo']] ?? 'bg-gray-100 text-gray-800 border-gray-200';
+                                            ?>
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full border <?= $tipoClass ?>">
+                                                <?= htmlspecialchars($contacto['tipo'], ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                            <?php if (!$contacto['activo']): ?>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full border bg-gray-100 text-gray-600 border-gray-200">
+                                                    Inactivo
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        
+                                        <div class="text-sm text-muted-ink space-y-1">
+                                            <p>
+                                                <span class="font-medium">Teléfono:</span>
+                                                <a href="tel:<?= htmlspecialchars($contacto['telefono'], ENT_QUOTES, 'UTF-8') ?>" class="text-vc-teal hover:underline">
+                                                    <?= htmlspecialchars($contacto['telefono'], ENT_QUOTES, 'UTF-8') ?>
+                                                </a>
+                                            </p>
+                                            <?php if ($contacto['correo']): ?>
+                                                <p>
+                                                    <span class="font-medium">Correo:</span>
+                                                    <a href="mailto:<?= htmlspecialchars($contacto['correo'], ENT_QUOTES, 'UTF-8') ?>" class="text-vc-teal hover:underline">
+                                                        <?= htmlspecialchars($contacto['correo'], ENT_QUOTES, 'UTF-8') ?>
+                                                    </a>
+                                                </p>
+                                            <?php endif; ?>
+                                            <?php if ($contacto['parentesco']): ?>
+                                                <p>
+                                                    <span class="font-medium">Parentesco:</span>
+                                                    <?= htmlspecialchars($contacto['parentesco'], ENT_QUOTES, 'UTF-8') ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex flex-col gap-2 ml-4">
+                                        <button onclick="editarContacto(<?= $contacto['id_contacto'] ?>)" 
+                                                class="px-3 py-1 text-xs font-medium text-white bg-vc-teal rounded hover:bg-vc-teal/90 transition-colors text-center">
+                                            Editar
+                                        </button>
+                                        
+                                        <?php if ($contacto['activo']): ?>
+                                            <button onclick="desactivarContacto(<?= $contacto['id_contacto'] ?>)" 
+                                                    class="px-3 py-1 text-xs font-medium text-vc-ink bg-vc-peach rounded hover:bg-vc-peach/90 transition-colors text-center">
+                                                Desactivar
+                                            </button>
+                                        <?php endif; ?>
+                                        
+                                        <button onclick="eliminarContacto(<?= $contacto['id_contacto'] ?>)" 
+                                                class="px-3 py-1 text-xs font-medium text-white bg-vc-pink rounded hover:bg-vc-pink/90 transition-colors text-center">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="agregarContacto()" 
+                                class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar contacto
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-lg border border-black/10 bg-white p-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-muted-ink mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p class="text-sm text-muted-ink mb-4">No hay contactos registrados para este empleado.</p>
+                        <button onclick="agregarContacto()" 
+                                class="inline-flex items-center px-4 py-2 bg-vc-pink text-white text-sm font-medium rounded-lg hover:bg-vc-pink/90 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar primer contacto
+                        </button>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Tab: Documentos -->
@@ -708,6 +881,355 @@ if (!empty($empleado['fecha_nacimiento'])) {
             unset($_SESSION['toast_type']);
             ?>
         <?php endif; ?>
+
+        // Funciones para gestión de cuentas bancarias
+        function agregarCuentaBancaria() {
+            mostrarModalBanco();
+        }
+
+        function mostrarModalBanco(datos = null) {
+            const titulo = datos ? 'Editar Cuenta Bancaria' : 'Agregar Cuenta Bancaria';
+            const idBanco = datos ? datos.id_banco : '';
+            
+            const html = `
+                <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="modal-banco">
+                    <div class="bg-white rounded-xl max-w-md w-full p-6">
+                        <h3 class="text-xl font-semibold text-vc-ink mb-4">${titulo}</h3>
+                        <form id="form-banco" class="space-y-4">
+                            <input type="hidden" name="id_empleado" value="<?= $empleado['id_empleado'] ?>">
+                            ${idBanco ? `<input type="hidden" name="id_banco" value="${idBanco}">` : ''}
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Banco *</label>
+                                <input type="text" name="banco" value="${datos?.banco || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">CLABE (18 dígitos) *</label>
+                                <input type="text" name="clabe" value="${datos?.clabe || ''}" required pattern="\\d{18}" maxlength="18" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Titular *</label>
+                                <input type="text" name="titular" value="${datos?.titular || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            ${datos ? `
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="activa" value="1" ${datos.activa ? 'checked' : ''} class="mr-2 rounded border-gray-300 text-vc-pink focus:ring-vc-pink">
+                                    <span class="text-sm font-medium text-vc-ink">Cuenta activa</span>
+                                </label>
+                            </div>` : ''}
+                            <div class="flex gap-2 pt-4">
+                                <button type="submit" class="flex-1 px-4 py-2 bg-vc-pink text-white rounded-lg hover:bg-vc-pink/90 transition-colors">
+                                    ${datos ? 'Actualizar' : 'Guardar'}
+                                </button>
+                                <button type="button" onclick="cerrarModal('modal-banco')" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            document.getElementById('form-banco').addEventListener('submit', guardarCuentaBancaria);
+        }
+
+        async function editarCuentaBancaria(id) {
+            try {
+                const response = await fetch(`<?= url('') ?>api/banco.php?action=obtener&id=${id}`);
+                
+                // Verificar si la respuesta es exitosa
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Obtener el texto de la respuesta primero para debug
+                const text = await response.text();
+                console.log('Respuesta del servidor:', text);
+                
+                // Intentar parsear como JSON
+                const result = JSON.parse(text);
+                
+                if (result.success) {
+                    mostrarModalBanco(result.data);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error completo:', error);
+                showToast('Error al cargar la cuenta bancaria: ' + error.message, 'error');
+            }
+        }
+
+        async function desactivarCuentaBancaria(id) {
+            if (!confirm('¿Desactivar esta cuenta bancaria? No se eliminará, solo se marcará como inactiva.')) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('id_banco', id);
+
+                const response = await fetch('<?= url('') ?>api/banco.php?action=desactivar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al desactivar la cuenta bancaria: ' + error.message, 'error');
+            }
+        }
+
+        async function eliminarCuentaBancaria(id) {
+            if (!confirm('¿Eliminar permanentemente esta cuenta bancaria? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('id_banco', id);
+
+                const response = await fetch('<?= url('') ?>api/banco.php?action=eliminar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al eliminar la cuenta bancaria: ' + error.message, 'error');
+            }
+        }
+
+        async function guardarCuentaBancaria(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const idBanco = formData.get('id_banco');
+            const action = idBanco ? 'editar' : 'crear';
+
+            // Si no está marcado el checkbox, no lo envíes o envía 0
+            if (idBanco && !formData.get('activa')) {
+                formData.set('activa', '0');
+            }
+
+            try {
+                const response = await fetch(`<?= url('') ?>api/banco.php?action=${action}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    cerrarModal('modal-banco');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al guardar la cuenta bancaria: ' + error.message, 'error');
+            }
+        }
+
+        // Funciones para gestión de contactos
+        function agregarContacto() {
+            mostrarModalContacto();
+        }
+
+        function mostrarModalContacto(datos = null) {
+            const titulo = datos ? 'Editar Contacto' : 'Agregar Contacto';
+            const idContacto = datos ? datos.id_contacto : '';
+            
+            const html = `
+                <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="modal-contacto">
+                    <div class="bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <h3 class="text-xl font-semibold text-vc-ink mb-4">${titulo}</h3>
+                        <form id="form-contacto" class="space-y-4">
+                            <input type="hidden" name="id_empleado" value="<?= $empleado['id_empleado'] ?>">
+                            ${idContacto ? `<input type="hidden" name="id_contacto" value="${idContacto}">` : ''}
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Tipo *</label>
+                                <select name="tipo" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                                    <option value="EMERGENCIA" ${datos?.tipo === 'EMERGENCIA' ? 'selected' : ''}>Emergencia</option>
+                                    <option value="PERSONAL" ${datos?.tipo === 'PERSONAL' ? 'selected' : ''}>Personal</option>
+                                    <option value="OTRO" ${datos?.tipo === 'OTRO' ? 'selected' : ''}>Otro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Nombre *</label>
+                                <input type="text" name="nombre" value="${datos?.nombre || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Teléfono *</label>
+                                <input type="tel" name="telefono" value="${datos?.telefono || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Correo</label>
+                                <input type="email" name="correo" value="${datos?.correo || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vc-ink mb-1">Parentesco</label>
+                                <input type="text" name="parentesco" value="${datos?.parentesco || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vc-pink focus:border-transparent">
+                            </div>
+                            ${datos ? `
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="activo" value="1" ${datos.activo ? 'checked' : ''} class="mr-2 rounded border-gray-300 text-vc-pink focus:ring-vc-pink">
+                                    <span class="text-sm font-medium text-vc-ink">Contacto activo</span>
+                                </label>
+                            </div>` : ''}
+                            <div class="flex gap-2 pt-4">
+                                <button type="submit" class="flex-1 px-4 py-2 bg-vc-pink text-white rounded-lg hover:bg-vc-pink/90 transition-colors">
+                                    ${datos ? 'Actualizar' : 'Guardar'}
+                                </button>
+                                <button type="button" onclick="cerrarModal('modal-contacto')" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            document.getElementById('form-contacto').addEventListener('submit', guardarContacto);
+        }
+
+        async function editarContacto(id) {
+            try {
+                const response = await fetch(`<?= url('') ?>api/contacto.php?action=obtener&id=${id}`);
+                
+                // Verificar si la respuesta es exitosa
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Obtener el texto de la respuesta primero para debug
+                const text = await response.text();
+                console.log('Respuesta del servidor:', text);
+                
+                // Intentar parsear como JSON
+                const result = JSON.parse(text);
+                
+                if (result.success) {
+                    mostrarModalContacto(result.data);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error completo:', error);
+                showToast('Error al cargar el contacto: ' + error.message, 'error');
+            }
+        }
+
+        async function desactivarContacto(id) {
+            if (!confirm('¿Desactivar este contacto? No se eliminará, solo se marcará como inactivo.')) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('id_contacto', id);
+
+                const response = await fetch('<?= url('') ?>api/contacto.php?action=desactivar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al desactivar el contacto: ' + error.message, 'error');
+            }
+        }
+
+        async function eliminarContacto(id) {
+            if (!confirm('¿Eliminar permanentemente este contacto? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('id_contacto', id);
+
+                const response = await fetch('<?= url('') ?>api/contacto.php?action=eliminar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al eliminar el contacto: ' + error.message, 'error');
+            }
+        }
+
+        async function guardarContacto(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const idContacto = formData.get('id_contacto');
+            const action = idContacto ? 'editar' : 'crear';
+
+            // Si no está marcado el checkbox, no lo envíes o envía 0
+            if (idContacto && !formData.get('activo')) {
+                formData.set('activo', '0');
+            }
+
+            try {
+                const response = await fetch(`<?= url('') ?>api/contacto.php?action=${action}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    cerrarModal('modal-contacto');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error al guardar el contacto: ' + error.message, 'error');
+            }
+        }
+
+        function cerrarModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.remove();
+            }
+        }
     </script>
 </body>
 

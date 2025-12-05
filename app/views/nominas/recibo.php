@@ -75,8 +75,10 @@ require_once __DIR__ . '/../../../config/paths.php';
                 <?php foreach ($detalles as $d): ?>
                 <tr>
                     <td class="py-2">
-                        <span class="font-bold text-gray-700"><?= $d['clave'] ?></span>
-                        <span class="text-gray-500 ml-2 text-xs"><?= $d['observacion'] ?? '-' ?></span>
+                        <span class="font-bold text-gray-700"><?= htmlspecialchars($d['concepto_nombre'] ?? $d['clave']) ?></span>
+                        <?php if (!empty($d['observacion']) && $d['observacion'] !== $d['concepto_nombre']): ?>
+                            <span class="text-gray-500 ml-2 text-xs"><?= htmlspecialchars($d['observacion']) ?></span>
+                        <?php endif; ?>
                     </td>
                     <?php if ($d['tipo'] === 'PERCEPCION'): ?>
                         <td class="text-right py-2 text-gray-800">$<?= number_format((float)$d['monto'], 2) ?></td>

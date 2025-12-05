@@ -1484,6 +1484,6 @@ CREATE TABLE empleados_documentos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci 
 COMMENT='Documentos del expediente de empleados';
 
-/* Agregado para borrado lógico de Reclutamiento */
+/* Agregado para borrado lï¿½gico de Reclutamiento */
 ALTER TABLE vacantes ADD COLUMN IF NOT EXISTS activo TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Activo, 0=Eliminado';
 ALTER TABLE candidatos ADD COLUMN IF NOT EXISTS activo TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Activo, 0=Eliminado';
