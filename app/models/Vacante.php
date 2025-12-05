@@ -38,6 +38,7 @@ class Vacante
         $sql = "
             SELECT
                 v.*,
+                a.id_empresa,
                 a.nombre_area         AS area_nombre,
                 e.nombre              AS empresa_nombre,
                 p.nombre_puesto       AS puesto_nombre,
