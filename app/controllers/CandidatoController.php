@@ -146,24 +146,90 @@ class CandidatoController
 
         Candidato::update($id, $data);
 
+        $_SESSION['swal'] = [
+            'title' => 'Candidato Actualizado',
+            'text'  => 'Los datos del candidato se han guardado correctamente.',
+            'icon'  => 'success'
+        ];
+
         header('Location: index.php?controller=candidato&action=index');
         exit;
     }
 
-    /* =========================================================
-     *  ELIMINAR (por si luego lo usas)
-     * ========================================================= */
+    /**
+     * Eliminar candidato (lógico)
+     */
     public function delete(): void
     {
         requireLogin();
         requireRole(1);
+        session_start();
 
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id > 0) {
             Candidato::delete($id);
+            $_SESSION['swal'] = [
+                'title' => 'Candidato Eliminado',
+                'text'  => 'El candidato ha sido eliminado correctamente.',
+                'icon'  => 'success'
+            ];
         }
 
         header('Location: index.php?controller=candidato&action=index');
+        exit;
+    }
+
+    /**
+     * Ver CV validando existencia
+     * GET: ?controller=candidato&action=verCV&id=1
+     */
+    public function verCV(): void
+    {
+        requireLogin();
+        // requireRole(1); 
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        if ($id <= 0) {
+            header('Location: index.php?controller=candidato&action=index');
+            exit;
+        }
+
+        $candidato = Candidato::findById($id);
+
+        if (!$candidato || empty($candidato['cv'])) {
+            session_start();
+            $_SESSION['swal'] = [
+                'title' => 'Sin CV',
+                'text'  => 'Este candidato no tiene un curriculum registrado.',
+                'icon'  => 'warning'
+            ];
+            header('Location: index.php?controller=candidato&action=index');
+            exit;
+        }
+
+        // Ruta del archivo (asumiendo guardado relativo en public/)
+        $rutaArchivo = __DIR__ . '/../../public/' . ltrim($candidato['cv'], '/');
+        
+        // Si es URL absoluta
+        if (strpos($candidato['cv'], 'http') === 0) {
+            header('Location: ' . $candidato['cv']);
+            exit;
+        }
+
+        if (!file_exists($rutaArchivo)) {
+            session_start();
+            $_SESSION['swal'] = [
+                'title' => 'Archivo no encontrado',
+                'text'  => 'El archivo del CV no se encuentra en el servidor.',
+                'icon'  => 'error'
+            ];
+            header('Location: index.php?controller=candidato&action=index');
+            exit;
+        }
+
+        // Redirigir al archivo
+        header('Location: ' . $candidato['cv']);
         exit;
     }
 
@@ -194,8 +260,6 @@ class CandidatoController
         } elseif (!preg_match('/^[0-9]{8,15}$/', $data['telefono'])) {
             $errors['telefono'] = 'El teléfono debe contener solo números (8 a 15 dígitos).';
         }
-
-        // Fuente y CV son opcionales, si quieres puedes añadir reglas aquí
 
         return $errors;
     }

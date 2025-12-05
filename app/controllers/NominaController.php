@@ -311,4 +311,121 @@ class NominaController
             exit;
         }
     }
+
+    /**
+     * Formulario para agregar manualmente un empleado a la nómina
+     */
+    public function createEntry(): void
+    {
+        requireLogin();
+        requireRole(1);
+        
+        $idPeriodo = isset($_GET['id_periodo']) ? (int)$_GET['id_periodo'] : 0;
+        $periodo = PeriodoNomina::findById($idPeriodo);
+        
+        if (!$periodo || $periodo['estado'] !== 'ABIERTO') {
+            $_SESSION['flash_error'] = 'Periodo no válido o cerrado.';
+            header('Location: index.php?controller=nomina&action=index');
+            exit;
+        }
+
+        // Obtener empleados que NO tienen nómina en este periodo
+        // Consultamos todos y filtramos
+        global $pdo;
+        $sql = "SELECT e.id_empleado, e.nombre, p.nombre_puesto 
+                FROM empleados e 
+                LEFT JOIN puestos p ON p.id_puesto = e.id_puesto
+                WHERE e.estado = 'ACTIVO' 
+                AND e.id_empleado NOT IN (SELECT id_empleado FROM nomina_empleado WHERE id_periodo = ?)
+                ORDER BY e.nombre";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$idPeriodo]);
+        $empleadosDisponibles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Catálogos
+        $conceptos = ConceptoNomina::all();
+        $percepcionesDisp = ConceptoNomina::getByTipo('PERCEPCION');
+        $deduccionesDisp = ConceptoNomina::getByTipo('DEDUCCION');
+
+        require __DIR__ . '/../views/nominas/create_entry.php';
+    }
+
+    /**
+     * Guardar entrada manual de nómina
+     */
+    public function storeEntry(): void
+    {
+        requireLogin();
+        requireRole(1);
+
+        $idPeriodo = (int)($_POST['id_periodo'] ?? 0);
+        $idEmpleado = (int)($_POST['id_empleado'] ?? 0);
+        
+        if ($idPeriodo <= 0 || $idEmpleado <= 0) {
+            $_SESSION['flash_error'] = 'Datos inválidos.';
+            header('Location: index.php?controller=nomina&action=index');
+            exit;
+        }
+
+        // Verificar si ya existe (doble check)
+        if (Nomina::exists($idEmpleado, $idPeriodo)) {
+             $_SESSION['flash_error'] = 'El empleado ya tiene nómina en este periodo.';
+             header("Location: index.php?controller=nomina&action=show&id=$idPeriodo");
+             exit;
+        }
+
+        $detalles = $_POST['detalles'] ?? [];
+
+        global $pdo;
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Crear Nomina Maestra
+            $idNomina = Nomina::create($idEmpleado, $idPeriodo);
+
+            $totalPercepciones = 0.0;
+            $totalDeducciones = 0.0;
+            
+            // Catálogo tipos
+            $conceptosAll = ConceptoNomina::all();
+            $tipoConcepto = []; 
+            foreach($conceptosAll as $c) {
+                $tipoConcepto[$c['id_concepto']] = $c['tipo'];
+            }
+
+            // 2. Insertar detalles
+            if (is_array($detalles)) {
+                foreach ($detalles as $item) {
+                    $idConcepto = (int)($item['id_concepto'] ?? 0);
+                    $monto = (float)($item['monto'] ?? 0);
+                    
+                    if ($idConcepto > 0 && $monto >= 0) {
+                        NominaDetalle::create($idNomina, $idConcepto, $monto);
+                        
+                        $tipo = $tipoConcepto[$idConcepto] ?? '';
+                        if ($tipo === 'PERCEPCION') {
+                            $totalPercepciones += $monto;
+                        } elseif ($tipo === 'DEDUCCION') {
+                            $totalDeducciones += $monto;
+                        }
+                    }
+                }
+            }
+
+            // 3. Actualizar totales
+            Nomina::updateTotals($idNomina, $totalPercepciones, $totalDeducciones);
+
+            $pdo->commit();
+            
+            $_SESSION['flash_success'] = 'Empleado agregado a la nómina correctamente.';
+            header('Location: index.php?controller=nomina&action=show&id=' . $idPeriodo);
+            exit;
+
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['flash_error'] = 'Error al crear: ' . $e->getMessage();
+            header("Location: index.php?controller=nomina&action=createEntry&id_periodo=$idPeriodo");
+            exit;
+        }
+    }
 }

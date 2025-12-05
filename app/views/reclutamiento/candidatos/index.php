@@ -24,6 +24,21 @@
 </head>
 <body class="bg-gray-50 text-vc-ink font-sans min-h-screen">
 
+    <?php if (isset($_SESSION['swal'])): ?>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    title: "<?= htmlspecialchars($_SESSION['swal']['title']) ?>",
+                    text: "<?= htmlspecialchars($_SESSION['swal']['text']) ?>",
+                    icon: "<?= htmlspecialchars($_SESSION['swal']['icon']) ?>",
+                    confirmButtonColor: '#36d1cc'
+                });
+            });
+        </script>
+        <?php unset($_SESSION['swal']); ?>
+    <?php endif; ?>
+
     <div class="max-w-7xl mx-auto p-8">
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -109,7 +124,9 @@
                                 </td>
                                 <td class="p-4">
                                     <?php if (!empty($c['cv'])): ?>
-                                        <a href="<?= htmlspecialchars($c['cv']) ?>" target="_blank" class="text-vc-teal hover:underline text-sm font-medium flex items-center gap-1">
+                                        <a href="<?= url('index.php?controller=candidato&action=verCV&id=' . $c['id_candidato']) ?>" 
+                                           class="text-vc-teal hover:underline text-sm font-medium flex items-center gap-1"
+                                           target="_blank">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                             Ver CV
                                         </a>

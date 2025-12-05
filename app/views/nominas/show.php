@@ -65,23 +65,6 @@ require_once __DIR__ . '/../../../config/paths.php';
     <?php if (isset($_SESSION['flash_success'])): ?>
         <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm font-medium">
             <?= $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Botón Regenerar si está vacío -->
-    <?php if (empty($nominas) && $periodo['estado'] === 'ABIERTO'): ?>
-        <div class="mb-6 p-6 rounded-xl bg-orange-50 border border-orange-100 text-center">
-            <h3 class="font-bold text-orange-800 mb-2">Periodo sin registros</h3>
-            <p class="text-sm text-orange-700 mb-4">Este periodo está abierto pero no se ha generado el cálculo de nómina para los empleados.</p>
-            <a href="<?= url('index.php?controller=nomina&action=generate&id=' . $periodo['id_periodo']) ?>" class="inline-block bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700 transition">
-                Generar Nómina Ahora
-            </a>
-        </div>
-    <?php endif; ?>
-
-    <div class="bg-white border border-black/10 rounded-xl overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-black/5 bg-gray-50/50 text-xs uppercase tracking-wider text-vc-ink/50">
                         <th class="px-6 py-4">Empleado</th>

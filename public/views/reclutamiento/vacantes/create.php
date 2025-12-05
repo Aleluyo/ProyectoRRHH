@@ -214,16 +214,27 @@ $oldReq        = (string)($old['requisitos'] ?? '');
           <!-- Solicitada por -->
           <div>
             <label for="solicitada_por" class="block text-sm font-medium text-vc-ink">
-              Solicitada por (ID usuario)
+              Solicitada por
             </label>
-            <input
-              type="number"
-              id="solicitada_por"
-              name="solicitada_por"
-              min="1"
-              class="mt-1 block w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-              value="<?= htmlspecialchars($oldSolicita, ENT_QUOTES, 'UTF-8') ?>"
-            />
+            <select
+                id="solicitada_por"
+                name="solicitada_por"
+                class="mt-1 block w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            >
+                <option value="">Seleccione usuario...</option>
+                <?php 
+                $userId = $_SESSION['user_id'] ?? 0;
+                $selectedUser = $oldSolicita !== '' ? $oldSolicita : $userId;
+                
+                foreach (($usuarios ?? []) as $u): 
+                    $uid = (string)$u['id_usuario'];
+                    $uname = htmlspecialchars($u['username'] ?? 'Usuario #' . $uid);
+                ?>
+                    <option value="<?= $uid ?>" <?= (string)$selectedUser === $uid ? 'selected' : '' ?>>
+                        <?= $uname ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
             <?php if (!empty($errors['solicitada_por'])): ?>
               <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['solicitada_por'], ENT_QUOTES, 'UTF-8') ?></p>
             <?php endif; ?>
