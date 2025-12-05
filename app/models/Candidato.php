@@ -58,8 +58,8 @@ class Candidato
             $params[':q'] = $q;
         }
 
-        // Logical Delete Filter
-        $where[] = "activo = 1";
+        // Logical Delete Filter - REMOVED because column 'activo' does not exist
+        // $where[] = "activo = 1";
 
         if ($fuente !== null && trim($fuente) !== '') {
             $where[] = 'fuente = :fuente';
@@ -250,7 +250,7 @@ class Candidato
     public static function delete(int $id): bool
     {
         global $pdo;
-        $stmt = $pdo->prepare("UPDATE candidatos SET activo = 0 WHERE id_candidato = ?");
+        $stmt = $pdo->prepare("DELETE FROM candidatos WHERE id_candidato = ?");
         return $stmt->execute([$id]);
     }
 }
