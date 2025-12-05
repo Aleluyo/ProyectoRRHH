@@ -1,35 +1,32 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../models/Candidato.php';
 require_once __DIR__ . '/../middleware/Auth.php';
+require_once __DIR__ . '/../models/Candidato.php';
 
 class CandidatoController
 {
-    /**
-     * Listado de candidatos
-     * GET: ?controller=candidato&action=index&q=texto&fuente=LinkedIn
-     */
+    /* =========================================================
+     *  LISTADO
+     * ========================================================= */
     public function index(): void
     {
         requireLogin();
         requireRole(1);
 
-        $search = $_GET['q']      ?? null;
-        $fuente = $_GET['fuente'] ?? null;
+        $search      = $_GET['q'] ?? null;
+        $candidatos  = Candidato::all(500, 0, $search);
 
-        $candidatos = Candidato::all(500, 0, $search, $fuente);
-
-        // $candidatos, $search, $fuente disponibles en la vista
+        // Vista de lista
         require __DIR__ . '/../../public/views/reclutamiento/candidatos/list.php';
     }
 
-    /**
-     * Formulario de nuevo candidato
-     * GET: ?controller=candidato&action=create
-     */
+    /* =========================================================
+     *  NUEVO CANDIDATO (GET)
+     * ========================================================= */
     public function create(): void
     {
+        requireLogin();
         requireRole(1);
 
         $errors = $_SESSION['errors']    ?? [];
@@ -40,24 +37,28 @@ class CandidatoController
         require __DIR__ . '/../../public/views/reclutamiento/candidatos/create.php';
     }
 
-    /**
-     * Guardar nuevo candidato
-     * POST: ?controller=candidato&action=store
-     */
+    /* =========================================================
+     *  GUARDAR NUEVO (POST)
+     * ========================================================= */
     public function store(): void
     {
+        requireLogin();
         requireRole(1);
-        session_start();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=candidato&action=index');
+            exit;
+        }
 
         $data = [
-            'nombre'   => $_POST['nombre']   ?? '',
-            'correo'   => $_POST['correo']   ?? '',
-            'telefono' => $_POST['telefono'] ?? '',
-            'cv'       => $_POST['cv']       ?? '',
-            'fuente'   => $_POST['fuente']   ?? '',
+            'nombre'   => trim($_POST['nombre']   ?? ''),
+            'correo'   => trim($_POST['correo']   ?? ''),
+            'telefono' => trim($_POST['telefono'] ?? ''),
+            'fuente'   => trim($_POST['fuente']   ?? ''),
+            'cv'       => trim($_POST['cv']       ?? ''),
         ];
 
-        $errors = $this->validarCandidato($data, null);
+        $errors = $this->validarCandidato($data);
 
         if (!empty($errors)) {
             $_SESSION['errors']    = $errors;
@@ -67,31 +68,22 @@ class CandidatoController
             exit;
         }
 
-        try {
-            Candidato::create($data);
+        // Crea el registro (el ID lo genera la BD con AUTO_INCREMENT)
+        Candidato::create($data);
 
-            $_SESSION['flash_success'] = 'Candidato creado correctamente.';
-            header('Location: index.php?controller=candidato&action=index');
-            exit;
-
-        } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Error al crear el candidato: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
-
-            header('Location: index.php?controller=candidato&action=create');
-            exit;
-        }
+        header('Location: index.php?controller=candidato&action=index');
+        exit;
     }
 
-    /**
-     * Formulario de edición
-     * GET: ?controller=candidato&action=edit&id=1
-     */
+    /* =========================================================
+     *  EDITAR CANDIDATO (GET)
+     * ========================================================= */
     public function edit(): void
     {
+        requireLogin();
         requireRole(1);
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
             header('Location: index.php?controller=candidato&action=index');
             exit;
@@ -104,111 +96,106 @@ class CandidatoController
         }
 
         $errors = $_SESSION['errors']    ?? [];
-        $old    = $_SESSION['old_input'] ?? [];
-
+        $old    = $_SESSION['old_input'] ?? null;
         unset($_SESSION['errors'], $_SESSION['old_input']);
+
+        // Si venimos de un error de validación, rellenar con los datos viejos
+        if (is_array($old) && !empty($old)) {
+            $candidato = array_merge($candidato, $old);
+        }
 
         require __DIR__ . '/../../public/views/reclutamiento/candidatos/edit.php';
     }
 
-    /**
-     * Actualizar candidato
-     * POST: ?controller=candidato&action=update&id=1
-     */
+    /* =========================================================
+     *  ACTUALIZAR (POST)  <-- ESTA ES LA ACCIÓN QUE NO ENCONTRABA
+     * ========================================================= */
     public function update(): void
     {
+        requireLogin();
         requireRole(1);
-        session_start();
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?controller=candidato&action=index');
+            exit;
+        }
+
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
             header('Location: index.php?controller=candidato&action=index');
             exit;
         }
 
         $data = [
-            'nombre'   => $_POST['nombre']   ?? '',
-            'correo'   => $_POST['correo']   ?? '',
-            'telefono' => $_POST['telefono'] ?? '',
-            'cv'       => $_POST['cv']       ?? '',
-            'fuente'   => $_POST['fuente']   ?? '',
+            'nombre'   => trim($_POST['nombre']   ?? ''),
+            'correo'   => trim($_POST['correo']   ?? ''),
+            'telefono' => trim($_POST['telefono'] ?? ''),
+            'fuente'   => trim($_POST['fuente']   ?? ''),
+            'cv'       => trim($_POST['cv']       ?? ''),
         ];
 
-        $errors = $this->validarCandidato($data, $id);
+        $errors = $this->validarCandidato($data);
 
         if (!empty($errors)) {
             $_SESSION['errors']    = $errors;
             $_SESSION['old_input'] = $data;
+
             header('Location: index.php?controller=candidato&action=edit&id=' . $id);
             exit;
         }
 
-        try {
-            Candidato::update($id, $data);
+        Candidato::update($id, $data);
 
-            $_SESSION['flash_success'] = 'Candidato actualizado correctamente.';
-            header('Location: index.php?controller=candidato&action=index');
-            exit;
-
-        } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Error al actualizar el candidato: ' . $e->getMessage();
-            $_SESSION['old_input']   = $data;
-            header('Location: index.php?controller=candidato&action=edit&id=' . $id);
-            exit;
-        }
+        header('Location: index.php?controller=candidato&action=index');
+        exit;
     }
 
-    /**
-     * Eliminar candidato
-     * GET/POST: ?controller=candidato&action=delete&id=1
-     */
+    /* =========================================================
+     *  ELIMINAR (por si luego lo usas)
+     * ========================================================= */
     public function delete(): void
     {
+        requireLogin();
         requireRole(1);
-        session_start();
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id > 0) {
-            try {
-                Candidato::delete($id);
-                $_SESSION['flash_success'] = 'Candidato eliminado correctamente.';
-            } catch (\Throwable $e) {
-                $_SESSION['flash_error'] = 'No se pudo eliminar el candidato: ' . $e->getMessage();
-            }
-        } else {
-            $_SESSION['flash_error'] = 'ID de candidato inválido.';
+            Candidato::delete($id);
         }
 
         header('Location: index.php?controller=candidato&action=index');
         exit;
     }
 
-    /**
-     * Validación básica para crear/editar candidatos.
-     */
-    private function validarCandidato(array $data, ?int $idCandidato = null): array
+    /* =========================================================
+     *  VALIDACIÓN COMÚN
+     * ========================================================= */
+    private function validarCandidato(array $data): array
     {
         $errors = [];
 
-        $nombre = trim($data['nombre'] ?? '');
-        if ($nombre === '') {
-            $errors['nombre'] = 'El nombre del candidato es obligatorio.';
-        } elseif (mb_strlen($nombre) > 120) {
-            $errors['nombre'] = 'El nombre es demasiado largo.';
+        // Nombre: requerido, solo letras y espacios
+        if ($data['nombre'] === '') {
+            $errors['nombre'] = 'El nombre es obligatorio.';
+        } elseif (!preg_match('/^[\p{L}\s]+$/u', $data['nombre'])) {
+            $errors['nombre'] = 'El nombre solo puede contener letras y espacios.';
         }
 
-        $correo = trim($data['correo'] ?? '');
-        if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-            $errors['correo'] = 'El correo electrónico no es válido.';
-        } elseif ($correo !== '' && Candidato::existsByCorreo($correo, $idCandidato)) {
-            $errors['correo'] = 'Ya existe un candidato con ese correo.';
+        // Correo: requerido, formato de email
+        if ($data['correo'] === '') {
+            $errors['correo'] = 'El correo electrónico es obligatorio.';
+        } elseif (!filter_var($data['correo'], FILTER_VALIDATE_EMAIL)) {
+            $errors['correo'] = 'El correo electrónico no tiene un formato válido.';
         }
 
-        $telefono = trim($data['telefono'] ?? '');
-        if ($telefono !== '' && (strlen($telefono) < 5 || strlen($telefono) > 25)) {
-            $errors['telefono'] = 'El teléfono tiene una longitud inválida.';
+        // Teléfono: requerido, solo dígitos, longitud 8–15
+        if ($data['telefono'] === '') {
+            $errors['telefono'] = 'El teléfono es obligatorio.';
+        } elseif (!preg_match('/^[0-9]{8,15}$/', $data['telefono'])) {
+            $errors['telefono'] = 'El teléfono debe contener solo números (8 a 15 dígitos).';
         }
+
+        // Fuente y CV son opcionales, si quieres puedes añadir reglas aquí
 
         return $errors;
     }

@@ -8,57 +8,51 @@ require_once __DIR__ . '/../middleware/Auth.php';
 class EntrevistaController
 {
     /**
-     * Listado de entrevistas por postulación
-     * GET: ?controller=entrevista&action=index&id_postulacion=1
+     * Lista de entrevistas.
+     * - Si viene id_postulacion => filtra por esa postulación.
+     * - Si no viene => muestra todas las entrevistas.
+     * GET: ?controller=entrevista&action=index[&id_postulacion=1][&q=texto]
      */
     public function index(): void
     {
         requireLogin();
         requireRole(1);
 
-        $idPost = isset($_GET['id_postulacion']) ? (int)$_GET['id_postulacion'] : 0;
-        if ($idPost <= 0) {
-            header('Location: index.php?controller=vacante&action=index');
-            exit;
+        $search        = $_GET['q'] ?? null;
+        $idPostulacion = isset($_GET['id_postulacion']) ? (int)$_GET['id_postulacion'] : 0;
+        if ($idPostulacion <= 0) {
+            $idPostulacion = null;
         }
 
-        $postulacion = Postulacion::findById($idPost);
-        if (!$postulacion) {
-            header('Location: index.php?controller=vacante&action=index');
-            exit;
+        $entrevistas = Entrevista::all(500, 0, $search, $idPostulacion);
+
+        $postulacion = null;
+        if ($idPostulacion !== null) {
+            $postulacion = Postulacion::findById($idPostulacion);
         }
 
-        $entrevistas = Entrevista::byPostulacion($idPost, 500, 0);
-
-        // $postulacion, $entrevistas disponibles en la vista
+        // $entrevistas y $postulacion disponibles en la vista
         require __DIR__ . '/../../public/views/reclutamiento/entrevistas/list.php';
     }
 
     /**
-     * Formulario de nueva entrevista
-     * GET: ?controller=entrevista&action=create&id_postulacion=1
+     * Mostrar formulario de nueva entrevista
+     * GET: ?controller=entrevista&action=create[&id_postulacion=1]
      */
     public function create(): void
     {
         requireRole(1);
 
-        $idPost = isset($_GET['id_postulacion']) ? (int)$_GET['id_postulacion'] : 0;
-        if ($idPost <= 0) {
-            header('Location: index.php?controller=vacante&action=index');
-            exit;
-        }
-
-        $postulacion = Postulacion::findById($idPost);
-        if (!$postulacion) {
-            header('Location: index.php?controller=vacante&action=index');
-            exit;
-        }
+        $idPostulacion = isset($_GET['id_postulacion']) ? (int)$_GET['id_postulacion'] : 0;
 
         $errors = $_SESSION['errors']    ?? [];
         $old    = $_SESSION['old_input'] ?? [];
 
         unset($_SESSION['errors'], $_SESSION['old_input']);
 
+        $postulacion = $idPostulacion > 0 ? Postulacion::findById($idPostulacion) : null;
+
+        // $postulacion, $idPostulacion, $errors, $old disponibles en la vista
         require __DIR__ . '/../../public/views/reclutamiento/entrevistas/create.php';
     }
 
@@ -71,25 +65,33 @@ class EntrevistaController
         requireRole(1);
         session_start();
 
-        // Igual que en Vacante: puedes ajustar según tu sesión
-        $entrevistador = $_POST['entrevistador'] ?? ($_SESSION['user_id'] ?? null);
+        // datetime-local: 2025-12-04T10:30 -> 2025-12-04 10:30
+        $programadaRaw = $_POST['programada_para'] ?? '';
+        if (strpos($programadaRaw, 'T') !== false) {
+            $programadaRaw = str_replace('T', ' ', $programadaRaw);
+        }
 
         $data = [
-            'id_postulacion'  => $_POST['id_postulacion']  ?? null,
-            'entrevistador'   => $entrevistador,
-            'programada_para' => $_POST['programada_para'] ?? '',
-            'resultado'       => $_POST['resultado']       ?? 'PENDIENTE',
-            'notas'           => $_POST['notas']           ?? '',
+            'id_postulacion' => $_POST['id_postulacion'] ?? '',
+            'entrevistador'  => $_POST['entrevistador']  ?? '',
+            'programada_para'=> $programadaRaw,
+            'resultado'      => $_POST['resultado']      ?? 'PENDIENTE',
+            'notas'          => $_POST['notas']          ?? '',
         ];
 
-        $errors = $this->validarEntrevista($data, null);
-        $idPost = (int)($data['id_postulacion'] ?? 0);
+        $errors        = $this->validarEntrevista($data);
+        $idPostulacion = (int)($data['id_postulacion'] ?? 0);
 
         if (!empty($errors)) {
             $_SESSION['errors']    = $errors;
             $_SESSION['old_input'] = $data;
 
-            header('Location: index.php?controller=entrevista&action=create&id_postulacion=' . $idPost);
+            $redir = 'index.php?controller=entrevista&action=create';
+            if ($idPostulacion > 0) {
+                $redir .= '&id_postulacion=' . $idPostulacion;
+            }
+
+            header('Location: ' . $redir);
             exit;
         }
 
@@ -97,20 +99,31 @@ class EntrevistaController
             Entrevista::create($data);
 
             $_SESSION['flash_success'] = 'Entrevista creada correctamente.';
-            header('Location: index.php?controller=entrevista&action=index&id_postulacion=' . $idPost);
+
+            $redir = 'index.php?controller=entrevista&action=index';
+            if ($idPostulacion > 0) {
+                $redir .= '&id_postulacion=' . $idPostulacion;
+            }
+
+            header('Location: ' . $redir);
             exit;
 
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = 'Error al crear la entrevista: ' . $e->getMessage();
             $_SESSION['old_input']   = $data;
 
-            header('Location: index.php?controller=entrevista&action=create&id_postulacion=' . $idPost);
+            $redir = 'index.php?controller=entrevista&action=create';
+            if ($idPostulacion > 0) {
+                $redir .= '&id_postulacion=' . $idPostulacion;
+            }
+
+            header('Location: ' . $redir);
             exit;
         }
     }
 
     /**
-     * Formulario de edición
+     * Mostrar formulario de edición
      * GET: ?controller=entrevista&action=edit&id=1
      */
     public function edit(): void
@@ -119,23 +132,26 @@ class EntrevistaController
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if ($id <= 0) {
-            header('Location: index.php?controller=vacante&action=index');
+            header('Location: index.php?controller=entrevista&action=index');
             exit;
         }
 
         $entrevista = Entrevista::findById($id);
         if (!$entrevista) {
-            header('Location: index.php?controller=vacante&action=index');
+            header('Location: index.php?controller=entrevista&action=index');
             exit;
         }
 
-        $postulacion = Postulacion::findById((int)$entrevista['id_postulacion']);
+        $idPostulacion = (int)$entrevista['id_postulacion'];
 
         $errors = $_SESSION['errors']    ?? [];
         $old    = $_SESSION['old_input'] ?? [];
 
         unset($_SESSION['errors'], $_SESSION['old_input']);
 
+        $postulacion = Postulacion::findById($idPostulacion);
+
+        // $entrevista, $postulacion, $errors, $old disponibles en la vista
         require __DIR__ . '/../../public/views/reclutamiento/entrevistas/edit.php';
     }
 
@@ -150,20 +166,25 @@ class EntrevistaController
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if ($id <= 0) {
-            header('Location: index.php?controller=vacante&action=index');
+            header('Location: index.php?controller=entrevista&action=index');
             exit;
         }
 
+        $programadaRaw = $_POST['programada_para'] ?? '';
+        if (strpos($programadaRaw, 'T') !== false) {
+            $programadaRaw = str_replace('T', ' ', $programadaRaw);
+        }
+
         $data = [
-            'id_postulacion'  => $_POST['id_postulacion']  ?? null,
-            'entrevistador'   => $_POST['entrevistador']   ?? ($_SESSION['user_id'] ?? null),
-            'programada_para' => $_POST['programada_para'] ?? '',
-            'resultado'       => $_POST['resultado']       ?? 'PENDIENTE',
-            'notas'           => $_POST['notas']           ?? '',
+            'id_postulacion' => $_POST['id_postulacion'] ?? '',
+            'entrevistador'  => $_POST['entrevistador']  ?? '',
+            'programada_para'=> $programadaRaw,
+            'resultado'      => $_POST['resultado']      ?? '',
+            'notas'          => $_POST['notas']          ?? '',
         ];
 
-        $errors = $this->validarEntrevista($data, $id);
-        $idPost = (int)($data['id_postulacion'] ?? 0);
+        $errors        = $this->validarEntrevista($data);
+        $idPostulacion = (int)($data['id_postulacion'] ?? 0);
 
         if (!empty($errors)) {
             $_SESSION['errors']    = $errors;
@@ -177,7 +198,13 @@ class EntrevistaController
             Entrevista::update($id, $data);
 
             $_SESSION['flash_success'] = 'Entrevista actualizada correctamente.';
-            header('Location: index.php?controller=entrevista&action=index&id_postulacion=' . $idPost);
+
+            $redir = 'index.php?controller=entrevista&action=index';
+            if ($idPostulacion > 0) {
+                $redir .= '&id_postulacion=' . $idPostulacion;
+            }
+
+            header('Location: ' . $redir);
             exit;
 
         } catch (\Throwable $e) {
@@ -191,20 +218,31 @@ class EntrevistaController
 
     /**
      * Eliminar entrevista
-     * GET/POST: ?controller=entrevista&action=delete&id=1&id_postulacion=1
+     * GET/POST: ?controller=entrevista&action=delete&id=1
      */
     public function delete(): void
     {
         requireRole(1);
         session_start();
 
-        $id    = isset($_GET['id'])            ? (int)$_GET['id']            : 0;
-        $idPost = isset($_GET['id_postulacion']) ? (int)$_GET['id_postulacion'] : 0;
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id > 0) {
             try {
+                $entrevista    = Entrevista::findById($id);
+                $idPostulacion = $entrevista ? (int)$entrevista['id_postulacion'] : 0;
+
                 Entrevista::delete($id);
                 $_SESSION['flash_success'] = 'Entrevista eliminada correctamente.';
+
+                $redir = 'index.php?controller=entrevista&action=index';
+                if ($idPostulacion > 0) {
+                    $redir .= '&id_postulacion=' . $idPostulacion;
+                }
+
+                header('Location: ' . $redir);
+                exit;
+
             } catch (\Throwable $e) {
                 $_SESSION['flash_error'] = 'No se pudo eliminar la entrevista: ' . $e->getMessage();
             }
@@ -212,42 +250,53 @@ class EntrevistaController
             $_SESSION['flash_error'] = 'ID de entrevista inválido.';
         }
 
-        if ($idPost > 0) {
-            header('Location: index.php?controller=entrevista&action=index&id_postulacion=' . $idPost);
-        } else {
-            header('Location: index.php?controller=vacante&action=index');
-        }
+        header('Location: index.php?controller=entrevista&action=index');
         exit;
     }
 
     /**
-     * Validación básica de entrevista.
+     * Validación alineada con el modelo Entrevista
      */
-    private function validarEntrevista(array $data, ?int $idEntrevista = null): array
+    private function validarEntrevista(array $data): array
     {
         $errors = [];
 
-        $idPost = (int)($data['id_postulacion'] ?? 0);
-        if ($idPost <= 0) {
-            $errors['id_postulacion'] = 'La postulación es obligatoria.';
+        // id_postulacion
+        $idPostStr = (string)($data['id_postulacion'] ?? '');
+        if ($idPostStr === '' || !ctype_digit($idPostStr) || (int)$idPostStr <= 0) {
+            $errors['id_postulacion'] = 'La postulación es obligatoria y debe ser un ID válido.';
         }
 
-        $entrevistador = (int)($data['entrevistador'] ?? 0);
-        if ($entrevistador <= 0) {
-            $errors['entrevistador'] = 'El entrevistador es obligatorio.';
+        // entrevistador (ID numérico)
+        $idEntrevStr = (string)($data['entrevistador'] ?? '');
+        if ($idEntrevStr === '' || !ctype_digit($idEntrevStr) || (int)$idEntrevStr <= 0) {
+            $errors['entrevistador'] = 'El entrevistador es obligatorio y debe ser un ID válido.';
         }
 
-        $prog = trim((string)($data['programada_para'] ?? ''));
-        if ($prog === '') {
-            $errors['programada_para'] = 'La fecha/hora programada es obligatoria.';
+        // programada_para
+        $fechaStr = trim((string)($data['programada_para'] ?? ''));
+        if ($fechaStr === '') {
+            $errors['programada_para'] = 'La fecha y hora programada es obligatoria.';
+        } else {
+            $dt = \DateTimeImmutable::createFromFormat('Y-m-d H:i', $fechaStr)
+                ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $fechaStr);
+
+            if (!$dt) {
+                $errors['programada_para'] = 'La fecha y hora no es válida.';
+            }
         }
 
+        // resultado
         $resultado = strtoupper(trim((string)($data['resultado'] ?? '')));
-        $validos   = ['PENDIENTE', 'APROBADO', 'RECHAZADO'];
-        if ($resultado === '') {
-            $errors['resultado'] = 'El resultado es obligatorio (o al menos PENDIENTE).';
-        } elseif (!in_array($resultado, $validos, true)) {
-            $errors['resultado'] = 'Resultado de entrevista inválido.';
+        $permitidos = ['PENDIENTE','APROBADO','RECHAZADO'];
+        if ($resultado === '' || !in_array($resultado, $permitidos, true)) {
+            $errors['resultado'] = 'El resultado es inválido.';
+        }
+
+        // notas
+        $notas = trim((string)($data['notas'] ?? ''));
+        if (mb_strlen($notas) > 2000) {
+            $errors['notas'] = 'Las notas no deben exceder 2000 caracteres.';
         }
 
         return $errors;

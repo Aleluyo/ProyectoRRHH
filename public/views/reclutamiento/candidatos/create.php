@@ -12,14 +12,18 @@ $area   = htmlspecialchars($_SESSION['area']   ?? '', ENT_QUOTES, 'UTF-8');
 $puesto = htmlspecialchars($_SESSION['puesto'] ?? '', ENT_QUOTES, 'UTF-8');
 $ciudad = htmlspecialchars($_SESSION['ciudad'] ?? '', ENT_QUOTES, 'UTF-8');
 
-$errors = $errors ?? ($_SESSION['errors'] ?? []);
-$old    = $old    ?? ($_SESSION['old_input'] ?? []);
+$old    = $old    ?? [];
+$errors = $errors ?? [];
+
+function old_value(array $old, string $key): string {
+    return htmlspecialchars($old[$key] ?? '', ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Nuevo candidato · Reclutamiento</title>
+  <title>Nuevo candidato · Reclutamiento y Selección</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Tailwind -->
@@ -57,10 +61,10 @@ $old    = $old    ?? ($_SESSION['old_input'] ?? []);
 
   <!-- Estilos -->
   <link rel="stylesheet" href="<?= asset('css/vice.css') ?>">
+
 </head>
 <body class="min-h-screen bg-white text-vc-ink font-sans relative">
 
-  <!-- Línea superior + fondo -->
   <div class="h-[1px] w-full bg-[image:linear-gradient(90deg,#ff78b5,#ffc9a9,#36d1cc)] opacity-70"></div>
   <div class="absolute inset-0 grid-bg opacity-15 pointer-events-none"></div>
 
@@ -82,12 +86,13 @@ $old    = $old    ?? ($_SESSION['old_input'] ?? []);
     </div>
   </header>
 
-  <!-- Contenido -->
-  <main class="mx-auto max-w-4xl px-4 sm:px-6 py-8 relative">
+  <main class="mx-auto max-w-5xl px-4 sm:px-6 py-8 relative">
     <!-- Breadcrumb -->
     <div class="mb-5">
       <nav class="flex items-center gap-3 text-sm">
-        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">Inicio</a>
+        <a href="<?= url('index.php') ?>" class="text-muted-ink hover:text-vc-ink transition">
+          Inicio
+        </a>
         <svg class="w-4 h-4 text-vc-peach" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -108,102 +113,126 @@ $old    = $old    ?? ($_SESSION['old_input'] ?? []);
     </div>
 
     <!-- Título -->
-    <section class="mb-6">
-      <h1 class="vice-title text-[32px] leading-tight text-vc-ink">Nuevo candidato</h1>
+    <section class="mb-7">
+      <h1 class="vice-title text-[36px] leading-tight text-vc-ink">Nuevo candidato</h1>
       <p class="mt-1 text-sm sm:text-base text-muted-ink">
         Registra un nuevo candidato en el banco de CVs.
       </p>
     </section>
 
-    <!-- Formulario -->
-    <section class="rounded-xl border border-black/10 bg-white/90 p-5 shadow-soft">
-      <form method="post" action="<?= url('index.php?controller=candidato&action=store') ?>" class="space-y-4">
-        <!-- nombre -->
+    <!-- Mensaje de error general -->
+    <?php if (!empty($errors['general'])): ?>
+      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <?= htmlspecialchars($errors['general'], ENT_QUOTES, 'UTF-8') ?>
+      </div>
+    <?php endif; ?>
+
+    <section class="rounded-xl border border-black/10 bg-white/90 shadow-soft p-5 sm:p-6">
+      <form
+        action="<?= url('index.php?controller=candidato&action=create') ?>"
+        method="post"
+        class="space-y-5"
+        novalidate
+      >
+        <!-- Nombre -->
         <div>
-          <label for="nombre" class="block text-sm font-medium text-vc-ink mb-1">Nombre completo</label>
+          <label for="nombre" class="block text-sm font-medium text-vc-ink">
+            Nombre completo <span class="text-red-500">*</span>
+          </label>
           <input
-            type="text"
-            name="nombre"
             id="nombre"
-            value="<?= htmlspecialchars((string)($old['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+            name="nombre"
+            type="text"
             required
-          >
+            pattern="^[\p{L}\s]+$"
+            title="Sólo letras y espacios."
+            value="<?= old_value($old, 'nombre') ?>"
+            class="mt-1 block w-full rounded-lg border <?= isset($errors['nombre']) ? 'border-red-400' : 'border-black/10' ?> bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+          />
           <?php if (!empty($errors['nombre'])): ?>
             <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['nombre'], ENT_QUOTES, 'UTF-8') ?></p>
           <?php endif; ?>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- correo -->
-          <div>
-            <label for="correo" class="block text-sm font-medium text-vc-ink mb-1">Correo electrónico</label>
-            <input
-              type="email"
-              name="correo"
-              id="correo"
-              value="<?= htmlspecialchars((string)($old['correo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-              class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-            >
-            <?php if (!empty($errors['correo'])): ?>
-              <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['correo'], ENT_QUOTES, 'UTF-8') ?></p>
-            <?php endif; ?>
-          </div>
-
-          <!-- telefono -->
-          <div>
-            <label for="telefono" class="block text-sm font-medium text-vc-ink mb-1">Teléfono</label>
-            <input
-              type="text"
-              name="telefono"
-              id="telefono"
-              value="<?= htmlspecialchars((string)($old['telefono'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-              class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-            >
-            <?php if (!empty($errors['telefono'])): ?>
-              <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['telefono'], ENT_QUOTES, 'UTF-8') ?></p>
-            <?php endif; ?>
-          </div>
+        <!-- Correo -->
+        <div>
+          <label for="correo" class="block text-sm font-medium text-vc-ink">
+            Correo electrónico <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="correo"
+            name="correo"
+            type="email"
+            required
+            value="<?= old_value($old, 'correo') ?>"
+            class="mt-1 block w-full rounded-lg border <?= isset($errors['correo']) ? 'border-red-400' : 'border-black/10' ?> bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+          />
+          <?php if (!empty($errors['correo'])): ?>
+            <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['correo'], ENT_QUOTES, 'UTF-8') ?></p>
+          <?php endif; ?>
         </div>
 
-        <!-- fuente -->
+        <!-- Teléfono -->
         <div>
-          <label for="fuente" class="block text-sm font-medium text-vc-ink mb-1">
+          <label for="telefono" class="block text-sm font-medium text-vc-ink">
+            Teléfono <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="telefono"
+            name="telefono"
+            type="tel"
+            required
+            inputmode="numeric"
+            pattern="^\d{8,15}$"
+            minlength="8"
+            maxlength="15"
+            title="Sólo números, entre 8 y 15 dígitos."
+            value="<?= old_value($old, 'telefono') ?>"
+            class="mt-1 block w-full rounded-lg border <?= isset($errors['telefono']) ? 'border-red-400' : 'border-black/10' ?> bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+          />
+          <?php if (!empty($errors['telefono'])): ?>
+            <p class="mt-1 text-xs text-red-600"><?= htmlspecialchars($errors['telefono'], ENT_QUOTES, 'UTF-8') ?></p>
+          <?php endif; ?>
+        </div>
+
+        <!-- Fuente -->
+        <div>
+          <label for="fuente" class="block text-sm font-medium text-vc-ink">
             Fuente <span class="text-xs text-muted-ink">(LinkedIn, Referido, Bolsa de trabajo…)</span>
           </label>
           <input
-            type="text"
-            name="fuente"
             id="fuente"
-            value="<?= htmlspecialchars((string)($old['fuente'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-          >
+            name="fuente"
+            type="text"
+            value="<?= old_value($old, 'fuente') ?>"
+            class="mt-1 block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+          />
         </div>
 
-        <!-- cv -->
+        <!-- CV -->
         <div>
-          <label for="cv" class="block text-sm font-medium text-vc-ink mb-1">
+          <label for="cv" class="block text-sm font-medium text-vc-ink">
             CV <span class="text-xs text-muted-ink">(texto, resumen o link)</span>
           </label>
           <textarea
-            name="cv"
             id="cv"
+            name="cv"
             rows="4"
-            class="w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
-          ><?= htmlspecialchars((string)($old['cv'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+            class="mt-1 block w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vc-teal/60"
+          ><?= old_value($old, 'cv') ?></textarea>
         </div>
 
         <!-- Botones -->
-        <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <div class="flex justify-end gap-3 pt-2">
           <a
             href="<?= url('index.php?controller=candidato&action=index') ?>"
-            class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-muted-ink hover:bg-slate-50"
+            class="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm text-vc-ink hover:bg-slate-50"
           >
             Cancelar
           </a>
           <button
             type="submit"
-            class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-4 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80 transition"
+            class="inline-flex items-center justify-center rounded-lg bg-vc-teal px-5 py-2 text-sm font-medium text-vc-ink shadow-soft hover:bg-vc-neon/80"
           >
             Guardar candidato
           </button>
@@ -211,5 +240,15 @@ $old    = $old    ?? ($_SESSION['old_input'] ?? []);
       </form>
     </section>
   </main>
+
+  <script>
+    // Forzar sólo dígitos en el teléfono y limitar longitud
+    const telInput = document.getElementById('telefono');
+    if (telInput) {
+      telInput.addEventListener('input', () => {
+        telInput.value = telInput.value.replace(/\D/g, '').slice(0, 15);
+      });
+    }
+  </script>
 </body>
 </html>
